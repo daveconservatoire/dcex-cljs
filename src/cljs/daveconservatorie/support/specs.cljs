@@ -8,4 +8,7 @@
 (defn base64-str? [str] (str/starts-with? str "data:audio"))
 
 (s/def ::base64-string (s/and string? base64-str?))
-(s/def ::channel identity)
+(s/def ::chan identity)
+
+(defn chan-of [spec]
+  ::chan)

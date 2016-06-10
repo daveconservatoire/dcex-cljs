@@ -100,14 +100,16 @@
   :ret (ss/chan-of ::node))
 
 (def global-sound-manager
-  (atom {:nodes #{}}))
+  (atom {::nodes {}}))
 
-(defn play [{:keys [::node ::node-gen ::time]}]
-  (let [node (or node (node-gen))]
-    (swap! global-sound-manager update :nodes conj node)
-    (doto node
-      (.addEventListener "ended" #(swap! global-sound-manager update :nodes disj node))
-      (.start time))))
+(defn play
+  ([sound] (play sound global-sound-manager))
+  ([{:keys [::node ::node-gen ::time]} tracker]
+   (let [node (or node (node-gen))]
+     (swap! tracker update ::nodes assoc node time)
+     (doto node
+       (.addEventListener "ended" #(swap! tracker update ::nodes dissoc node))
+       (.start time)))))
 
 (s/fdef play
   :args (s/cat :sound ::sound-point))
@@ -162,23 +164,38 @@
                :chan ::sound-point-chan)
   :ret ::sound-point-chan)
 
+(defn stop-all [nodes]
+  (doseq [node nodes]
+    (.stop node)))
+
+(s/fdef stop-all
+  :args (s/coll-of ::node []))
+
 (defn consume-loop [interval chan]
-  (let [control (async/chan)]
+  (let [control (async/chan)
+        active (atom {::nodes {}})]
     (go
       (loop []
         (when-let [{:keys [::time] :as sound} (<! chan)]
-          (play sound)
+          (play sound active)
           (let [cur-time (current-time)]
             (if-not (< (- time cur-time) (* interval 2))
               (let [timer (async/timeout (* interval 1000))
-                    [_ c] (alts! [control timer])]
+                    [v c] (alts! [control timer])]
                 (condp = c
                   timer (recur)
-                  control nil))
+                  control (case v
+                            :stop-hard (->> (::nodes @active)
+                                            (keys)
+                                            (stop-all))
+                            :stop (let [t (current-time)]
+                                    (->> (::nodes @active)
+                                         (keep (fn [[k v]] (if (> v t) k)))
+                                         (stop-all))))))
               (recur))))))
     control))
 
 (s/fdef consume-loop
   :args (s/cat :interval ::time
                :chan ::sound-point-chan)
-  :ret ::ss/chan)
+  :ret (ss/chan-of #{:stop :stop-hard}))

@@ -24,9 +24,16 @@
 
 (s/def ::context #(instance? AudioContext %))
 (s/def ::node #(instance? js/AudioNode %))
-(s/def ::node-gen (s/fspec :args #{[]} :ret ::node))
+(s/def ::node-gen (s/fspec :args (s/cat) :ret ::node))
 (s/def ::buffer #(instance? js/AudioBuffer %))
 (s/def ::time (s/and number? pos?))
+(s/def ::sound-point
+  (s/and (s/keys :req [::time] :opt [::node ::node-gen])
+         #(some #{::node ::node-gen} (keys %))))
+(s/def ::sound-point-chan (ss/chan-of ::sound-point))
+(s/def ::items-list
+  (s/+ (s/cat :node-gens (s/+ ::node-gen)
+              :interval ::time)))
 
 (defn decode-audio-data [buffer]
   {:pre [(s/valid? ::ss/array-buffer buffer)]}
@@ -105,10 +112,6 @@
 (s/fdef play
   :args (s/cat :sound ::sound-point))
 
-(s/def ::sound-point
-  (s/and (s/keys :req [::time] :opt [::node ::node-gen])
-         #(some #{::node ::node-gen} (keys %))))
-
 ;; node-spec
 
 ;(defmulti node-spec-type first)
@@ -136,14 +139,10 @@
 ;
 ;(s/def ::node-spec (s/multi-spec node-spec-type first))
 
-(s/def ::items-list
-  (s/+ (s/cat :node-gens (s/+ ::node-gen)
-              :interval ::time)))
-
 (defn loop-chan [items start chan]
   {:pre [(s/valid? ::items-list items)
          (s/valid? ::time start)
-         (s/valid? (ss/chan-of ::sound-point) chan)]}
+         (s/valid? ::sound-point-chan chan)]}
   (go
     (loop [i 0
            t start]
@@ -161,8 +160,8 @@
 (s/fdef loop-chan
   :args (s/cat :items ::items-list
                :start ::time
-               :chan (ss/chan-of ::sound-point))
-  :ret (ss/chan-of ::sound-point))
+               :chan ::sound-point-chan)
+  :ret ::sound-point-chan)
 
 (defn consume-loop [interval chan]
   (go
@@ -172,4 +171,10 @@
         (let [cur-time (current-time)]
           (if-not (< (- time cur-time) (* interval 2))
             (<! (async/timeout (* interval 1000)))))
-        (recur)))))
+        (recur))))
+  chan)
+
+(s/fdef consume-loop
+  :args (s/cat :interval ::time
+               :chan ::sound-point-chan)
+  :ret ::sound-point-chan)

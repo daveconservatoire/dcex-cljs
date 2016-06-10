@@ -9,7 +9,7 @@
             [goog.crypt.base64 :as g64]
             [goog.object :as gobj]
             [cljs.spec :as s]
-            [cljs.core.async :as async :refer [chan promise-chan put! close! <! >!]]
+            [cljs.core.async :as async :refer [chan promise-chan put! close! <! >! alts!]]
             [daveconservatorie.support.specs :as ss]))
 
 (defonce AudioContext (or js/AudioContext js/webkitAudioContext))
@@ -153,8 +153,7 @@
                  (+ t val))
           (do
             (>! chan {::node-gen val ::time t})
-            (recur (inc i)
-                   t))))))
+            (recur (inc i) t))))))
   chan)
 
 (s/fdef loop-chan
@@ -164,17 +163,22 @@
   :ret ::sound-point-chan)
 
 (defn consume-loop [interval chan]
-  (go
-    (loop []
-      (when-let [{:keys [::time] :as sound} (<! chan)]
-        (play sound)
-        (let [cur-time (current-time)]
-          (if-not (< (- time cur-time) (* interval 2))
-            (<! (async/timeout (* interval 1000)))))
-        (recur))))
-  chan)
+  (let [control (async/chan)]
+    (go
+      (loop []
+        (when-let [{:keys [::time] :as sound} (<! chan)]
+          (play sound)
+          (let [cur-time (current-time)]
+            (if-not (< (- time cur-time) (* interval 2))
+              (let [timer (async/timeout (* interval 1000))
+                    [_ c] (alts! [control timer])]
+                (condp = c
+                  timer (recur)
+                  control nil))
+              (recur))))))
+    control))
 
 (s/fdef consume-loop
   :args (s/cat :interval ::time
                :chan ::sound-point-chan)
-  :ret ::sound-point-chan)
+  :ret ::ss/chan)

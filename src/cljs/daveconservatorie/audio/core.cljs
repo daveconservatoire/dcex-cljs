@@ -1,7 +1,7 @@
 (ns daveconservatorie.audio.core
   (:refer-clojure :exclude [create-node])
-  (:require-macros [cljs.core.async.macros :refer [go]])
-  (:require [daveconservatorie.audio.media.metronome :as metro]
+  (:require-macros [cljs.core.async.macros :refer [go go-loop]])
+  (:require [daveconservatorie.audio.media.metronome :refer [metro]]
             [daveconservatorie.audio.media.piano :refer [piano]]
             [clojure.test.check]
             [clojure.test.check.generators]
@@ -45,18 +45,26 @@
 
 (def NOTES [::C ::D ::E ::F ::G ::A ::B])
 
-(defn current-time [] (.-currentTime *audio-context*))
+(defn current-time []
+  "Return the current time from the Audio Context."
+  (.-currentTime *audio-context*))
 
 (s/fdef current-time
   :ret ::time)
 
 (defn base64->audio-data [str]
   {:pre [(s/valid? ::ss/base64-string str)]}
+  "Converts a base64 string into an AudioBuffer."
   (let [buffer (-> (.substr str 22) g64/decodeStringToUint8Array .-buffer)]
     (decode-audio-data buffer)))
 
+(s/fdef base64->audio-data
+  :args (s/cat :str ::ss/base64-string)
+  :ret (ss/chan-of ::buffer))
+
 (defn buffer-node [buffer]
   {:pre [(s/valid? ::buffer buffer)]}
+  "Creates a buffer node from an AudioBuffer."
   (doto (.createBufferSource *audio-context*)
     (gobj/set "buffer" buffer)))
 
@@ -65,6 +73,7 @@
   :ret ::node)
 
 (defn gain-node [value]
+  "Creates a gain with given value."
   (let [node (.createGain *audio-context*)]
     (-> (gobj/get node "gain") (gobj/set "value" value))
     node))
@@ -85,19 +94,34 @@
 (s/fdef node-chain
   :args (s/+ ::node))
 
-(defn play-sample [str t]
-  {:pre [(s/valid? ::ss/base64-string str)
-         (s/valid? ::time t)]}
-  (go
-    (doto (node-chain [(buffer-node (<! (base64->audio-data str)))
-                       (gain-node 2)
-                       (output)])
-      (.start t))))
+;(defn debounce [in ms]
+;  (let [out (chan)]
+;    (go-loop [last-val nil]
+;             (let [val (if (nil? last-val) (<! in) last-val)
+;                   timer (async/timeout ms)
+;                   [new-val ch] (alts! [in timer])]
+;               (condp = ch
+;                 timer (do (>! out val) (recur nil))
+;                 in (recur new-val))))
+;    out))
 
-(s/fdef play-sample
-  :args (s/cat :str ::ss/base64-string
-               :t ::time)
-  :ret (ss/chan-of ::node))
+(defn preload-sounds [sounds]
+  (let [out (chan)
+        in (async/to-chan sounds)
+        process (fn [[name str] out']
+                  (go
+                    (let [data (<! (base64->audio-data str))
+                          gen #(buffer-node data)]
+                      (>! out' [name gen])
+                      (close! out'))))]
+    (async/pipeline-async 10 out process in true)
+    (async/into {} out)))
+
+(defonce ^:dynamic *sound-library*
+  (let [a (atom {})]
+    (go
+      (reset! a (<! (preload-sounds (merge piano metro)))))
+    a))
 
 (def global-sound-manager
   (atom {::nodes {}}))
@@ -109,6 +133,7 @@
      (swap! tracker update ::nodes assoc node time)
      (doto node
        (.addEventListener "ended" #(swap! tracker update ::nodes dissoc node))
+       (.connect (output))
        (.start time)))))
 
 (s/fdef play
@@ -199,3 +224,7 @@
   :args (s/cat :interval ::time
                :chan ::sound-point-chan)
   :ret (ss/chan-of #{:stop :stop-hard}))
+
+(defn play-loop [items start]
+  (let [lc (loop-chan items start (chan 8))]
+    (consume-loop 10 lc)))

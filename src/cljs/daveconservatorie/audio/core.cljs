@@ -3,9 +3,6 @@
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
   (:require [daveconservatorie.audio.media.metronome :refer [metro]]
             [daveconservatorie.audio.media.piano :refer [piano]]
-            [clojure.test.check]
-            [clojure.test.check.generators]
-            [clojure.test.check.properties]
             [goog.crypt.base64 :as g64]
             [goog.object :as gobj]
             [cljs.spec :as s]
@@ -228,3 +225,54 @@
 (defn play-loop [items start]
   (let [lc (loop-chan items start (chan 8))]
     (consume-loop 10 lc)))
+
+(def TONE->VALUE {"C" 0 "D" 2 "E" 4 "F" 5 "G" 7 "A" 9 "B" 11})
+(def ACCENT->VALUE {"b" -1 "#" 1 "" 0})
+(def SEMITONE->NOTE
+  {0 "C" 1 "Db" 2 "D" 3 "Eb" 4 "E" 5 "F" 6 "Gb" 7 "G" 8 "Ab" 9 "A" 10 "Bb" 11 "B"})
+
+(def NOTE-PATTERN #"^([A-G])([b#]?)([0-8])$")
+
+(def ALL-NOTES
+  #{"A0" "Bb0" "B0" "C1" "Db1" "D1" "Eb1" "E1" "F1" "Gb1" "G1" "Ab1" "A1" "Bb1" "B1"
+    "C2" "Db2" "D2" "Eb2" "E2" "F2" "Gb2" "G2" "Ab2" "A2" "Bb2" "B2" "C3" "Db3" "D3"
+    "Eb3" "E3" "F3" "Gb3" "G3" "Ab3" "A3" "Bb3" "B3" "C4" "Db4" "D4" "Eb4" "E4" "F4"
+    "Gb4" "G4" "Ab4" "A4" "Bb4" "B4" "C5" "Db5" "D5" "Eb5" "E5" "F5" "Gb5" "G5" "Ab5"
+    "A5" "Bb5" "B5" "C6" "Db6" "D6" "Eb6" "E6" "F6" "Gb6" "G6" "Ab6" "A6" "Bb6" "B6"
+    "C7" "Db7" "D7" "Eb7" "E7" "F7" "Gb7" "G7" "Ab7" "A7" "Bb7" "B7" "C8"})
+
+(s/def ::note (s/with-gen
+                (s/and string? #(re-matches NOTE-PATTERN %))
+                #(s/gen ALL-NOTES)))
+(s/def ::semitone (s/and integer? #(<= 0 % 87)))
+
+(declare semitone->note)
+
+(defn note->semitone [note]
+  (if (s/valid? ::semitone note)
+    note
+    (let [[_ tone accent octive] (re-matches NOTE-PATTERN note)]
+      (-> (* octive 12)
+          (- 9) (+ (TONE->VALUE tone)) (+ (ACCENT->VALUE accent))))))
+
+(s/fdef note->semitone
+  :args (s/cat :note (s/or :note ::note
+                           :semitone ::semitone))
+  :ret ::semitone
+  :fn #(= (semitone->note (:ret %))
+          (semitone->note (-> % :args :note second))))
+
+(defn semitone->note [semitone]
+  (if-not (s/valid? ::semitone semitone)
+    semitone
+    (let [s (- semitone 3)
+          octive (-> (js/Math.floor (/ s 12)) (+ 1))
+          tone (-> (+ s 12) (mod 12))]
+      (str (SEMITONE->NOTE tone) octive))))
+
+(s/fdef semitone->note
+  :args (s/cat :semitone (s/or :note ::note
+                               :semitone ::semitone))
+  :ret ::note
+  :fn #(= (note->semitone (:ret %))
+          (note->semitone (-> % :args :semitone second))))

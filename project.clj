@@ -7,7 +7,7 @@
   :source-paths ["src/devcards" "src/cljs" "script"]
 
   :dependencies [[org.clojure/clojure "1.9.0-alpha5" :scope "provided"]
-                 [org.clojure/clojurescript "1.9.47" :scope "provided" :exclusions [org.clojure/google-closure-library]]
+                 [org.clojure/clojurescript "1.9.76" :scope "provided" :exclusions [org.clojure/google-closure-library]]
                  [org.clojure/core.async "0.2.374"]
 
                  [org.omcljs/om "1.0.0-alpha36"]

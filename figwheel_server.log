@@ -1,0 +1,114 @@
+[0mCompiling "resources/public/devcards/devcards.js" from ["src/devcards" "src/cljs"]...[0m
+[36m----  Compiler Warning on   src/cljs/daveconservatorie/audio/core.cljs   line:291  column:25  ----[0m
+
+  [1mNo such namespace: c, could not locate c.cljs, c.cljc, or Closure namespace ""[0m
+
+  [36m287[0m  [36m    (for [p progression[0m
+  [36m288[0m  [36m          :let [st (+ base (MAJOR-STEPS p))]][0m
+  [36m289[0m  [36m      (chord st (MAJOR-ARRANGEMENTS p)))))[0m
+  [36m290[0m  [36m[0m
+  [33m291[0m  [1m(s/def ::scale-position (s/int-in 0 7))[0m
+  [0m   [0m  [33m                        ^--- No such namespace: c, could not locate c.cljs, c.cljc, or Closure namespace ""[0m
+  [36m292[0m  [36m[0m
+  [36m293[0m  [36m(s/fdef major-chord-progression[0m
+  [36m294[0m  [36m  :args (s/cat :base ::sound :progression ()))[0m
+
+[36m----  Compiler Warning : Please see src/cljs/daveconservatorie/audio/core.cljs  ----[0m
+[36m----  Compiler Warning on   src/cljs/daveconservatorie/audio/core.cljs   line:291  column:25  ----[0m
+
+  [1mNo such namespace: c, could not locate c.cljs, c.cljc, or Closure namespace ""[0m
+
+  [36m287[0m  [36m    (for [p progression[0m
+  [36m288[0m  [36m          :let [st (+ base (MAJOR-STEPS p))]][0m
+  [36m289[0m  [36m      (chord st (MAJOR-ARRANGEMENTS p)))))[0m
+  [36m290[0m  [36m[0m
+  [33m291[0m  [1m(s/def ::scale-position (s/int-in 0 7))[0m
+  [0m   [0m  [33m                        ^--- No such namespace: c, could not locate c.cljs, c.cljc, or Closure namespace ""[0m
+  [36m292[0m  [36m[0m
+  [36m293[0m  [36m(s/fdef major-chord-progression[0m
+  [36m294[0m  [36m  :args (s/cat :base ::sound :progression ()))[0m
+
+[36m----  Compiler Warning : Please see src/cljs/daveconservatorie/audio/core.cljs  ----[0m
+[36m----  Compiler Warning on   src/cljs/daveconservatorie/audio/core.cljs   line:291  column:25  ----[0m
+
+  [1mNo such namespace: c, could not locate c.cljs, c.cljc, or Closure namespace ""[0m
+
+  [36m287[0m  [36m    (for [p progression[0m
+  [36m288[0m  [36m          :let [st (+ base (MAJOR-STEPS p))]][0m
+  [36m289[0m  [36m      (chord st (MAJOR-ARRANGEMENTS p)))))[0m
+  [36m290[0m  [36m[0m
+  [33m291[0m  [1m(s/def ::scale-position (s/int-in 0 7))[0m
+  [0m   [0m  [33m                        ^--- No such namespace: c, could not locate c.cljs, c.cljc, or Closure namespace ""[0m
+  [36m292[0m  [36m[0m
+  [36m293[0m  [36m(s/fdef major-chord-progression[0m
+  [36m294[0m  [36m  :args (s/cat :base ::sound :progression ()))[0m
+
+[36m----  Compiler Warning : Please see src/cljs/daveconservatorie/audio/core.cljs  ----[0m
+[36m----  Compiler Warning on   src/cljs/daveconservatorie/audio/core.cljs   line:291  column:25  ----[0m
+
+  [1mUse of undeclared Var c/int?[0m
+
+  [36m287[0m  [36m    (for [p progression[0m
+  [36m288[0m  [36m          :let [st (+ base (MAJOR-STEPS p))]][0m
+  [36m289[0m  [36m      (chord st (MAJOR-ARRANGEMENTS p)))))[0m
+  [36m290[0m  [36m[0m
+  [33m291[0m  [1m(s/def ::scale-position (s/int-in 0 7))[0m
+  [0m   [0m  [33m                        ^--- Use of undeclared Var c/int?[0m
+  [36m292[0m  [36m[0m
+  [36m293[0m  [36m(s/fdef major-chord-progression[0m
+  [36m294[0m  [36m  :args (s/cat :base ::sound :progression ()))[0m
+
+[36m----  Compiler Warning : Please see src/cljs/daveconservatorie/audio/core.cljs  ----[0m
+[32mSuccessfully compiled "resources/public/devcards/devcards.js" in 1.685 seconds.[0m
+notifying browser that file changed:  resources/public/devcards/goog/deps.js
+notifying browser that file changed:  resources/public/devcards/cljs_deps.js
+notifying browser that file changed:  out/daveconservatorie/audio/core.js
+notifying browser that file changed:  out/daveconservatorie/audio/core_cards.js
+[0mCompiling "resources/public/devcards/devcards.js" from ["src/devcards" "src/cljs"]...[0m
+[32mSuccessfully compiled "resources/public/devcards/devcards.js" in 3.177 seconds.[0m
+notifying browser that file changed:  resources/public/devcards/goog/deps.js
+notifying browser that file changed:  resources/public/devcards/cljs_deps.js
+notifying browser that file changed:  out/daveconservatorie/audio/core.js
+[0mCompiling "resources/public/devcards/devcards.js" from ["src/devcards" "src/cljs"]...[0m
+[32mSuccessfully compiled "resources/public/devcards/devcards.js" in 0.833 seconds.[0m
+notifying browser that file changed:  resources/public/devcards/cljs_deps.js
+notifying browser that file changed:  out/daveconservatorie/site/ui.js
+[0mCompiling "resources/public/devcards/devcards.js" from ["src/devcards" "src/cljs"]...[0m
+[32mSuccessfully compiled "resources/public/devcards/devcards.js" in 0.517 seconds.[0m
+notifying browser that file changed:  resources/public/devcards/cljs_deps.js
+notifying browser that file changed:  out/daveconservatorie/site/ui_cards.js
+[0mCompiling "resources/public/devcards/devcards.js" from ["src/devcards" "src/cljs"]...[0m
+[32mSuccessfully compiled "resources/public/devcards/devcards.js" in 0.443 seconds.[0m
+notifying browser that file changed:  resources/public/devcards/cljs_deps.js
+notifying browser that file changed:  out/daveconservatorie/site/ui_cards.js
+[0mCompiling "resources/public/devcards/devcards.js" from ["src/devcards" "src/cljs"]...[0m
+[32mSuccessfully compiled "resources/public/devcards/devcards.js" in 0.513 seconds.[0m
+notifying browser that file changed:  resources/public/devcards/cljs_deps.js
+notifying browser that file changed:  out/daveconservatorie/devcards.js
+[0mCompiling "resources/public/devcards/devcards.js" from ["src/devcards" "src/cljs"]...[0m
+[31mFailed to compile "resources/public/devcards/devcards.js" in 0.078 seconds.[0m
+[36m----  Could not Analyze  src/cljs/daveconservatorie/site/ui.cljs   line:1  column:1  ----[0m
+
+  [1mOnly :as and :refer options supported in :require / :require-macros; offending spec: [om.core :as om :require-macros true] at line 1 src/cljs/daveconservatorie/site/ui.cljs[0m
+
+  [33m1[0m  [1m(ns daveconservatorie.site.ui[0m
+  [0m [0m  [33m^--- Only :as and :refer options supported in :require / :require-macros; offending spec: [om.core :as om :require-macros true] at line 1 src/cljs/daveconservatorie/site/ui.cljs[0m
+  [36m2[0m  [36m  (:require [om.core :as om :require-macros true][0m
+  [36m3[0m  [36m            [om.dom :as dom]))[0m
+
+[36m----  Analysis Error : Please see src/cljs/daveconservatorie/site/ui.cljs  ----[0m
+[0mCompiling "resources/public/devcards/devcards.js" from ["src/devcards" "src/cljs"]...[0m
+[32mSuccessfully compiled "resources/public/devcards/devcards.js" in 0.519 seconds.[0m
+notifying browser that file changed:  resources/public/devcards/cljs_deps.js
+notifying browser that file changed:  out/daveconservatorie/site/ui.js
+[0mCompiling "resources/public/devcards/devcards.js" from ["src/devcards" "src/cljs"]...[0m
+[32mSuccessfully compiled "resources/public/devcards/devcards.js" in 0.522 seconds.[0m
+notifying browser that file changed:  out/daveconservatorie/site/ui.js
+notifying browser that file changed:  out/daveconservatorie/site/ui_cards.js
+[0mCompiling "resources/public/devcards/devcards.js" from ["src/devcards" "src/cljs"]...[0m
+[32mSuccessfully compiled "resources/public/devcards/devcards.js" in 0.431 seconds.[0m
+notifying browser that file changed:  resources/public/devcards/cljs_deps.js
+notifying browser that file changed:  out/daveconservatorie/site/ui_cards.js
+[0mCompiling "resources/public/devcards/devcards.js" from ["src/devcards" "src/cljs"]...[0m
+[32mSuccessfully compiled "resources/public/devcards/devcards.js" in 0.414 seconds.[0m
+notifying browser that file changed:  out/daveconservatorie/site/ui_cards.js

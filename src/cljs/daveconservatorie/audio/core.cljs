@@ -288,7 +288,7 @@
           :let [st (+ base (MAJOR-STEPS p))]]
       (chord st (MAJOR-ARRANGEMENTS p)))))
 
-(s/def ::scale-position (s/int-in 0 7))
+(s/def ::scale-position #{0 1 2 3 4 5 6})
 
 (s/fdef major-chord-progression
   :args (s/cat :base ::sound :progression ()))

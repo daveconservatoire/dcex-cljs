@@ -41,4 +41,15 @@
                                :output-dir           "resources/public/devcards"
                                :parallel-build       true
                                :recompile-dependents true
+                               :verbose              false}}
+               {:id           "main"
+                :source-paths ["src/devcards" "src/cljs"]
+                :compiler     {
+                               :main                 daveconservatorie.main
+                               :source-map-timestamp true
+                               :asset-path           "devcards"
+                               :output-to            "resources/public/devcards/devcards.js"
+                               :output-dir           "resources/public/devcards"
+                               :parallel-build       true
+                               :recompile-dependents true
                                :verbose              false}}]})

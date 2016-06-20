@@ -10,7 +10,8 @@
             [goog.object :as gobj]
             [om.dom :as dom]
             [om.next :as om :include-macros true]
-            [daveconservatorie.audio.core :as audio]))
+            [daveconservatorie.audio.core :as audio]
+            [clojure.string :as str]))
 
 (deftest test-play-piano
   (is (= 1 1)))
@@ -126,6 +127,16 @@
 (defcard chord-metronome-card
   (fn [_ _]
     (chord-metronome {})))
+
+(defcard chord-example
+  (for [note ["C3" "A3"]
+        [k v] audio/MAJOR-ARRANGEMENTS
+        :let [base (audio/note->semitone note)
+              increment (audio/MAJOR-STEPS k)]]
+    (audio/chord (+ base increment) v)))
+
+(defcard progression
+  (audio/major-chord-progression "C3" (map dec [1 5 6 4])))
 
 (deftest test-note->semitone
   (are [note semitone] (= (audio/note->semitone note) semitone)

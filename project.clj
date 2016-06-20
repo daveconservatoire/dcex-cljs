@@ -6,16 +6,20 @@
 
   :source-paths ["src/devcards" "src/cljs" "script"]
 
-  :dependencies [[org.clojure/clojure "1.9.0-alpha5" :scope "provided"]
+  :dependencies [[org.clojure/clojure "1.9.0-alpha7" :scope "provided"]
                  [org.clojure/clojurescript "1.9.76" :scope "provided" :exclusions [org.clojure/google-closure-library]]
+                 [org.omcljs/om "1.0.0-alpha36"]
+
+                 [figwheel-sidecar "0.5.4-3" :exclusions [clj-time joda-time org.clojure/tools.reader] :scope "test"]
+                 [binaryage/devtools "0.7.0"]
+                 [devcards "0.2.1-4" :exclusions [org.omcljs/om cljsjs/react-dom org.clojure/tools.reader cljsjs/react]]
                  [org.clojure/core.async "0.2.374"]
 
-                 [org.omcljs/om "1.0.0-alpha36"]
                  [navis/untangled-client "0.5.0" :exclusions [org.omcljs/om cljsjs/react-dom org.clojure/tools.reader cljsjs/react]]
 
-                 [devcards "0.2.1-4" :exclusions [org.omcljs/om cljsjs/react-dom org.clojure/tools.reader cljsjs/react]]
+
                  [binaryage/devtools "0.7.0"]
-                 [figwheel-sidecar "0.5.4-3" :exclusions [clj-time joda-time org.clojure/tools.reader] :scope "test"]
+
                  [org.clojure/test.check "0.9.0"]
 
                  [org.clojure/google-closure-library "0.0-20160609-f42b4a24"]]

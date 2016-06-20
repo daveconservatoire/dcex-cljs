@@ -123,7 +123,8 @@
        (.start time)))))
 
 (s/fdef play
-  :args (s/cat :sound ::sound-point))
+  :args (s/cat :sound ::sound-point
+               :tracker (s/? #(instance? Atom %))))
 
 ;; node-spec
 
@@ -170,7 +171,7 @@
   chan)
 
 (s/fdef loop-chan
-  :args (s/cat :items ::items-list
+  :args (s/cat :items (s/spec ::items-list)
                :start ::time
                :chan ::sound-point-chan)
   :ret ::sound-point-chan)
@@ -180,7 +181,7 @@
     (.stop node)))
 
 (s/fdef stop-all
-  :args (s/coll-of ::node []))
+  :args (s/cat :nodes (s/coll-of ::node [])))
 
 (defn consume-loop [interval chan]
   (let [control (async/chan)
@@ -217,8 +218,13 @@
 
 (def TONE->VALUE {"C" 0 "D" 2 "E" 4 "F" 5 "G" 7 "A" 9 "B" 11})
 (def ACCENT->VALUE {"b" -1 "#" 1 "" 0})
-(def SEMITONE->NOTE
-  {0 "C" 1 "Db" 2 "D" 3 "Eb" 4 "E" 5 "F" 6 "Gb" 7 "G" 8 "Ab" 9 "A" 10 "Bb" 11 "B"})
+(def SEMITONE->NOTE {0 "C" 1 "Db" 2 "D" 3 "Eb" 4 "E" 5 "F" 6 "Gb" 7 "G" 8 "Ab" 9 "A" 10 "Bb" 11 "B"})
+
+(def MAJOR-STEPS {0 0 1 2 2 4 3 5 4 7 5 9 6 11})
+(def MAJOR-ARRANGEMENTS {0 [0, 4, 7] 1 [0, 3, 7] 2 [0, 3, 7] 3 [0, 4, 7] 4 [0, 4, 7] 5 [0, 3, 7] 6 [0, 3, 6]})
+
+(s/def ::semitone-interval integer?)
+(s/def ::chord-intervals (s/coll-of ::semitone-interval []))
 
 (def NOTE-PATTERN #"^([A-G])([b#]?)([0-8])$")
 
@@ -234,6 +240,8 @@
                 (s/and string? #(re-matches NOTE-PATTERN %))
                 #(s/gen ALL-NOTES)))
 (s/def ::semitone (s/and integer? #(<= 0 % 87)))
+
+(s/def ::sound (s/or ::note ::semitone))
 
 (declare semitone->note)
 
@@ -265,3 +273,22 @@
   :ret ::note
   :fn #(= (note->semitone (:ret %))
           (note->semitone (-> % :args :semitone second))))
+
+(defn chord [base arrange]
+  (let [base (note->semitone base)]
+    (mapv (comp semitone->note #(+ base %)) arrange)))
+
+(s/fdef chord
+  :args (s/cat :base ::sound :arrange ::chord-intervals)
+  :ret (s/coll-of ::note []))
+
+(defn major-chord-progression [base progression]
+  (let [base (note->semitone base)]
+    (for [p progression
+          :let [st (+ base (MAJOR-STEPS p))]]
+      (chord st (MAJOR-ARRANGEMENTS p)))))
+
+(s/def ::scale-position (s/int-in 0 7))
+
+(s/fdef major-chord-progression
+  :args (s/cat :base ::sound :progression ()))

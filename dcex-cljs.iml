@@ -64,7 +64,7 @@
     <orderEntry type="library" name="Leiningen: net.incongru.watchservice/barbary-watchservice:1.0" level="project" />
     <orderEntry type="library" name="Leiningen: net.java.dev.jna/jna:3.2.2" level="project" />
     <orderEntry type="library" name="Leiningen: org.clojure/clojure:1.9.0-alpha5" level="project" />
-    <orderEntry type="library" name="Leiningen: org.clojure/clojurescript:1.9.47" level="project" />
+    <orderEntry type="library" name="Leiningen: org.clojure/clojurescript:1.9.76" level="project" />
     <orderEntry type="library" name="Leiningen: org.clojure/core.async:0.2.374" level="project" />
     <orderEntry type="library" name="Leiningen: org.clojure/core.cache:0.6.4" level="project" />
     <orderEntry type="library" name="Leiningen: org.clojure/core.memoize:0.5.8" level="project" />

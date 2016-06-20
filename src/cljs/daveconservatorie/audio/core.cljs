@@ -91,17 +91,6 @@
 (s/fdef node-chain
   :args (s/+ ::node))
 
-;(defn debounce [in ms]
-;  (let [out (chan)]
-;    (go-loop [last-val nil]
-;             (let [val (if (nil? last-val) (<! in) last-val)
-;                   timer (async/timeout ms)
-;                   [new-val ch] (alts! [in timer])]
-;               (condp = ch
-;                 timer (do (>! out val) (recur nil))
-;                 in (recur new-val))))
-;    out))
-
 (defn preload-sounds [sounds]
   (let [out (chan)
         in (async/to-chan sounds)
@@ -125,9 +114,9 @@
 
 (defn play
   ([sound] (play sound global-sound-manager))
-  ([{:keys [::node ::node-gen ::time]} tracker]
+  ([{:keys [::node ::node-gen ::time] :as sound} tracker]
    (let [node (or node (node-gen))]
-     (swap! tracker update ::nodes assoc node time)
+     (swap! tracker update ::nodes assoc node (assoc sound ::node node))
      (doto node
        (.addEventListener "ended" #(swap! tracker update ::nodes dissoc node))
        (.connect (output))
@@ -176,7 +165,7 @@
           (recur (inc i)
                  (+ t val))
           (do
-            (>! chan {::node-gen val ::time t})
+            (>! chan {::node-gen val ::time t ::node-index i})
             (recur (inc i) t))))))
   chan)
 
@@ -212,7 +201,7 @@
                                             (stop-all))
                             :stop (let [t (current-time)]
                                     (->> (::nodes @active)
-                                         (keep (fn [[k v]] (if (> v t) k)))
+                                         (keep (fn [[k {:keys [::time]}]] (if (> time t) k)))
                                          (stop-all))))))
               (recur))))))
     control))

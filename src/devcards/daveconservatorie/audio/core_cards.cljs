@@ -1,12 +1,13 @@
 (ns daveconservatorie.audio.core-cards
-  (:require-macros [cljs.core.async.macros :refer [go]])
+  (:require-macros [cljs.core.async.macros :refer [go go-loop]])
   (:require [devcards.core :refer-macros [defcard deftest]]
-            [cljs.core.async :as async :refer [promise-chan chan <! >! close! put!]]
+            [cljs.core.async :as async :refer [promise-chan chan <! >! close! put! alts!]]
             [cljs.test :refer-macros [is are testing async]]
             [cljs.spec.test :as st]
             [clojure.test.check]
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties]
+            [goog.object :as gobj]
             [om.dom :as dom]
             [om.next :as om :include-macros true]
             [daveconservatorie.audio.core :as audio]))
@@ -48,11 +49,83 @@
 
 (def sound-pattern (om/factory SoundPattern))
 
-(defcard chord-metronome
+(defn chord [base-note]
+  (let [st (audio/note->semitone base-note)
+        chord (->> [st (+ st 4) (+ st 7)]
+                   (mapv audio/semitone->note))]
+    chord))
+
+(defn tick-pattern [base-note i]
+  (let [st (audio/note->semitone base-note)
+        chord (->> [st (+ st 4) (+ st 7)]
+                   (mapv audio/semitone->note))]
+    (concat chord [i "low" i "low" i "low" i])))
+
+(defn debounce [in ms]
+  (let [out (chan)]
+    (go-loop [last-val nil]
+      (let [val (if (nil? last-val) (<! in) last-val)
+            timer (async/timeout ms)
+            [new-val ch] (alts! [in timer])]
+        (condp = ch
+          timer (do (>! out val) (recur nil))
+          in (if new-val (recur new-val)))))
+    out))
+
+(om/defui DebouncedSlider
+  Object
+  (initLocalState [_]
+    {:chan (chan (async/sliding-buffer 10))})
+
+  (componentDidMount [this]
+    (let [{:keys [on-change]
+           :or {on-change identity}} (om/props this)]
+      (go-loop []
+        (when-let [v (<! (debounce (om/get-state this :chan) 300))]
+          (on-change (js/parseInt v))
+          (recur)))))
+
+  (componentWillUnmount [this]
+    (close! (om/get-state this :chan)))
+
+  (render [this]
+    (let [props (om/props this)
+          chan (om/get-state this :chan)]
+      (dom/input (clj->js (assoc props :onChange #(put! chan (.. % -target -value))
+                                       :type "range"))))))
+
+(def debounce-slider (om/factory DebouncedSlider))
+
+(om/defui ChordMetronome
+  Object
+  (initLocalState [_]
+    {:note nil
+     :interval 60})
+
+  (render [this]
+    (let [{:keys [note interval]} (om/get-state this)]
+      (dom/div nil
+        interval
+        (for [n [nil "C3" "D3" "E3" "F3" "G3" "A3" "B3"]]
+          (dom/button #js {:onClick #(om/update-state! this assoc :note n)
+                           :style   (if (= n note)
+                                      #js {:background "#0c0"})
+                           :key n}
+            (or n "Mute")))
+        (debounce-slider {:react-key "debounce" :min 30 :max 320 :value interval :on-change #(om/update-state! this assoc :interval %)})
+        #_ (let [i 1.5]
+          (sound-pattern {:react-key "pattern" :pattern (flatten [(chord "C3") i
+                                                                  (chord "G3") i
+                                                                  "A3" "C4" "E4" i
+                                                                  (chord "F3") i])}))
+        (if note
+          (sound-pattern {:react-key "pattern" :pattern (tick-pattern note (/ 60 interval))}))))))
+
+(def chord-metronome (om/factory ChordMetronome))
+
+(defcard chord-metronome-card
   (fn [_ _]
-    (dom/div nil
-      "Hello"
-      #_ (sound-pattern {:pattern ["C3" "E3" "G3" 1 "low" 1 "low" 1 "low" 1]}))))
+    (chord-metronome {})))
 
 (deftest test-note->semitone
   (are [note semitone] (= (audio/note->semitone note) semitone)

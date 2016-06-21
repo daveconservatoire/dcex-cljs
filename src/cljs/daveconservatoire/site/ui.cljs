@@ -1,4 +1,4 @@
-(ns daveconservatorie.site.ui
+(ns daveconservatoire.site.ui
   (:require [om.next :as om :include-macros true]
             [om.dom :as dom]))
 
@@ -10,3 +10,8 @@
       (om/children this))))
 
 (def button (om/factory Button))
+
+(om/defui Root
+  Object
+  (render [_]
+    (button {:color "orange"} "Content")))

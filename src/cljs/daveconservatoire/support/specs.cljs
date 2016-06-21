@@ -1,4 +1,4 @@
-(ns daveconservatorie.support.specs
+(ns daveconservatoire.support.specs
   (:require [cljs.spec :as s]
             [clojure.string :as str]))
 

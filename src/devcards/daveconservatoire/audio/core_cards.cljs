@@ -1,4 +1,4 @@
-(ns daveconservatorie.audio.core-cards
+(ns daveconservatoire.audio.core-cards
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
   (:require [devcards.core :refer-macros [defcard deftest]]
             [cljs.core.async :as async :refer [promise-chan chan <! >! close! put! alts!]]
@@ -10,8 +10,9 @@
             [goog.object :as gobj]
             [om.dom :as dom]
             [om.next :as om :include-macros true]
-            [daveconservatorie.audio.core :as audio]
-            [clojure.string :as str]))
+            [daveconservatoire.audio.core :as audio]
+            [clojure.string :as str]
+            [cljs.spec :as s]))
 
 (deftest test-play-piano
   (is (= 1 1)))

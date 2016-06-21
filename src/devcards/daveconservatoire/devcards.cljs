@@ -1,6 +1,6 @@
-(ns daveconservatorie.devcards
-  (:require [daveconservatorie.audio.core-cards]
-            [daveconservatorie.site.ui-cards]
+(ns daveconservatoire.devcards
+  (:require [daveconservatoire.audio.core-cards]
+            [daveconservatoire.site.ui-cards]
             [devtools.core :as devtools]))
 
 (defonce cljs-build-tools

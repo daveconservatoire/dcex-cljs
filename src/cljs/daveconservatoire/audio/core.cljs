@@ -1,13 +1,13 @@
-(ns daveconservatorie.audio.core
+(ns daveconservatoire.audio.core
   (:refer-clojure :exclude [create-node])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
-  (:require [daveconservatorie.audio.media.metronome :refer [metro]]
-            [daveconservatorie.audio.media.piano :refer [piano]]
+  (:require [daveconservatoire.audio.media.metronome :refer [metro]]
+            [daveconservatoire.audio.media.piano :refer [piano]]
             [goog.crypt.base64 :as g64]
             [goog.object :as gobj]
             [cljs.spec :as s]
             [cljs.core.async :as async :refer [chan promise-chan put! close! <! >! alts!]]
-            [daveconservatorie.support.specs :as ss]))
+            [daveconservatoire.support.specs :as ss]))
 
 (defonce AudioContext (or js/AudioContext js/webkitAudioContext))
 (defonce ^:dynamic *audio-context* (AudioContext.))

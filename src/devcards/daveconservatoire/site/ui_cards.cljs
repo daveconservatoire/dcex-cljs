@@ -1,6 +1,6 @@
-(ns daveconservatorie.site.ui-cards
+(ns daveconservatoire.site.ui-cards
   (:require [devcards.core :refer-macros [defcard deftest]]
-            [daveconservatorie.site.ui :as ui]))
+            [daveconservatoire.site.ui :as ui]))
 
 (defcard button-cards
   (fn [_ _]

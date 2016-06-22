@@ -12,3 +12,5 @@ pom.xml.asc
 /public/devcards
 *.iml
 figwheel_server.log
+resources/public/devcards
+resources/public/site

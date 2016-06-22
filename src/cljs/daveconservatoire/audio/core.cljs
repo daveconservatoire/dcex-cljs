@@ -126,33 +126,6 @@
   :args (s/cat :sound ::sound-point
                :tracker (s/? #(instance? Atom %))))
 
-;; node-spec
-
-;(defmulti node-spec-type first)
-;(defmulti spec->node first)
-;
-;(defmethod node-spec-type :buffer [_]
-;  (s/cat :name keyword?
-;         :buffer ::buffer))
-;
-;(defmethod spec->node :buffer [s]
-;  (let [{:keys [buffer]} (s/conform ::node-spec s)]
-;    (buffer-node buffer)))
-;
-;(defmethod node-spec-type :out [_]
-;  (s/cat :name keyword?))
-;
-;(defmethod spec->node :out [_] (output))
-;
-;(defmethod node-spec-type :gain [_]
-;  (s/cat :name keyword? :value number?))
-;
-;(defmethod spec->node :gain [s]
-;  (let [{:keys [value]} (s/conform ::node-spec s)]
-;    (gain-node value)))
-;
-;(s/def ::node-spec (s/multi-spec node-spec-type first))
-
 (defn loop-chan [items start chan]
   {:pre [(s/valid? ::items-list items)
          (s/valid? ::time start)
@@ -241,7 +214,7 @@
                 #(s/gen ALL-NOTES)))
 (s/def ::semitone (s/and integer? #(<= 0 % 87)))
 
-(s/def ::sound (s/or ::note ::semitone))
+(s/def ::sound (s/or :note ::note :semitone ::semitone))
 
 (declare semitone->note)
 
@@ -288,7 +261,7 @@
           :let [st (+ base (MAJOR-STEPS p))]]
       (chord st (MAJOR-ARRANGEMENTS p)))))
 
-(s/def ::scale-position #{0 1 2 3 4 5 6})
+(s/def ::scale-position (s/int-in 0 7))
 
 (s/fdef major-chord-progression
-  :args (s/cat :base ::sound :progression ()))
+  :args (s/cat :base ::sound :progression (s/coll-of ::scale-position [])))

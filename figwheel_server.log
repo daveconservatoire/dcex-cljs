@@ -131,3 +131,45 @@ notifying browser that file changed:  out/daveconservatoire/site/ui.js
 notifying browser that file changed:  resources/public/site/cljs_deps.js
 notifying browser that file changed:  out/daveconservatoire/site/ui.js
 notifying browser that file changed:  out/daveconservatoire/site.js
+[0mCompiling "resources/public/devcards/devcards.js" from ["src/devcards" "src/cljs"]...[0m
+[32mSuccessfully compiled "resources/public/devcards/devcards.js" in 0.407 seconds.[0m
+notifying browser that file changed:  out/daveconservatoire/devcards.js
+[0mCompiling "resources/public/devcards/devcards.js" from ["src/devcards" "src/cljs"]...[0m
+[32mSuccessfully compiled "resources/public/devcards/devcards.js" in 1.45 seconds.[0m
+notifying browser that file changed:  resources/public/devcards/goog/deps.js
+notifying browser that file changed:  resources/public/devcards/cljs_deps.js
+notifying browser that file changed:  out/daveconservatoire/audio/core_cards.js
+[0mCompiling "resources/public/devcards/devcards.js" from ["src/devcards" "src/cljs"]...[0m
+[32mSuccessfully compiled "resources/public/devcards/devcards.js" in 1.112 seconds.[0m
+notifying browser that file changed:  resources/public/devcards/cljs_deps.js
+notifying browser that file changed:  out/daveconservatoire/devcards.js
+notifying browser that file changed:  out/daveconservatoire/audio/core_cards.js
+[0mCompiling "resources/public/site/site.js" from ["src/site" "src/cljs"]...[0m
+[32mSuccessfully compiled "resources/public/site/site.js" in 0.281 seconds.[0m
+notifying browser that file changed:  resources/public/site/goog/deps.js
+notifying browser that file changed:  resources/public/site/cljs_deps.js
+notifying browser that file changed:  out/daveconservatoire/site.js
+[0mCompiling "resources/public/devcards/devcards.js" from ["src/devcards" "src/cljs"]...[0m
+[32mSuccessfully compiled "resources/public/devcards/devcards.js" in 0.38 seconds.[0m
+notifying browser that file changed:  out/daveconservatoire/devcards.js
+[0mCompiling "resources/public/devcards/devcards.js" from ["src/devcards" "src/cljs"]...[0m
+[36m----  Compiler Warning on   src/devcards/daveconservatoire/devcards.cljs   line:8  column:3  ----[0m
+
+  [1mWrong number of args (2) passed to devtools.core/install![0m
+
+  [36m 4[0m  [36m            [devtools.core :as devtools][0m
+  [36m 5[0m  [36m            [cljs.spec :as s]))[0m
+  [36m 6[0m  [36m[0m
+  [36m 7[0m  [36m(defonce cljs-build-tools[0m
+  [33m 8[0m  [1m  (devtools.core/install! :custom-formatters :sanity-hints))[0m
+  [0m  [0m  [33m  ^--- Wrong number of args (2) passed to devtools.core/install![0m
+  [36m 9[0m  [36m[0m
+  [36m10[0m  [36m(defn reload-cycle [][0m
+  [36m11[0m  [36m  (s/instrument-all))[0m
+
+[36m----  Compiler Warning : Please see src/devcards/daveconservatoire/devcards.cljs  ----[0m
+[32mSuccessfully compiled "resources/public/devcards/devcards.js" in 0.389 seconds.[0m
+notifying browser that file changed:  out/daveconservatoire/devcards.js
+[0mCompiling "resources/public/devcards/devcards.js" from ["src/devcards" "src/cljs"]...[0m
+[32mSuccessfully compiled "resources/public/devcards/devcards.js" in 0.334 seconds.[0m
+notifying browser that file changed:  out/daveconservatoire/devcards.js

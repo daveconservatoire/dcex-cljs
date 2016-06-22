@@ -7,7 +7,7 @@
   :source-paths ["src/devcards" "src/cljs" "src/site" "script"]
 
   :dependencies [[org.clojure/clojure "1.9.0-alpha7" :scope "provided"]
-                 [org.clojure/clojurescript "1.9.82" :scope "provided" :exclusions [org.clojure/google-closure-library]]
+                 [org.clojure/clojurescript "1.9.89" :scope "provided" :exclusions [org.clojure/google-closure-library]]
                  [org.omcljs/om "1.0.0-alpha36"]
                  [figwheel-sidecar "0.5.4-3" :exclusions [clj-time joda-time org.clojure/tools.reader] :scope "test"]
                  [binaryage/devtools "0.7.0"]
@@ -23,7 +23,8 @@
 
   :cljsbuild {:builds
               [{:id           "devcards"
-                :figwheel     {:devcards true}
+                :figwheel     {:devcards true
+                               :on-jsload "daveconservatoire.devcards/reload-cycle"}
                 :source-paths ["src/devcards" "src/cljs"]
                 :compiler     {
                                :main                 daveconservatoire.devcards
@@ -35,7 +36,7 @@
                                :recompile-dependents true
                                :verbose              false}}
                {:id           "site"
-                :figwheel     true
+                :figwheel     {:on-jsload "daveconservatoire.site/reload-cycle"}
                 :source-paths ["src/site" "src/cljs"]
                 :compiler     {
                                :main                 daveconservatoire.site

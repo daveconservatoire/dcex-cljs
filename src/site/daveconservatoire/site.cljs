@@ -3,12 +3,16 @@
             [untangled.client.core :as uc]
             [daveconservatoire.site.routes :refer [routes]]
             [pushy.core :as pushy]
-            [bidi.bidi :as bidi]))
+            [bidi.bidi :as bidi]
+            [daveconservatoire.site.mutations]
+            [om.next :as om]))
 
-(defonce app (atom (uc/new-untangled-client :initial-state {:app/route {:handler :home}})))
+(defonce app
+  (atom (uc/new-untangled-client :initial-state {:app/route {:handler :home}})))
 
 (defn set-page! [match]
-  (js/console.log "set page" match))
+  (when (:mounted? @app)
+    (om/transact! (-> @app :reconciler) `[(app/set-route ~match)])))
 
 (defonce history
   (pushy/pushy set-page! (partial bidi/match-route routes)))

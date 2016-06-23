@@ -2,6 +2,6 @@
   (:require [bidi.bidi :as b]))
 
 (def routes
-  ["" {""  :home
-       "/" {""             :home
-            ["topic/" :id] :topic}}])
+  ["/" {""             :home
+        "about"        :about
+        ["topic/" :id] :topic}])

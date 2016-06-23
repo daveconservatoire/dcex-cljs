@@ -7,7 +7,7 @@
   :clean-targets ^{:protect false} ["resources/public/devcards" "resources/public/site" "target"]
 
   :test-paths ["test/server"]
-  :source-paths ["src/devcards" "src/cljs" "src/site" "script" "src/shared" "src/server"]
+  :source-paths ["src/devcards" "src/cljs" "src/site" "script" "src/shared" "src/server" "src/dev"]
 
   :dependencies [[org.clojure/clojure "1.9.0-alpha7" :scope "provided"]
                  [org.clojure/clojurescript "1.9.89" :scope "provided"]
@@ -46,7 +46,7 @@
                                :preloads             [daveconservatoire.support.dev]}}
                {:id           "site"
                 :figwheel     {:on-jsload "daveconservatoire.support.dev/reload-cycle"}
-                :source-paths ["src/site" "src/cljs"]
+                :source-paths ["src/site" "src/cljs" "src/dev"]
                 :compiler     {:main                 daveconservatoire.site
                                :source-map-timestamp true
                                :asset-path           "site"

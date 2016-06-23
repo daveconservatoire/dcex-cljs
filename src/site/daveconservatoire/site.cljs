@@ -1,14 +1,12 @@
 (ns daveconservatoire.site
   (:require [daveconservatoire.site.ui :as ui]
             [untangled.client.core :as uc]
+            [daveconservatoire.site.core :refer [app]]
             [daveconservatoire.site.routes :as r :refer [routes]]
             [pushy.core :as pushy]
             [bidi.bidi :as bidi]
             [daveconservatoire.site.mutations]
             [om.next :as om]))
-
-(defonce app
-  (atom (uc/new-untangled-client)))
 
 (defn set-page! [match]
   (when (:mounted? @app)

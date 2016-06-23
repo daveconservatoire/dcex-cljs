@@ -18,9 +18,10 @@
                  [binaryage/devtools "0.7.0"]
                  [devcards "0.2.1-4" :exclusions [org.omcljs/om cljsjs/react-dom org.clojure/tools.reader cljsjs/react]]
                  [org.clojure/core.async "0.2.374"]
-                 [navis/untangled-client "0.5.0" :exclusions [org.omcljs/om cljsjs/react-dom org.clojure/tools.reader cljsjs/react]]
+                 [navis/untangled-client "0.5.3" :exclusions [org.omcljs/om com.cognitect/transit-cljs cljsjs/react-dom org.clojure/tools.reader cljsjs/react]]
                  [org.clojure/test.check "0.9.0"]
                  [com.rpl/specter "0.9.3"]
+                 [com.cognitect/transit-cljs "0.8.239"]
                  [lein-doo "0.1.6" :scope "test"]]
 
   :plugins [[lein-cljsbuild "1.1.3"]

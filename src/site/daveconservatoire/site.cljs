@@ -8,7 +8,7 @@
             [om.next :as om]))
 
 (defonce app
-  (atom (uc/new-untangled-client :initial-state {:app/route {:handler ::r/home}})))
+  (atom (uc/new-untangled-client)))
 
 (defn set-page! [match]
   (when (:mounted? @app)

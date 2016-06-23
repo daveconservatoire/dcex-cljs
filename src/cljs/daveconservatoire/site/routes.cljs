@@ -1,10 +1,9 @@
 (ns daveconservatoire.site.routes
   (:require [bidi.bidi :as b]
-            [cljs.spec :as s]))
+            [cljs.spec :as s]
+            [pushy.core :as pushy]))
 
 (defmulti route->component :handler)
-
-(s/def ::slug string?)
 
 (def routes
   ["/" {""                 ::home
@@ -15,11 +14,18 @@
         ["topic/" ::slug]  ::topic
         ["lesson/" ::slug] ::lesson}])
 
+(s/def ::slug string?)
 (s/def ::handler (->> (b/route-seq routes)
                       (map :handler)
                       (set)))
 
-(defn path-for [handler params]
-  {:pre [(s/valid? ::handler handler)
-         (s/valid? map? params)]}
-  (apply b/path-for routes handler (flatten1 params)))
+(s/def ::route-params map?)
+(s/def ::route (s/keys :req-un [::handler] :opt-un [::route-params]))
+
+(defn path-for [{:keys [handler route-params] :as route}]
+  {:pre [(s/valid? ::route route)]}
+  (apply b/path-for routes handler (flatten1 route-params)))
+
+(defn current-handler []
+  (or (b/match-route routes (.getToken (pushy/new-history)))
+      {:handler ::home}))

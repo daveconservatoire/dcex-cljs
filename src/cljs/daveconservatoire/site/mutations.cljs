@@ -11,13 +11,7 @@
   (js/console.log "load home data" env))
 
 (defmethod load-route ::r/topic [{:keys [route-params] :as route} {:keys [state reconciler]}]
-  (df/load-data reconciler {[:topic/by-slug (::r/slug route-params)] (om/get-query (r/route->component route))}
-                :post-mutation (fn [& args] (js/console.log "post mutation" args)))
-  #_ (swap! state assoc-in [:topic/by-id 123]
-         {:db/id 123
-          :topic/title "Sample Topic"
-          :topic/slug (::r/slug route-params)})
-  #_ (swap! state assoc-in [:route/data] [:topic/by-id 123])
+  #_ (df/load-data reconciler [{[:topic/by-slug (::r/slug route-params)] (om/get-query (r/route->component route))}])
   (js/console.log "load topic" {[:topic/by-slug (::r/slug route-params)] (om/get-query (r/route->component route))}))
 
 (defmethod load-route :default [_ _])

@@ -6,14 +6,6 @@
 (s/def :ordering/position pos-int?)
 (s/def :youtube/id string?)
 
-(s/def :topic/title string?)
-(s/def :topic/colour string?)
-(s/def :topic/course string?)
-
-(s/def :model/topic
-  (s/keys :opt [:db/id :url/slug :ordering/position
-                :topic/title :topic/colour :topic/course]))
-
 (s/def :course/title string?)
 (s/def :course/description string?)
 (s/def :course/author string?)
@@ -21,6 +13,15 @@
 (s/def :model/course
   (s/keys :opt [:db/id :url/slug :ordering/position
                 :course/title :course/description :course/author]))
+
+(s/def :topic/title string?)
+(s/def :topic/colour string?)
+(s/def :topic/course-id :db/id)
+(s/def :topic/course :model/course)
+
+(s/def :model/topic
+  (s/keys :opt [:db/id :url/slug :ordering/position
+                :topic/title :topic/colour :topic/course]))
 
 (s/def :lesson/title string?)
 (s/def :lesson/description string?)

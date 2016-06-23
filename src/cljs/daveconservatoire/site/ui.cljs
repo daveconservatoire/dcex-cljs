@@ -1,7 +1,7 @@
 (ns daveconservatoire.site.ui
   (:require [om.next :as om :include-macros true]
             [om.dom :as dom]
-            [daveconservatoire.site.routes :refer [routes]]
+            [daveconservatoire.site.routes :as r :refer [routes]]
             [bidi.bidi :as bidi]))
 
 (om/defui Button
@@ -13,11 +13,16 @@
 
 (def button (om/factory Button))
 
+(defmulti route->component :handler)
+
 (om/defui Home
   Object
   (render [this]
     (let [{:keys []} (om/props this)]
       (dom/div nil "Home"))))
+
+(defmethod route->component ::r/home []
+  Home)
 
 (om/defui About
   Object
@@ -25,10 +30,17 @@
     (let [{:keys []} (om/props this)]
       (dom/div nil "About"))))
 
-(defn route->component [{:keys [handler]}]
-  (get {:home Home
-        :about About}
-       handler))
+(defmethod route->component ::r/about []
+  About)
+
+(om/defui NotFound
+  Object
+  (render [this]
+    (let [{:keys []} (om/props this)]
+      (dom/div nil "Page not found"))))
+
+(defmethod route->component :default []
+  NotFound)
 
 (defn route->factory [route]
   (om/factory (route->component route)))
@@ -52,6 +64,6 @@
       (dom/div #js {:key react-key}
         (dom/h1 nil "Header")
         (dom/ul nil
-          (dom/li nil (link {:to :home} "Home"))
-          (dom/li nil (link {:to :about} "About")))
+          (dom/li nil (link {:to ::r/home} "Home"))
+          (dom/li nil (link {:to ::r/about} "About")))
         ((route->factory route) nil)))))

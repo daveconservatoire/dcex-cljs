@@ -7,7 +7,7 @@
   :clean-targets ^{:protect false} ["resources/public/devcards" "resources/public/site" "target"]
 
   :test-paths ["test/server"]
-  :source-paths ["src/devcards" "src/cljs" "src/site" "script" "src/shared" "src/server" "src/dev"]
+  :source-paths ["src/devcards" "src/cljs" "src/site" "script" "src/server" "src/dev"]
 
   :dependencies [[org.clojure/clojure "1.9.0-alpha7" :scope "provided"]
                  [org.clojure/clojurescript "1.9.89" :scope "provided"]
@@ -44,6 +44,7 @@
                                :recompile-dependents true
                                :verbose              false
                                :preloads             [daveconservatoire.support.dev]}}
+
                {:id           "site"
                 :figwheel     {:on-jsload "daveconservatoire.support.dev/reload-cycle"}
                 :source-paths ["src/site" "src/cljs" "src/dev"]
@@ -59,7 +60,7 @@
 
                ;; server builds
                {:id           "server-dev"
-                :source-paths ["src/server"]
+                :source-paths ["src/cljs" "src/server"]
                 :figwheel     true
                 :compiler     {:main          daveconservatoire.server.core
                                :output-to     "target/server_dev/dcserver.js"
@@ -69,7 +70,7 @@
                                :source-map    true}}
 
                {:id           "server-test"
-                :source-paths ["src/server" "test/server"]
+                :source-paths ["src/cljs" "src/server" "test/server"]
                 :figwheel     true
                 :compiler     {:main          daveconservatoire.server.suite
                                :output-to     "target/server_test/dctest.js"

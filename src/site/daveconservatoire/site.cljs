@@ -1,11 +1,11 @@
 (ns daveconservatoire.site
-  (:require [om.next :as om]
-            [daveconservatoire.site.ui :as ui]
+  (:require [daveconservatoire.site.ui :as ui]
             [untangled.client.core :as uc]
-            [cljs.spec :as s]
             [daveconservatoire.site.routes :refer [routes]]
             [pushy.core :as pushy]
             [bidi.bidi :as bidi]))
+
+(defonce app (atom (uc/new-untangled-client :initial-state {:app/route {:handler :home}})))
 
 (defn set-page! [match]
   (js/console.log "set page" match))
@@ -15,7 +15,4 @@
 
 (pushy/start! history)
 
-(def app (uc/new-untangled-client {}))
-
-(let [node (js/document.getElementById "app-container")]
-  (uc/mount app ui/Root node))
+(reset! app (uc/mount @app ui/Root "app-container"))

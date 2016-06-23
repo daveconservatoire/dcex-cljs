@@ -4,7 +4,10 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
-  :source-paths ["src/devcards" "src/cljs" "src/site" "script" "src/shared"]
+  :clean-targets ^{:protect false} ["resources/public/devcards" "resources/public/site" "target"]
+
+  :test-paths ["test/server"]
+  :source-paths ["src/devcards" "src/cljs" "src/site" "script" "src/shared" "src/server"]
 
   :dependencies [[org.clojure/clojure "1.9.0-alpha7" :scope "provided"]
                  [org.clojure/clojurescript "1.9.89" :scope "provided"]
@@ -16,9 +19,12 @@
                  [devcards "0.2.1-4" :exclusions [org.omcljs/om cljsjs/react-dom org.clojure/tools.reader cljsjs/react]]
                  [org.clojure/core.async "0.2.374"]
                  [navis/untangled-client "0.5.0" :exclusions [org.omcljs/om cljsjs/react-dom org.clojure/tools.reader cljsjs/react]]
-                 [org.clojure/test.check "0.9.0"]]
+                 [org.clojure/test.check "0.9.0"]
+                 [com.rpl/specter "0.9.3"]
+                 [lein-doo "0.1.6" :scope "test"]]
 
-  :plugins [[lein-cljsbuild "1.1.3"]]
+  :plugins [[lein-cljsbuild "1.1.3"]
+            [lein-doo "0.1.6"]]
 
   :figwheel {:open-file-command "open-in-intellij"
              :validate-config false}
@@ -48,4 +54,25 @@
                                :preloads             [daveconservatoire.support.dev]
                                :parallel-build       true
                                :recompile-dependents true
-                               :verbose              false}}]})
+                               :verbose              false}}
+
+               ;; server builds
+               {:id           "server-dev"
+                :source-paths ["src/server"]
+                :figwheel     true
+                :compiler     {:main          daveconservatoire.server.core
+                               :output-to     "target/server_dev/dcserver.js"
+                               :output-dir    "target/server_dev"
+                               :target        :nodejs
+                               :optimizations :none
+                               :source-map    true}}
+
+               {:id           "server-test"
+                :source-paths ["src/server" "test/server"]
+                :figwheel     true
+                :compiler     {:main          daveconservatoire.server.suite
+                               :output-to     "target/server_test/dctest.js"
+                               :output-dir    "target/server_test"
+                               :target        :nodejs
+                               :optimizations :none
+                               :source-map    true}}]})

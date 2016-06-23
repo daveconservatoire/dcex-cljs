@@ -1,0 +1,23 @@
+{
+  "name": "dcapi",
+  "version": "0.1.0",
+  "private": "true",
+  "engines": {
+    "node": "5.10.1"
+  },
+  "scripts": {
+    "build-js": "lein cljsbuild once prod",
+    "start": "node server.js",
+    "dev": "node target/server_dev/dcserver.js",
+    "test": "lein doo node server-test"
+  },
+  "dependencies": {
+    "express": "^4.13.4",
+    "knex": "^0.10.0",
+    "mysql": "^2.10.2"
+  },
+  "devDependencies": {
+    "source-map-support": "0.4.0",
+    "ws": "0.8.1"
+  }
+}

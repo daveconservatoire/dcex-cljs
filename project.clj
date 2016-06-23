@@ -4,7 +4,7 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
-  :source-paths ["src/devcards" "src/cljs" "src/site" "script"]
+  :source-paths ["src/devcards" "src/cljs" "src/site" "script" "src/shared"]
 
   :dependencies [[org.clojure/clojure "1.9.0-alpha7" :scope "provided"]
                  [org.clojure/clojurescript "1.9.89" :scope "provided"]

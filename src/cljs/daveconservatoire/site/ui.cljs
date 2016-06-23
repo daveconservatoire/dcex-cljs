@@ -33,8 +33,12 @@
 (defmethod r/route->component ::r/about [_] About)
 
 (om/defui Topic
+  static om/Ident
+  (ident [_ props] [:topic/by-id (:db/id props)])
+
   static om/IQuery
-  (query [_] [:topic/slug])
+  (query [_] [:topic/slug
+              {:topic/lessons [:lesson/title]}])
 
   Object
   (render [this]
@@ -52,8 +56,6 @@
 
 (defmethod r/route->component :default [_] NotFound)
 
-(defn route->factory [route] (om/factory (r/route->component route)))
-
 (om/defui Link
   Object
   (render [this]
@@ -63,6 +65,8 @@
         (om/children this)))))
 
 (def link (om/factory Link))
+
+(defn route->factory [route] (om/factory (r/route->component route)))
 
 (om/defui Root
   static om/IQueryParams

@@ -15,11 +15,11 @@
   (async done
     (go
       (is (= (<! (p/parse {:db ts/connection} [:app/courses]))
-             {:app/courses [{:db/id 4} {:db/id 7}]}))
+             {:app/courses [{:db/id 4 :db/table :course} {:db/id 7 :db/table :course}]}))
 
       (is (= (<! (p/parse {:db ts/connection} [{:app/courses [:db/id :course/title]}]))
-             {:app/courses [{:db/id 4 :course/title "Reading Music"}
-                            {:db/id 7 :course/title "Music:  A Beginner's Guide"}]}))
+             {:app/courses [{:db/id 4 :course/title "Reading Music" :db/table :course}
+                            {:db/id 7 :course/title "Music:  A Beginner's Guide" :db/table :course}]}))
 
       (done))))
 
@@ -30,7 +30,7 @@
                                      :table :course
                                      :ast   (om/query->ast [:db/id :course/title])}
                                     [[:where {:url/slug "reading-music"}]]))
-             {:db/id 4, :course/title "Reading Music"}))
+             {:db/id 4 :course/title "Reading Music" :db/table :course}))
 
       (is (= (<! (p/query-sql-first {:db    ts/connection
                                      :table :course
@@ -38,8 +38,9 @@
                                                                   {:course/topics [:db/id :topic/title]}
                                                                   {:limit 2})])}
                                     [[:where {:db/id 4}]]))
-             {:db/id 4 :course/topics [{:db/id 18 :topic/title "Getting Started"}
-                                       {:db/id 19 :topic/title "Staff and Clefs"}]}))
+             {:db/id 4 :course/topics [{:db/id 18 :db/table :topic :topic/title "Getting Started"}
+                                       {:db/id 19 :db/table :topic :topic/title "Staff and Clefs"}]
+              :db/table :course}))
       (done))))
 
 (deftest parser-read-topics
@@ -47,14 +48,14 @@
     (go
       (is (= (->> (p/parse {:db ts/connection} [{:app/topics [:db/id :topic/title {:topic/course [:db/id]}]}]) <!
                   (select [:app/topics FIRST]))
-             [{:db/id 2, :topic/title "Getting Started" :topic/course {:db/id 7}}]))
+             [{:db/id 2 :db/table :topic :topic/title "Getting Started" :topic/course {:db/id 7 :db/table :course}}]))
       (done))))
 
 (deftest test-parse-read-lesson-by-slug
   (async done
     (go
       (is (= (->> (p/parse {:db ts/connection} [{[:lesson/by-slug "percussion"] [:db/id :lesson/title]}]) <!)
-             {[:lesson/by-slug "percussion"] {:db/id 9, :lesson/title "Percussion"}}))
+             {[:lesson/by-slug "percussion"] {:db/id 9 :db/table :lesson :lesson/title "Percussion"}}))
       (is (= (->> (p/parse {:db ts/connection} [{[:lesson/by-slug "invalid"] [:db/id :lesson/title]}]) <!)
              {[:lesson/by-slug "invalid"] [:error :row-not-found]}))
       (done))))

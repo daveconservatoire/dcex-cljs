@@ -26,3 +26,10 @@
            data-query (or (om/get-query (r/route->component route)) [])]
        (om/set-query! root {:params {:route/data data-query}}))
      (swap! state assoc :app/route route))})
+
+
+(defmethod m/mutate 'fetch/home-loaded
+  [{:keys [state]} _ _]
+  {:action
+   (fn []
+     (swap! state assoc :route/data (select-keys @state [:app/courses])))})

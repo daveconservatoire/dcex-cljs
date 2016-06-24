@@ -14,17 +14,54 @@
 
 (def button (om/factory Button))
 
-(om/defui ^:once Home
-  static uc/InitialAppState
-  (initial-state [_ _] {})
+(defn model-ident [{:keys [db/id db/table]}]
+  [(keyword (name table) "by-id") id])
 
+(om/defui ^:once TopicLink
   static om/IQuery
-  (query [_] [:app/topics])
+  (query [_] [:db/id :db/table :topic/title])
+
+  static om/Ident
+  (ident [_ props] (model-ident props))
 
   Object
   (render [this]
-    (let [{:keys []} (om/props this)]
-      (dom/div nil "Home"))))
+    (let [{:keys [topic/title]} (om/props this)]
+      (dom/div nil title))))
+
+(def topic-link (om/factory TopicLink))
+
+(om/defui ^:once HomeCourse
+  static om/IQuery
+  (query [_] [:db/id :db/table :course/title :course/description
+              {:course/topics (om/get-query TopicLink)}])
+
+  static om/Ident
+  (ident [_ props] (model-ident props))
+
+  Object
+  (render [this]
+    (let [{:keys [course/title course/topics]} (om/props this)]
+      (dom/div nil
+        (dom/hr nil)
+        title
+        (map topic-link topics)))))
+
+(def home-course (om/factory HomeCourse))
+
+(om/defui ^:once Home
+  static uc/InitialAppState
+  (initial-state [_ _] {:app/courses []})
+
+  static om/IQuery
+  (query [_] [{:app/courses (om/get-query HomeCourse)}])
+
+  Object
+  (render [this]
+    (let [{:keys [app/courses]} (om/props this)]
+      (dom/div nil
+        "Home"
+        (map home-course courses)))))
 
 (defmethod r/route->component ::r/home [_] Home)
 
@@ -80,6 +117,20 @@
 (def link (om/factory Link))
 
 (defn route->factory [route] (om/factory (r/route->component route)))
+
+(om/defui ^:once PageSwitcher
+  static om/IQuery
+  (query [_] [])
+
+  static om/Ident
+  (ident [_ props])
+
+  Object
+  (render [this]
+    (let [{:keys []} (om/props this)]
+      (dom/div nil))))
+
+(def page-switcher (om/factory PageSwitcher))
 
 (om/defui ^:once Root
   static uc/InitialAppState

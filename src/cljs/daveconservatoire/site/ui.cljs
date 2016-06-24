@@ -3,16 +3,28 @@
             [om.dom :as dom]
             [daveconservatoire.site.routes :as r :refer [routes]]
             [bidi.bidi :as bidi]
-            [untangled.client.core :as uc]))
+            [untangled.client.core :as uc]
+            [untangled.client.impl.data-fetch :as df]
+            [cljs.spec :as s]))
+
+(comment (s/alias 'daveconservatoire.site.ui.button 'button))
+
+(s/def ::component om/component?)
+(s/def ::button-color #{"orange" "redorange"})
 
 (om/defui ^:once Button
   Object
   (render [this]
-    (dom/a #js {:href      "#"
-                :className (str "btn dc-btn-" (:color (om/props this)))}
-      (om/children this))))
+    (let [{:keys [color]} (om/props this)]
+      (dom/a #js {:href      "#"
+                  :className (str "btn dc-btn-" (or color "orange"))}
+        (om/children this)))))
 
 (def button (om/factory Button))
+
+(s/fdef button
+  :args (s/cat :props (s/keys :opt [::button-color])
+               :children (s/* ::component)))
 
 (defn model-ident [{:keys [db/id db/table]}]
   [(keyword (name table) "by-id") id])
@@ -27,7 +39,7 @@
   Object
   (render [this]
     (let [{:keys [topic/title]} (om/props this)]
-      (dom/div nil title))))
+      (button nil title))))
 
 (def topic-link (om/factory TopicLink))
 
@@ -118,20 +130,6 @@
 
 (defn route->factory [route] (om/factory (r/route->component route)))
 
-(om/defui ^:once PageSwitcher
-  static om/IQuery
-  (query [_] [])
-
-  static om/Ident
-  (ident [_ props])
-
-  Object
-  (render [this]
-    (let [{:keys []} (om/props this)]
-      (dom/div nil))))
-
-(def page-switcher (om/factory PageSwitcher))
-
 (om/defui ^:once Root
   static uc/InitialAppState
   (initial-state [_ _]
@@ -152,7 +150,8 @@
   (componentWillMount [this]
     (let [{:keys [app/route]} (om/props this)
           initial-query (om/get-query (r/route->component route))]
-      (om/set-query! this {:params {:route/data (or initial-query [])}})))
+      (om/set-query! this {:params {:route/data (conj (or initial-query [])
+                                                      {:ui/fetch-state ['*]})}})))
 
   (render [this]
     (let [{:keys [app/route route/data ui/react-key]} (om/props this)]
@@ -162,4 +161,6 @@
           (dom/li nil (link {:to ::r/home} "Home"))
           (dom/li nil (link {:to ::r/about} "About"))
           (dom/li nil (link {:to ::r/topic :params {::r/slug "getting-started"}} "Topic Getting Started")))
-        ((route->factory route) (assoc data :ref :page))))))
+        (if (= :loading (get-in data [:ui/fetch-state ::df/type]))
+          "Loading page data..."
+          ((route->factory route) (assoc data :ref :page)))))))

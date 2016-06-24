@@ -170,8 +170,9 @@
 
 (defn ast-key-id [ast] (some-> ast :key second))
 
-(defn read [{:keys [ast] :as env} key params]
+(defn read [{:keys [ast parser] :as env} key params]
   (case key
+    :route/data {:value (read-chan-values (parser env (:query ast)))}
     :topic/by-slug {:value (query-sql-first (assoc env :table :topic)
                                             [[:where {:urltitle (ast-key-id ast)}]])}
     :lesson/by-slug {:value (query-sql-first (assoc env :table :lesson)

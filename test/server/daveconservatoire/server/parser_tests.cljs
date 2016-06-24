@@ -59,3 +59,11 @@
       (is (= (->> (p/parse {:db ts/connection} [{[:lesson/by-slug "invalid"] [:db/id :lesson/title]}]) <!)
              {[:lesson/by-slug "invalid"] [:error :row-not-found]}))
       (done))))
+
+(deftest parser-read-route-data
+  (async done
+    (go
+      (is (= (<! (p/parse {:db ts/connection} [{:route/data [:app/courses]}]))
+             {:route/data {:app/courses [{:db/id 4 :db/table :course} {:db/id 7 :db/table :course}]}}))
+
+      (done))))

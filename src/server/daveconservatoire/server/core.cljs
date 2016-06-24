@@ -1,7 +1,7 @@
 (ns daveconservatoire.server.core
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [cljs.nodejs :as nodejs]
-            [cljs.core.async :refer [chan <! put! promise-chan]]
+            [cljs.core.async :as async :refer [chan <! put! promise-chan]]
             [daveconservatoire.server.parser :as parser]
             [cljs.reader :refer [read-string]]
             cljs.pprint
@@ -57,7 +57,6 @@
   (fn [req res]
     (go
       (try
-
         (let [{:keys [read write]} (req-io req)
               tx (-> (read-stream req) <!
                      read)

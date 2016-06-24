@@ -17,5 +17,4 @@
 
 (pushy/start! history)
 
-(if-not (:mounted? @app)
-  (reset! app (uc/mount @app ui/Root "app-container")))
+(reset! app (uc/mount @app ui/Root "app-container"))

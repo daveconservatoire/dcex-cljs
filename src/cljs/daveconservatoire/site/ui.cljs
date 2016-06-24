@@ -15,9 +15,10 @@
 (om/defui ^:once Button
   Object
   (render [this]
-    (let [{:keys [color]} (om/props this)]
+    (let [{:keys [color]
+           :or {color "orange"}} (om/props this)]
       (dom/a #js {:href      "#"
-                  :className (str "btn dc-btn-" (or color "orange"))}
+                  :className (str "btn dc-btn-" color)}
         (om/children this)))))
 
 (def button (om/factory Button))
@@ -130,6 +131,23 @@
 
 (defn route->factory [route] (om/factory (r/route->component route)))
 
+(om/defui ^:once Loading
+  Object
+  (initLocalState [_] {:show? false})
+
+  (componentDidMount [this]
+    (js/setTimeout
+      (fn [] (if (om/mounted? this) (om/set-state! this {:show? true})))
+      100))
+
+  (render [this]
+    (let [show? (om/get-state this :show?)]
+      (if show?
+        (dom/div nil "Loading page data...")
+        (dom/noscript nil)))))
+
+(def loading (om/factory Loading))
+
 (om/defui ^:once Root
   static uc/InitialAppState
   (initial-state [_ _]
@@ -162,5 +180,5 @@
           (dom/li nil (link {:to ::r/about} "About"))
           (dom/li nil (link {:to ::r/topic :params {::r/slug "getting-started"}} "Topic Getting Started")))
         (if (= :loading (get-in data [:ui/fetch-state ::df/type]))
-          "Loading page data..."
+          (loading nil)
           ((route->factory route) (assoc data :ref :page)))))))

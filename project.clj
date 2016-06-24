@@ -12,7 +12,7 @@
   :dependencies [[org.clojure/clojure "1.9.0-alpha7" :scope "provided"]
                  [org.clojure/clojurescript "1.9.89" :scope "provided"]
                  [org.omcljs/om "1.0.0-alpha36"]
-                 [figwheel-sidecar "0.5.4-3" :exclusions [clj-time joda-time org.clojure/tools.reader] :scope "test"]
+                 [figwheel-sidecar "0.5.4-4" :exclusions [clj-time joda-time org.clojure/tools.reader] :scope "test"]
                  [bidi "2.0.9"]
                  [kibu/pushy "0.3.6"]
                  [binaryage/devtools "0.7.0"]
@@ -27,8 +27,7 @@
   :plugins [[lein-cljsbuild "1.1.3"]
             [lein-doo "0.1.6"]]
 
-  :figwheel {:open-file-command "open-in-intellij"
-             :validate-config false}
+  :figwheel {:open-file-command "open-in-intellij"}
 
   :cljsbuild {:builds
               [{:id           "devcards"

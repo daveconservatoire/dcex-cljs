@@ -23,6 +23,18 @@
 
 (def button (om/factory Button))
 
+(om/defui ^:once LinkButton
+  Object
+  (render [this]
+    (let [{:keys [color to params]
+           :or {color "orange"
+                params {}}} (om/props this)]
+      (dom/a #js {:href      (r/path-for {:handler to :route-params params})
+                  :className (str "btn dc-btn-" color)}
+        (om/children this)))))
+
+(def link-button (om/factory LinkButton))
+
 (s/fdef button
   :args (s/cat :props (s/keys :opt [::button-color])
                :children (s/* ::component)))
@@ -52,7 +64,7 @@
   Object
   (render [this]
     (let [{:keys [topic/title url/slug]} (om/props this)]
-      (link {:to ::r/topic :params {::r/slug slug}} title))))
+      (link-button {:to ::r/topic :params {::r/slug slug}} title))))
 
 (def topic-link (om/factory TopicLink {:key-fn :db/id}))
 
@@ -114,10 +126,10 @@
 
   Object
   (render [this]
-    (let [{:keys [topic/title]} (om/props this)]
+    (let [{:keys [lesson/title]} (om/props this)]
       (dom/div nil "Lesson: " title))))
 
-(def lesson-cell (om/factory LessonCell))
+(def lesson-cell (om/factory LessonCell {:key-fn :db/id}))
 
 (om/defui ^:once TopicSideBarLink
   static om/IQuery
@@ -130,7 +142,7 @@
   (render [this]
     (let [{:keys [url/slug topic/title]} (om/props this)]
       (dom/div nil
-        (link {:to ::r/topic :params {::r/slug slug}} title)))))
+        (link-button {:to ::r/topic :params {::r/slug slug}} title)))))
 
 (def topic-side-bar-link (om/factory TopicSideBarLink))
 
@@ -147,18 +159,18 @@
   (ident [_ props] (model-ident props))
 
   static om/IQuery
-  (query [_] [:url/slug
-              {:topic/course [:course/title
+  (query [_] [{:topic/course [:course/title
                               {:course/topics (om/get-query TopicSideBarLink)}]}
               {:topic/lessons (om/get-query LessonCell)}])
 
   Object
   (render [this]
-    (let [props (route-props this [:topic/by-slug ::r/slug])]
+    (let [{:keys [topic/lessons topic/course]} (route-props this [:topic/by-slug ::r/slug])]
       (dom/div nil
-        "Topic" (pr-str props)
+        (:course/title course)
         (dom/div nil
-          (map topic-side-bar-link (get-in props [:topic/course :course/topics])))))))
+          (map topic-side-bar-link (:course/topics course))
+          (map lesson-cell lessons))))))
 
 (defmethod r/route->component ::r/topic [_] TopicPage)
 

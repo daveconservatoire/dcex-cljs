@@ -3,6 +3,9 @@
             [cljs.spec :as s]
             [pushy.core :as pushy]))
 
+(defprotocol IRouteMiddleware
+  (remote-query [this route]))
+
 (defmulti route->component :handler)
 
 (def routes

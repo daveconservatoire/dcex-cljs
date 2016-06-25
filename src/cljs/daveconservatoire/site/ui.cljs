@@ -62,7 +62,7 @@
 
 (def home-course (om/factory HomeCourse))
 
-(om/defui ^:once Home
+(om/defui ^:once HomePage
   static uc/InitialAppState
   (initial-state [_ _] {:app/courses []})
 
@@ -76,9 +76,9 @@
         "Home"
         (map home-course courses)))))
 
-(defmethod r/route->component ::r/home [_] Home)
+(defmethod r/route->component ::r/home [_] HomePage)
 
-(om/defui ^:once About
+(om/defui ^:once AboutPage
   static uc/InitialAppState
   (initial-state [_ _] {})
 
@@ -87,28 +87,37 @@
     (let [{:keys []} (om/props this)]
       (dom/div nil "About"))))
 
-(defmethod r/route->component ::r/about [_] About)
+(defmethod r/route->component ::r/about [_] AboutPage)
 
-(om/defui ^:once Topic
+(defn topic-props [c]
+  (let [{:keys [app/route] :as props} (if (om/component? c) (om/props c) c)]
+    (get props [:topic/by-slug (get-in route [:route-params ::r/slug])])))
+
+(om/defui ^:once TopicPage
   static uc/InitialAppState
   (initial-state [_ _] {})
+
+  static r/IRouteMiddleware
+  (remote-query [this route]
+    (let [slug (get-in route [:route-params ::r/slug])]
+      [{[:topic/by-slug slug] (om/get-query this)}]))
 
   static om/Ident
   (ident [_ props] [:topic/by-id (:db/id props)])
 
   static om/IQuery
-  (query [_] [:topic/slug
+  (query [_] [:url/slug
               :topic/title])
 
   Object
   (render [this]
-    (let [{:keys [topic/slug]} (om/props this)]
+    (let [props (topic-props this)]
       (dom/div nil
-        "Topic" slug))))
+        "Topic" (pr-str props)))))
 
-(defmethod r/route->component ::r/topic [_] Topic)
+(defmethod r/route->component ::r/topic [_] TopicPage)
 
-(om/defui ^:once NotFound
+(om/defui ^:once NotFoundPage
   static uc/InitialAppState
   (initial-state [_ _] {})
 
@@ -117,7 +126,7 @@
     (let [{:keys []} (om/props this)]
       (dom/div nil "Page not found"))))
 
-(defmethod r/route->component :default [_] NotFound)
+(defmethod r/route->component :default [_] NotFoundPage)
 
 (om/defui ^:once Link
   Object
@@ -148,6 +157,11 @@
 
 (def loading (om/factory Loading))
 
+(defn normalize-route-data-query [q]
+  (conj q
+        {:ui/fetch-state ['*]}
+        {[:app/route '_] ['*]}))
+
 (om/defui ^:once Root
   static uc/InitialAppState
   (initial-state [_ _]
@@ -168,8 +182,7 @@
   (componentWillMount [this]
     (let [{:keys [app/route]} (om/props this)
           initial-query (om/get-query (r/route->component route))]
-      (om/set-query! this {:params {:route/data (conj (or initial-query [])
-                                                      {:ui/fetch-state ['*]})}})))
+      (om/set-query! this {:params {:route/data (normalize-route-data-query initial-query)}})))
 
   (render [this]
     (let [{:keys [app/route route/data ui/react-key]} (om/props this)]
@@ -181,4 +194,6 @@
           (dom/li nil (link {:to ::r/topic :params {::r/slug "getting-started"}} "Topic Getting Started")))
         (if (= :loading (get-in data [:ui/fetch-state ::df/type]))
           (loading nil)
-          ((route->factory route) (assoc data :ref :page)))))))
+          (do
+            (js/console.log "route data" data (om/get-query this))
+            ((route->factory route) data)))))))

@@ -5,7 +5,7 @@
             [om.next :as om]))
 
 (defn start-callback [{:keys [reconciler]}]
-  (df/load-data reconciler [{:route/data (om/get-query ui/Home)}]))
+  (df/load-data reconciler [{:route/data (om/get-query ui/HomePage)}]))
 
 (defonce app
   (atom (uc/new-untangled-client :started-callback start-callback)))

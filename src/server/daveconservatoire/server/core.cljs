@@ -73,8 +73,7 @@
   (fn [req res]
     (go
       (try
-        (let [
-              tx (-> (read-stream req) <!
+        (let [tx (-> (read-stream req) <!
                      (read-string))]
           (.send res (with-out-str
                        (cljs.pprint/pprint (<! (parser/parse {:db connection} tx))))))

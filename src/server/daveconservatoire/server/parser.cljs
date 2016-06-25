@@ -81,6 +81,7 @@
                    :url/slug           "urltitle"
                    :youtube/id         "youtubeid"
                    :lesson/topic-id    "lessonno"
+                   :lesson/course-id   "seriesno"
                    :lesson/title       "title"
                    :lesson/description "description"
                    :lesson/keywords    "keywords"
@@ -153,20 +154,20 @@
     foreign-table))
 
 (defmethod row-vattribute [:course :course/topics] [env] (has-many env :topic :topic/course-id {:sort ["sortorder"]}))
-(defmethod row-vattribute [:course :lessons] [env] (has-many env :lesson :seriesno))
+(defmethod row-vattribute [:course :course/lessons] [env] (has-many env :lesson :lesson/course-id))
 
 (defmethod row-vattribute [:topic :topic/course] [env] (has-one env :course :topic/course-id))
 (defmethod row-vattribute [:topic :topic/lessons] [env] (has-many env :lesson :lesson/topic-id))
 
-(defmethod row-vattribute [:lesson :course] [env] (has-one env :course :seriesno))
-(defmethod row-vattribute [:lesson :topic] [env] (has-one env :topic :topicno))
-(defmethod row-vattribute [:lesson :playlist-items] [env] (has-many env :playlist-item :relid))
+(defmethod row-vattribute [:lesson :lesson/course] [env] (has-one env :course :lesson/course-id))
+(defmethod row-vattribute [:lesson :lesson/topic] [env] (has-one env :topic :lesson/topic-id))
+#_ (defmethod row-vattribute [:lesson :playlist-items] [env] (has-many env :playlist-item :relid))
 
-(defmethod row-vattribute [:user :exercice-answer] [env] (has-many env :user-exercise-answer :userId))
+#_ (defmethod row-vattribute [:user :exercice-answer] [env] (has-many env :user-exercise-answer :userId))
 
-(defmethod row-vattribute [:user-exercice-answer :user] [env] (has-one env :user :userId))
+#_ (defmethod row-vattribute [:user-exercice-answer :user] [env] (has-one env :user :userId))
 
-(defmethod row-vattribute [:user-video-view :user] [env] (has-one env :user :userId))
+#_ (defmethod row-vattribute [:user-video-view :user] [env] (has-one env :user :userId))
 
 ;; ROOT READS
 

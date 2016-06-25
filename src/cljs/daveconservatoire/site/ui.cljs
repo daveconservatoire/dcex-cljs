@@ -38,25 +38,27 @@
 (def link (om/factory Link))
 
 (defn model-ident [{:keys [db/id db/table]}]
-  [(keyword (name table) "by-id") id])
+  (if (and table id)
+    [(keyword (name table) "by-id") id]
+    [:unknown 0]))
 
 (om/defui ^:once TopicLink
   static om/IQuery
-  (query [_] [:db/id :db/table :topic/title])
+  (query [_] [:topic/title :url/slug])
 
   static om/Ident
   (ident [_ props] (model-ident props))
 
   Object
   (render [this]
-    (let [{:keys [topic/title]} (om/props this)]
-      (button nil title))))
+    (let [{:keys [topic/title url/slug]} (om/props this)]
+      (link {:to ::r/topic :params {::r/slug slug}} title))))
 
-(def topic-link (om/factory TopicLink))
+(def topic-link (om/factory TopicLink {:key-fn :db/id}))
 
 (om/defui ^:once HomeCourse
   static om/IQuery
-  (query [_] [:db/id :db/table :course/title :course/description
+  (query [_] [:course/title :course/description
               {:course/topics (om/get-query TopicLink)}])
 
   static om/Ident
@@ -105,10 +107,10 @@
 
 (om/defui ^:once LessonCell
   static om/IQuery
-  (query [_] [:db/id :lesson/title :youtube/id])
+  (query [_] [:lesson/title :youtube/id])
 
   static om/Ident
-  (ident [_ props] [:lesson/by-id (:db/id props)])
+  (ident [_ props] (model-ident props))
 
   Object
   (render [this]
@@ -122,7 +124,7 @@
   (query [_] [:topic/title :url/slug])
 
   static om/Ident
-  (ident [_ props] [:topic/by-id (:db/id props)])
+  (ident [_ props] (model-ident props))
 
   Object
   (render [this]
@@ -142,7 +144,7 @@
       [{[:topic/by-slug slug] (om/get-query this)}]))
 
   static om/Ident
-  (ident [_ props] [:topic/by-id (:db/id props)])
+  (ident [_ props] (model-ident props))
 
   static om/IQuery
   (query [_] [:url/slug

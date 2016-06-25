@@ -1,7 +1,5 @@
 (ns daveconservatoire.site.core
   (:require [untangled.client.core :as uc]
-            [untangled.client.data-fetch :as df]
-            [daveconservatoire.site.ui :as ui]
             [daveconservatoire.site.routes :as r]
             [om.next :as om]))
 

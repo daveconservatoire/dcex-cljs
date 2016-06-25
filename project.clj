@@ -46,8 +46,8 @@
 
                {:id           "site"
                 :figwheel     {:on-jsload "daveconservatoire.support.dev/reload-cycle"}
-                :source-paths ["src/site" "src/cljs" "src/dev"]
-                :compiler     {:main                 daveconservatoire.site
+                :source-paths ["src/cljs" "src/dev"]
+                :compiler     {:main                 daveconservatoire.site.main
                                :source-map-timestamp true
                                :asset-path           "/site"
                                :output-to            "resources/public/site/site.js"

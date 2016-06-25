@@ -1,4 +1,4 @@
-(ns daveconservatoire.site
+(ns daveconservatoire.site.main
   (:require [daveconservatoire.site.ui :as ui]
             [untangled.client.core :as uc]
             [daveconservatoire.site.core :refer [app]]

@@ -49,7 +49,7 @@
                 :source-paths ["src/site" "src/cljs" "src/dev"]
                 :compiler     {:main                 daveconservatoire.site
                                :source-map-timestamp true
-                               :asset-path           "site"
+                               :asset-path           "/site"
                                :output-to            "resources/public/site/site.js"
                                :output-dir           "resources/public/site"
                                :preloads             [daveconservatoire.support.dev]

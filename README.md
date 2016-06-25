@@ -1,10 +1,32 @@
-# dcex-cljs
-
-A Clojure library designed to ... well, that part is up to you.
+# Dave Conservatorie Site
 
 ## Usage
 
-FIXME
+Install node packages:
+
+```
+npm install
+```
+
+Running the Javascripts compilation:
+
+```
+lein run -m clojure.main script/figwheel.clj
+```
+
+Running the server (remember to start the compilation first):
+
+```
+npm run dev
+```
+
+## Tests
+
+Running server tests
+
+```
+npm test
+```
 
 ## License
 

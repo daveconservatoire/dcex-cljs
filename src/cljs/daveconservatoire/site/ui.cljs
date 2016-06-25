@@ -7,33 +7,46 @@
             [untangled.client.impl.data-fetch :as df]
             [cljs.spec :as s]))
 
-(comment (s/alias 'daveconservatoire.site.ui.button 'button))
+(defn html-attr-merge [a b]
+  (cond
+    (map? a) (merge a b)
+    (string? a) (str a " " b)
+    :else b))
+
+(defn parse-route [{:keys [::r/handler ::r/route-params] :as attrs}]
+  (cond-> attrs
+    handler (assoc :href (r/path-for {:handler handler :route-params (or route-params {})}))))
+
+(s/fdef parse-route
+  :args (s/cat :attrs map?)
+  :ret map?)
+
+(defn props->html [attrs props]
+  (->> (merge-with html-attr-merge attrs props)
+       (parse-route)
+       (filter (fn [[k _]] (not (namespace k))))
+       (into {})
+       (clj->js)))
+
+(s/fdef props->html
+  :args (s/cat :attrs map?
+               :props map?)
+  :ret map?)
 
 (s/def ::component om/component?)
-(s/def ::button-color #{"orange" "redorange"})
+(s/def ::button-color #{"yellow" "orange" "redorange" "red"})
 
 (om/defui ^:once Button
   Object
   (render [this]
-    (let [{:keys [color]
-           :or {color "orange"}} (om/props this)]
-      (dom/a #js {:href      "#"
-                  :className (str "btn dc-btn-" color)}
+    (let [{:keys [::button-color]
+           :or   {::button-color "orange"} :as props} (om/props this)]
+      (dom/a (props->html {:href      "#"
+                           :className (str "btn dc-btn-" button-color)}
+                          props)
         (om/children this)))))
 
 (def button (om/factory Button))
-
-(om/defui ^:once LinkButton
-  Object
-  (render [this]
-    (let [{:keys [color to params]
-           :or {color "orange"
-                params {}}} (om/props this)]
-      (dom/a #js {:href      (r/path-for {:handler to :route-params params})
-                  :className (str "btn dc-btn-" color)}
-        (om/children this)))))
-
-(def link-button (om/factory LinkButton))
 
 (s/fdef button
   :args (s/cat :props (s/keys :opt [::button-color])
@@ -43,7 +56,7 @@
   Object
   (render [this]
     (let [{:keys [to params]
-           :or {params {}}} (om/props this)]
+           :or   {params {}}} (om/props this)]
       (dom/a #js {:href (r/path-for {:handler to :route-params params})}
         (om/children this)))))
 
@@ -64,7 +77,7 @@
   Object
   (render [this]
     (let [{:keys [topic/title url/slug]} (om/props this)]
-      (link-button {:to ::r/topic :params {::r/slug slug}} title))))
+      (button {::r/handler ::r/topic ::r/route-params {::r/slug slug}} title))))
 
 (def topic-link (om/factory TopicLink {:key-fn :db/id}))
 
@@ -142,7 +155,7 @@
   (render [this]
     (let [{:keys [url/slug topic/title]} (om/props this)]
       (dom/div nil
-        (link-button {:to ::r/topic :params {::r/slug slug}} title)))))
+        (button {::r/handler ::r/topic ::r/route-params {::r/slug slug}} title)))))
 
 (def topic-side-bar-link (om/factory TopicSideBarLink))
 
@@ -213,7 +226,7 @@
   static uc/InitialAppState
   (initial-state [_ _]
     (let [route (r/current-handler)]
-      {:app/route route
+      {:app/route  route
        :route/data (uc/initial-state (r/route->component route) route)}))
 
   static om/IQueryParams

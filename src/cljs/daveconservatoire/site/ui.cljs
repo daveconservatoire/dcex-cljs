@@ -158,7 +158,7 @@
 (def loading (om/factory Loading))
 
 (defn normalize-route-data-query [q]
-  (conj q
+  (conj (or q [])
         {:ui/fetch-state ['*]}
         {[:app/route '_] ['*]}))
 
@@ -194,6 +194,4 @@
           (dom/li nil (link {:to ::r/topic :params {::r/slug "getting-started"}} "Topic Getting Started")))
         (if (= :loading (get-in data [:ui/fetch-state ::df/type]))
           (loading nil)
-          (do
-            (js/console.log "route data" data (om/get-query this))
-            ((route->factory route) data)))))))
+          ((route->factory route) data))))))

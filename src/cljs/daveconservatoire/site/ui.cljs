@@ -89,9 +89,9 @@
 
 (defmethod r/route->component ::r/about [_] AboutPage)
 
-(defn topic-props [c]
+(defn route-props [c [k route-param]]
   (let [{:keys [app/route] :as props} (if (om/component? c) (om/props c) c)]
-    (get props [:topic/by-slug (get-in route [:route-params ::r/slug])])))
+    (get props [k (get-in route [:route-params route-param])])))
 
 (om/defui ^:once TopicPage
   static uc/InitialAppState
@@ -111,7 +111,7 @@
 
   Object
   (render [this]
-    (let [props (topic-props this)]
+    (let [props (route-props this [:topic/by-slug ::r/slug])]
       (dom/div nil
         "Topic" (pr-str props)))))
 

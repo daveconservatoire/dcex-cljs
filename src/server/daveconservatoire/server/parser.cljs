@@ -79,6 +79,8 @@
           :name   "Lesson",
           :fields {:db/id              "id"
                    :url/slug           "urltitle"
+                   :youtube/id         "youtubeid"
+                   :lesson/topic-id    "lessonno"
                    :lesson/title       "title"
                    :lesson/description "description"
                    :lesson/keywords    "keywords"
@@ -154,7 +156,7 @@
 (defmethod row-vattribute [:course :lessons] [env] (has-many env :lesson :seriesno))
 
 (defmethod row-vattribute [:topic :topic/course] [env] (has-one env :course :topic/course-id))
-(defmethod row-vattribute [:topic :lessons] [env] (has-many env :lesson :lessonno))
+(defmethod row-vattribute [:topic :topic/lessons] [env] (has-many env :lesson :lesson/topic-id))
 
 (defmethod row-vattribute [:lesson :course] [env] (has-one env :course :seriesno))
 (defmethod row-vattribute [:lesson :topic] [env] (has-one env :topic :topicno))

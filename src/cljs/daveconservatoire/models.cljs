@@ -21,12 +21,15 @@
 
 (s/def :model/topic
   (s/keys :opt [:db/id :url/slug :ordering/position
-                :topic/title :topic/colour :topic/course]))
+                :topic/title :topic/colour :topic/course :topic/course-id]))
 
 (s/def :lesson/title string?)
 (s/def :lesson/description string?)
 (s/def :lesson/keywords (s/coll-of string? []))
 (s/def :lesson/file-type string?)
+(s/def :lesson/topic-id :db/id)
 
-(s/def :model/lesson (s/keys :opt [:db/id :url/slug :youtube/id
-                                   :lesson/title :lesson/description]))
+(s/def :model/lesson
+  (s/keys :opt [:db/id :url/slug :youtube/id
+                :lesson/title :lesson/description :lesson/keywords
+                :lesson/topic-id :lesson/file-type]))

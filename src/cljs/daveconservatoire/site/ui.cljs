@@ -27,6 +27,16 @@
   :args (s/cat :props (s/keys :opt [::button-color])
                :children (s/* ::component)))
 
+(om/defui ^:once Link
+  Object
+  (render [this]
+    (let [{:keys [to params]
+           :or {params {}}} (om/props this)]
+      (dom/a #js {:href (r/path-for {:handler to :route-params params})}
+        (om/children this)))))
+
+(def link (om/factory Link))
+
 (defn model-ident [{:keys [db/id db/table]}]
   [(keyword (name table) "by-id") id])
 
@@ -93,6 +103,35 @@
   (let [{:keys [app/route] :as props} (if (om/component? c) (om/props c) c)]
     (get props [k (get-in route [:route-params route-param])])))
 
+(om/defui ^:once LessonCell
+  static om/IQuery
+  (query [_] [:db/id :lesson/title :youtube/id])
+
+  static om/Ident
+  (ident [_ props] [:lesson/by-id (:db/id props)])
+
+  Object
+  (render [this]
+    (let [{:keys [topic/title]} (om/props this)]
+      (dom/div nil "Lesson: " title))))
+
+(def lesson-cell (om/factory LessonCell))
+
+(om/defui ^:once TopicSideBarLink
+  static om/IQuery
+  (query [_] [:topic/title :url/slug])
+
+  static om/Ident
+  (ident [_ props] [:topic/by-id (:db/id props)])
+
+  Object
+  (render [this]
+    (let [{:keys [url/slug topic/title]} (om/props this)]
+      (dom/div nil
+        (link {:to ::r/topic :params {::r/slug slug}} title)))))
+
+(def topic-side-bar-link (om/factory TopicSideBarLink))
+
 (om/defui ^:once TopicPage
   static uc/InitialAppState
   (initial-state [_ _] {})
@@ -107,13 +146,17 @@
 
   static om/IQuery
   (query [_] [:url/slug
-              :topic/title])
+              {:topic/course [:course/title
+                              {:course/topics (om/get-query TopicSideBarLink)}]}
+              {:topic/lessons (om/get-query LessonCell)}])
 
   Object
   (render [this]
     (let [props (route-props this [:topic/by-slug ::r/slug])]
       (dom/div nil
-        "Topic" (pr-str props)))))
+        "Topic" (pr-str props)
+        (dom/div nil
+          (map topic-side-bar-link (get-in props [:topic/course :course/topics])))))))
 
 (defmethod r/route->component ::r/topic [_] TopicPage)
 
@@ -127,16 +170,6 @@
       (dom/div nil "Page not found"))))
 
 (defmethod r/route->component :default [_] NotFoundPage)
-
-(om/defui ^:once Link
-  Object
-  (render [this]
-    (let [{:keys [to params]
-           :or {params {}}} (om/props this)]
-      (dom/a #js {:href (r/path-for {:handler to :route-params params})}
-        (om/children this)))))
-
-(def link (om/factory Link))
 
 (defn route->factory [route] (om/factory (r/route->component route)))
 

@@ -6,4 +6,4 @@
   (devtools.core/install! [:custom-formatters :sanity-hints]))
 
 (defn reload-cycle []
-  (s/instrument-all))
+  #_ (s/instrument-all))

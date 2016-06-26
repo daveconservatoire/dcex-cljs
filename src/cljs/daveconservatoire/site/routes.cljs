@@ -1,7 +1,7 @@
 (ns daveconservatoire.site.routes
-  (:require [bidi.bidi :as b]
-            [cljs.spec :as s]
-            [pushy.core :as pushy]))
+  (:require [cljs.spec :as s]
+            [pushy.core :as pushy]
+            [bidi.bidi :as bidi]))
 
 (defprotocol IRouteMiddleware
   (remote-query [this route]))
@@ -18,7 +18,7 @@
         ["lesson/" ::slug] ::lesson}])
 
 (s/def ::slug string?)
-(s/def ::handler (->> (b/route-seq routes)
+(s/def ::handler (->> (bidi/route-seq routes)
                       (map :handler)
                       (set)))
 
@@ -27,8 +27,10 @@
 
 (defn path-for [{:keys [handler route-params] :as route}]
   {:pre [(s/valid? ::route route)]}
-  (apply b/path-for routes handler (flatten1 route-params)))
+  (apply bidi/path-for routes handler (flatten1 route-params)))
 
 (defn current-handler []
-  (or (b/match-route routes (.getToken (pushy/new-history)))
+  (or (bidi/match-route routes (.getToken (pushy/new-history)))
       {:handler ::home}))
+
+(def match-route (partial bidi/match-route routes))

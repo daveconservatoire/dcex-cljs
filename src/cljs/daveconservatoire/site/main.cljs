@@ -4,7 +4,6 @@
             [daveconservatoire.site.core :refer [app]]
             [daveconservatoire.site.routes :as r :refer [routes]]
             [pushy.core :as pushy]
-            [bidi.bidi :as bidi]
             [daveconservatoire.site.mutations]
             [om.next :as om]))
 
@@ -13,7 +12,7 @@
     (om/transact! (-> @app :reconciler) `[(app/set-route ~match)])))
 
 (defonce history
-  (pushy/pushy set-page! (partial bidi/match-route routes)))
+  (pushy/pushy set-page! r/match-route))
 
 (pushy/start! history)
 

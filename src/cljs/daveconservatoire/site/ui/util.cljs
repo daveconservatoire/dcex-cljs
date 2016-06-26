@@ -69,3 +69,7 @@
     :lesson.type/playlist "/img/playlist.jpg"
     :lesson.type/exercise "/img/exercise.jpg"
     :lesson.type/lesson (str "http://img.youtube.com/vi/" (:youtube/id lesson) "/default.jpg")))
+
+(s/fdef lesson-thumbnail-url
+  :args (s/cat :lesson (s/keys :req [:lesson/type]))
+  :ret string?)

@@ -27,8 +27,6 @@
   (s/keys :opt [:db/id :url/slug :ordering/position
                 :topic/title :topic/colour :topic/course-id :topic/course]))
 
-
-
 (s/def :lesson/title string?)
 (s/def :lesson/description string?)
 (s/def :lesson/keywords string?)

@@ -66,6 +66,6 @@
 
 (defn lesson-thumbnail-url [{:keys [lesson/type] :as lesson}]
   (case type
-    "p" "/img/playlist.jpg"
-    "e" "/img/exercise.jpg"
-    "l" (str "http://img.youtube.com/vi/" (:youtube/id lesson) "/default.jpg")))
+    :lesson.type/playlist "/img/playlist.jpg"
+    :lesson.type/exercise "/img/exercise.jpg"
+    :lesson.type/lesson (str "http://img.youtube.com/vi/" (:youtube/id lesson) "/default.jpg")))

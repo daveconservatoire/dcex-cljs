@@ -27,10 +27,14 @@
   (s/keys :opt [:db/id :url/slug :ordering/position
                 :topic/title :topic/colour :topic/course-id :topic/course]))
 
+
+
 (s/def :lesson/title string?)
 (s/def :lesson/description string?)
 (s/def :lesson/keywords string?)
-(s/def :lesson/type string?)
+(s/def :lesson/type #{:lesson.type/lesson
+                      :lesson.type/exercise
+                      :lesson.type/playlist})
 (s/def :lesson/topic-id :db/id)
 (s/def :lesson/topic :model/topic)
 (s/def :lesson/course-id :db/id)

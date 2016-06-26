@@ -31,7 +31,7 @@
   (render [this]
     (let [{:keys [to params]
            :or   {params {}}} (om/props this)]
-      (dom/a #js {:href (r/path-for {:handler to :route-params params})}
+      (dom/a #js {:href (r/path-for {::r/handler to ::r/params params})}
         (om/children this)))))
 
 (def link (om/factory Link))
@@ -46,7 +46,7 @@
   Object
   (render [this]
     (let [{:keys [topic/title url/slug]} (om/props this)]
-      (button {::r/handler ::r/topic ::r/route-params {::r/slug slug}} title))))
+      (button {::r/handler ::r/topic ::r/params {::r/slug slug}} title))))
 
 (def topic-link (om/factory TopicLink {:key-fn :db/id}))
 
@@ -122,7 +122,7 @@
   (render [this]
     (let [{:keys [url/slug topic/title]} (om/props this)]
       (dom/div nil
-        (button {::r/handler ::r/topic ::r/route-params {::r/slug slug}} title)))))
+        (button {::r/handler ::r/topic ::r/params {::r/slug slug}} title)))))
 
 (def topic-side-bar-link (om/factory TopicSideBarLink))
 
@@ -132,7 +132,7 @@
 
   static r/IRouteMiddleware
   (remote-query [this route]
-    (let [slug (get-in route [:route-params ::r/slug])]
+    (let [slug (get-in route [::r/params ::r/slug])]
       [{[:topic/by-slug slug] (om/get-query this)}]))
 
   static om/Ident

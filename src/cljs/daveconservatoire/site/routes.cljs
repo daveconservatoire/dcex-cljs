@@ -6,7 +6,7 @@
 (defprotocol IRouteMiddleware
   (remote-query [this route]))
 
-(defmulti route->component :handler)
+(defmulti route->component ::handler)
 
 (def routes
   ["/" {""                 ::home
@@ -22,15 +22,32 @@
                       (map :handler)
                       (set)))
 
-(s/def ::route-params map?)
-(s/def ::route (s/keys :req-un [::handler] :opt-un [::route-params]))
+(s/def ::path string?)
+(s/def ::params map?)
+(s/def ::route (s/keys :req [::handler] :opt [::params]))
 
-(defn path-for [{:keys [handler route-params] :as route}]
+(defn path-for [{:keys [::handler ::params] :as route
+                 :or {::params {}}}]
   {:pre [(s/valid? ::route route)]}
-  (apply bidi/path-for routes handler (flatten1 route-params)))
+  (apply bidi/path-for routes handler (flatten1 params)))
+
+(s/fdef path-for
+  :args (s/cat :route ::route)
+  :ret ::path)
+
+(defn match-route [path]
+  (if-let [{:keys [handler route-params]} (bidi/match-route routes path)]
+    {::handler handler
+     ::params route-params}))
+
+(s/fdef match-route
+  :args (s/cat :path ::path)
+  :ret (s/nilable ::route))
 
 (defn current-handler []
-  (or (bidi/match-route routes (.getToken (pushy/new-history)))
-      {:handler ::home}))
+  (or (match-route (.getToken (pushy/new-history)))
+      {::handler ::home}))
 
-(def match-route (partial bidi/match-route routes))
+(s/fdef current-handler
+  :args (s/cat)
+  :ret ::route)

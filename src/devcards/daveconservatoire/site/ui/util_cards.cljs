@@ -37,5 +37,5 @@
     {} {::r/handler ::r/home}
     #js {:href "/"}
 
-    {} {::r/handler ::r/topic ::r/route-params {::r/slug "start"}}
+    {} {::r/handler ::r/topic ::r/params {::r/slug "start"}}
     #js {:href "/topic/start"}))

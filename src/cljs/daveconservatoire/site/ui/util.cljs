@@ -15,9 +15,9 @@
                :b ::s/any)
   :ret ::s/any)
 
-(defn parse-route [{:keys [::r/handler ::r/route-params] :as attrs}]
+(defn parse-route [{:keys [::r/handler] :as attrs}]
   (cond-> attrs
-    handler (assoc :href (r/path-for {:handler handler :route-params (or route-params {})}))))
+    handler (assoc :href (r/path-for attrs))))
 
 (s/fdef parse-route
   :args (s/cat :attrs map?)
@@ -46,7 +46,7 @@
 
 (defn route-prop [c [k route-param]]
   (let [{:keys [app/route] :as props} (if (om/component? c) (om/props c) c)]
-    (get props [k (get-in route [:route-params route-param])])))
+    (get props [k (get-in route [::r/params route-param])])))
 
 (s/fdef route-prop
   :args (s/cat :component om/component?

@@ -2,6 +2,7 @@
   (:require [untangled.client.mutations :as m]
             [daveconservatoire.site.routes :as r]
             [daveconservatoire.site.ui :as ui]
+            [daveconservatoire.site.ui.util :as uiu]
             [untangled.client.data-fetch :as df]
             [om.next :as om]
             [om.util :as omu]))
@@ -18,7 +19,7 @@
                         (om/get-query comp))]
        (if data-query
          (df/load-data reconciler [{:route/data data-query}] :post-mutation 'fetch/export-idents))
-       (om/set-query! root {:params {:route/data (ui/normalize-route-data-query data-query)}})
+       (om/set-query! root {:params {:route/data (uiu/normalize-route-data-query data-query)}})
        (js/setTimeout
          #(swap! state assoc :app/route route)
          10)))})

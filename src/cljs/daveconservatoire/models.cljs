@@ -2,6 +2,7 @@
   (:require [cljs.spec :as s]))
 
 (s/def :db/id pos-int?)
+(s/def :db/table keyword?)
 (s/def :url/slug string?)
 (s/def :ordering/position pos-int?)
 (s/def :youtube/id string?)
@@ -28,8 +29,8 @@
 
 (s/def :lesson/title string?)
 (s/def :lesson/description string?)
-(s/def :lesson/keywords (s/coll-of string? []))
-(s/def :lesson/file-type string?)
+(s/def :lesson/keywords string?)
+(s/def :lesson/type string?)
 (s/def :lesson/topic-id :db/id)
 (s/def :lesson/topic :model/topic)
 (s/def :lesson/course-id :db/id)
@@ -38,5 +39,5 @@
 (s/def :model/lesson
   (s/keys :opt [:db/id :url/slug :youtube/id
                 :lesson/title :lesson/description :lesson/keywords
-                :lesson/file-type :lesson/topic-id :lesson/topic
+                :lesson/type :lesson/topic-id :lesson/topic
                 :lesson/course-id :lesson/course]))

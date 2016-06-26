@@ -2,36 +2,10 @@
   (:require [om.next :as om :include-macros true]
             [om.dom :as dom]
             [daveconservatoire.site.routes :as r :refer [routes]]
-            [bidi.bidi :as bidi]
+            [daveconservatoire.site.ui.util :as u]
             [untangled.client.core :as uc]
             [untangled.client.impl.data-fetch :as df]
             [cljs.spec :as s]))
-
-(defn html-attr-merge [a b]
-  (cond
-    (map? a) (merge a b)
-    (string? a) (str a " " b)
-    :else b))
-
-(defn parse-route [{:keys [::r/handler ::r/route-params] :as attrs}]
-  (cond-> attrs
-    handler (assoc :href (r/path-for {:handler handler :route-params (or route-params {})}))))
-
-(s/fdef parse-route
-  :args (s/cat :attrs map?)
-  :ret map?)
-
-(defn props->html [attrs props]
-  (->> (merge-with html-attr-merge attrs props)
-       (parse-route)
-       (filter (fn [[k _]] (not (namespace k))))
-       (into {})
-       (clj->js)))
-
-(s/fdef props->html
-  :args (s/cat :attrs map?
-               :props map?)
-  :ret map?)
 
 (s/def ::component om/component?)
 (s/def ::button-color #{"yellow" "orange" "redorange" "red"})
@@ -41,7 +15,7 @@
   (render [this]
     (let [{:keys [::button-color]
            :or   {::button-color "orange"} :as props} (om/props this)]
-      (dom/a (props->html {:href      "#"
+      (dom/a (u/props->html {:href      "#"
                            :className (str "btn dc-btn-" button-color)}
                           props)
         (om/children this)))))
@@ -62,17 +36,12 @@
 
 (def link (om/factory Link))
 
-(defn model-ident [{:keys [db/id db/table]}]
-  (if (and table id)
-    [(keyword (name table) "by-id") id]
-    [:unknown 0]))
-
 (om/defui ^:once TopicLink
   static om/IQuery
   (query [_] [:topic/title :url/slug])
 
   static om/Ident
-  (ident [_ props] (model-ident props))
+  (ident [_ props] (u/model-ident props))
 
   Object
   (render [this]
@@ -87,7 +56,7 @@
               {:course/topics (om/get-query TopicLink)}])
 
   static om/Ident
-  (ident [_ props] (model-ident props))
+  (ident [_ props] (u/model-ident props))
 
   Object
   (render [this]
@@ -126,21 +95,19 @@
 
 (defmethod r/route->component ::r/about [_] AboutPage)
 
-(defn route-props [c [k route-param]]
-  (let [{:keys [app/route] :as props} (if (om/component? c) (om/props c) c)]
-    (get props [k (get-in route [:route-params route-param])])))
-
 (om/defui ^:once LessonCell
   static om/IQuery
-  (query [_] [:lesson/title :youtube/id])
+  (query [_] [:lesson/title :youtube/id :lesson/type])
 
   static om/Ident
-  (ident [_ props] (model-ident props))
+  (ident [_ props] (u/model-ident props))
 
   Object
   (render [this]
-    (let [{:keys [lesson/title]} (om/props this)]
-      (dom/div nil "Lesson: " title))))
+    (let [{:keys [lesson/title] :as lesson} (om/props this)]
+      (dom/div nil
+        (dom/img #js {:src (u/lesson-thumbnail-url lesson)})
+        (dom/div nil title)))))
 
 (def lesson-cell (om/factory LessonCell {:key-fn :db/id}))
 
@@ -149,7 +116,7 @@
   (query [_] [:topic/title :url/slug])
 
   static om/Ident
-  (ident [_ props] (model-ident props))
+  (ident [_ props] (u/model-ident props))
 
   Object
   (render [this]
@@ -169,7 +136,7 @@
       [{[:topic/by-slug slug] (om/get-query this)}]))
 
   static om/Ident
-  (ident [_ props] (model-ident props))
+  (ident [_ props] (u/model-ident props))
 
   static om/IQuery
   (query [_] [{:topic/course [:course/title
@@ -178,7 +145,7 @@
 
   Object
   (render [this]
-    (let [{:keys [topic/lessons topic/course]} (route-props this [:topic/by-slug ::r/slug])]
+    (let [{:keys [topic/lessons topic/course]} (u/route-prop this [:topic/by-slug ::r/slug])]
       (dom/div nil
         (:course/title course)
         (dom/div nil
@@ -198,8 +165,6 @@
 
 (defmethod r/route->component :default [_] NotFoundPage)
 
-(defn route->factory [route] (om/factory (r/route->component route)))
-
 (om/defui ^:once Loading
   Object
   (initLocalState [_] {:show? false})
@@ -216,11 +181,6 @@
         (dom/noscript nil)))))
 
 (def loading (om/factory Loading))
-
-(defn normalize-route-data-query [q]
-  (conj (or q [])
-        {:ui/fetch-state ['*]}
-        {[:app/route '_] ['*]}))
 
 (om/defui ^:once Root
   static uc/InitialAppState
@@ -242,7 +202,7 @@
   (componentWillMount [this]
     (let [{:keys [app/route]} (om/props this)
           initial-query (om/get-query (r/route->component route))]
-      (om/set-query! this {:params {:route/data (normalize-route-data-query initial-query)}})))
+      (om/set-query! this {:params {:route/data (u/normalize-route-data-query initial-query)}})))
 
   (render [this]
     (let [{:keys [app/route route/data ui/react-key]} (om/props this)]
@@ -254,4 +214,4 @@
           (dom/li nil (link {:to ::r/topic :params {::r/slug "getting-started"}} "Topic Getting Started")))
         (if (= :loading (get-in data [:ui/fetch-state ::df/type]))
           (loading nil)
-          ((route->factory route) data))))))
+          ((u/route->factory route) data))))))

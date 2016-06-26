@@ -85,7 +85,7 @@
                    :lesson/title       "title"
                    :lesson/description "description"
                    :lesson/keywords    "keywords"
-                   :lesson/file-type   "filetype"}}}]
+                   :lesson/type        "filetype"}}}]
     (zipmap (keys specs)
             (map #(assoc % :fields'
                            (let [m (:fields %)] (zipmap (map keyword (vals m)) (keys m))))

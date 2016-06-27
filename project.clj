@@ -11,7 +11,7 @@
 
   :dependencies [[org.clojure/clojure "1.9.0-alpha7" :scope "provided"]
                  [org.clojure/clojurescript "1.9.89" :scope "provided"]
-                 [org.omcljs/om "1.0.0-alpha36"]
+                 [org.omcljs/om "1.0.0-alpha37"]
                  [figwheel-sidecar "0.5.4-4" :exclusions [clj-time joda-time org.clojure/tools.reader] :scope "test"]
                  [bidi "2.0.9"]
                  [kibu/pushy "0.3.6"]

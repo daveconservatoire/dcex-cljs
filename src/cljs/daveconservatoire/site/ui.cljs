@@ -29,10 +29,8 @@
 (om/defui ^:once Link
   Object
   (render [this]
-    (let [{:keys [to params]
-           :or   {params {}}} (om/props this)]
-      (dom/a #js {:href (r/path-for {::r/handler to ::r/params params})}
-        (om/children this)))))
+    (dom/a (u/props->html {} (om/props this))
+      (om/children this))))
 
 (def link (om/factory Link))
 
@@ -97,17 +95,17 @@
 
 (om/defui ^:once LessonCell
   static om/IQuery
-  (query [_] [:lesson/title :youtube/id :lesson/type])
+  (query [_] [:lesson/title :youtube/id :lesson/type :url/slug])
 
   static om/Ident
   (ident [_ props] (u/model-ident props))
 
   Object
   (render [this]
-    (let [{:keys [lesson/title] :as lesson} (om/props this)]
+    (let [{:keys [lesson/title url/slug] :as lesson} (om/props this)]
       (dom/div nil
         (dom/img #js {:src (u/lesson-thumbnail-url lesson)})
-        (dom/div nil title)))))
+        (link {::r/handler ::r/lesson ::r/params {::r/slug slug}} title)))))
 
 (def lesson-cell (om/factory LessonCell {:key-fn :db/id}))
 
@@ -153,6 +151,64 @@
           (map lesson-cell lessons))))))
 
 (defmethod r/route->component ::r/topic [_] TopicPage)
+
+(om/defui ^:once LessonVideo
+  static om/IQuery
+  (query [_] [:lesson/type :lesson/description :youtube/id])
+
+  Object
+  (render [this]
+    (let [{:keys []} (om/props this)]
+      (dom/div nil))))
+
+(def lesson-video (om/factory LessonVideo))
+
+(om/defui ^:once LessonPlaylist
+  static om/IQuery
+  (query [_] [:lesson/type :lesson/description])
+
+  Object
+  (render [this]
+    (let [{:keys []} (om/props this)]
+      (dom/div nil "Playlist"))))
+
+(def lesson-playlist (om/factory LessonPlaylist))
+
+(om/defui ^:once LessonExercise
+  static om/IQuery
+  (query [_] [:lesson/type :lesson/title])
+
+  Object
+  (render [this]
+    (let [{:keys []} (om/props this)]
+      (dom/div nil "Exercise"))))
+
+(def lesson-exercise (om/factory LessonExercise))
+
+(om/defui ^:once LessonPage
+  static om/Ident
+  (ident [_ {:keys [lesson/type db/id]}]
+    [type id])
+
+  static om/IQuery
+  (query [_]
+    {:lesson.type/lesson (om/get-query LessonVideo)
+     :lesson.type/playlist (om/get-query LessonPlaylist)
+     :lesson.type/exercise (om/get-query LessonExercise)})
+
+  static r/IRouteMiddleware
+  (remote-query [this route]
+    (let [slug (get-in route [::r/params ::r/slug])]
+      [{[:lesson/by-slug slug] (om/get-query this)}]))
+
+  Object
+  (render [this]
+    (let [{:keys [lesson/type] :as lesson} (u/route-prop this [:lesson/by-slug ::r/slug])]
+      (dom/div nil
+        "Lesson Page"
+        type))))
+
+(defmethod r/route->component ::r/lesson [_] LessonPage)
 
 (om/defui ^:once NotFoundPage
   static uc/InitialAppState

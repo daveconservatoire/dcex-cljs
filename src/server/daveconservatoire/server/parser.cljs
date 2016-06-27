@@ -94,12 +94,23 @@
 
 (defmethod row-vattribute :default [env] [:error :not-found])
 
-(defn parse-row [{:keys [table ast] :as env} row]
-  (let [accessors (into #{:db/id :db/table} (map :key) (:children ast))
+(defn union-children? [ast]
+  (= :union (some-> ast :children first :type)))
+
+(defn row-get [{:keys [table] :as env} row attr]
+  (if-let [field (get (:fields table) attr)]
+    (get row field)
+    (row-vattribute (assoc env :ast {:key attr} :row row))))
+
+(defn parse-row [{:keys [table ast ::union-selector] :as env} row]
+  (let [row (assoc row :db/table (:key table))
+        ast (if (union-children? ast)
+              (some-> ast :query (get (row-get env row union-selector)) (om/query->ast))
+              ast)
+        accessors (into #{:db/id :db/table} (map :key) (:children ast))
         non-table (set/difference accessors (set (conj (keys (:fields table)) :db/table)))
         virtual (filter #(contains? non-table (:key %)) (:children ast))
-        row (-> (assoc row :db/table (:key table))
-                (set/rename-keys (:fields' table)))]
+        row (set/rename-keys row (:fields' table))]
     (-> (reduce (fn [row {:keys [key] :as ast}]
                   (assoc row key (row-vattribute (assoc env :ast ast :row row))))
                 row
@@ -165,13 +176,13 @@
     "l" :lesson.type/lesson
     "e" :lesson.type/exercise
     "p" :lesson.type/playlist))
-#_ (defmethod row-vattribute [:lesson :playlist-items] [env] (has-many env :playlist-item :relid))
+#_(defmethod row-vattribute [:lesson :playlist-items] [env] (has-many env :playlist-item :relid))
 
-#_ (defmethod row-vattribute [:user :exercice-answer] [env] (has-many env :user-exercise-answer :userId))
+#_(defmethod row-vattribute [:user :exercice-answer] [env] (has-many env :user-exercise-answer :userId))
 
-#_ (defmethod row-vattribute [:user-exercice-answer :user] [env] (has-one env :user :userId))
+#_(defmethod row-vattribute [:user-exercice-answer :user] [env] (has-one env :user :userId))
 
-#_ (defmethod row-vattribute [:user-video-view :user] [env] (has-one env :user :userId))
+#_(defmethod row-vattribute [:user-video-view :user] [env] (has-one env :user :userId))
 
 ;; ROOT READS
 
@@ -182,7 +193,7 @@
     :route/data {:value (read-chan-values (parser env (:query ast)))}
     :topic/by-slug {:value (query-sql-first (assoc env :table :topic)
                                             [[:where {:urltitle (ast-key-id ast)}]])}
-    :lesson/by-slug {:value (query-sql-first (assoc env :table :lesson)
+    :lesson/by-slug {:value (query-sql-first (assoc env :table :lesson ::union-selector :lesson/type)
                                              [[:where {:urltitle (ast-key-id ast)}]])}
     :app/courses {:value (query-table env :course)}
     :app/topics {:value (query-table env :topic)}

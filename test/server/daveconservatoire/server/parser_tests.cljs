@@ -35,11 +35,11 @@
       (is (= (<! (p/query-sql-first {:db    ts/connection
                                      :table :course
                                      :ast   (om/query->ast [:db/id (list
-                                                                  {:course/topics [:db/id :topic/title]}
-                                                                  {:limit 2})])}
+                                                                     {:course/topics [:db/id :topic/title]}
+                                                                     {:limit 2})])}
                                     [[:where {:db/id 4}]]))
-             {:db/id 4 :course/topics [{:db/id 18 :db/table :topic :topic/title "Getting Started"}
-                                       {:db/id 19 :db/table :topic :topic/title "Staff and Clefs"}]
+             {:db/id    4 :course/topics [{:db/id 18 :db/table :topic :topic/title "Getting Started"}
+                                          {:db/id 19 :db/table :topic :topic/title "Staff and Clefs"}]
               :db/table :course}))
       (done))))
 
@@ -67,5 +67,28 @@
     (go
       (is (= (<! (p/parse {:db ts/connection} [{:route/data [:app/courses]}]))
              {:route/data {:app/courses [{:db/id 4 :db/table :course} {:db/id 7 :db/table :course}]}}))
-
       (done))))
+
+(deftest ^:only test-read-lesson-union
+  (let [lesson-union {:lesson.type/lesson   [:lesson/type :lesson/title]
+                      :lesson.type/playlist [:lesson/type :lesson/description]
+                      :lesson.type/exercise [:lesson/type :lesson/title :url/slug]}]
+    (async done
+      (go
+        (is (= (->> (p/parse {:db ts/connection}
+                             [{[:lesson/by-slug "percussion"]
+                               lesson-union}]) <!)
+               {[:lesson/by-slug "percussion"]
+                {:db/id 9 :db/table :lesson :lesson/title "Percussion" :lesson/type :lesson.type/lesson}}))
+        (is (= (->> (p/parse {:db ts/connection}
+                             [{[:lesson/by-slug "percussion-playlist"]
+                               lesson-union}]) <!)
+               {[:lesson/by-slug "percussion-playlist"]
+                {:db/id 11 :db/table :lesson :lesson/description "" :lesson/type :lesson.type/playlist}}))
+        (is (= (->> (p/parse {:db ts/connection}
+                             [{[:lesson/by-slug "tempo-markings"]
+                               lesson-union}]) <!)
+               {[:lesson/by-slug "tempo-markings"]
+                {:db/id 67 :db/table :lesson :lesson/title "Exercise: Tempo Markings Quiz" :lesson/type :lesson.type/exercise
+                 :url/slug "tempo-markings"}}))
+        (done)))))

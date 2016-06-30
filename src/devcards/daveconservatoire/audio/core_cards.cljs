@@ -81,7 +81,7 @@
 
   (componentDidMount [this]
     (let [{:keys [on-change]
-           :or {on-change identity}} (om/props this)]
+           :or   {on-change identity}} (om/props this)]
       (go-loop []
         (when-let [v (<! (debounce (om/get-state this :chan) 300))]
           (on-change (js/parseInt v))
@@ -101,7 +101,7 @@
 (om/defui ChordMetronome
   Object
   (initLocalState [_]
-    {:note nil
+    {:note     nil
      :interval 60})
 
   (render [this]
@@ -112,14 +112,14 @@
           (dom/button #js {:onClick #(om/update-state! this assoc :note n)
                            :style   (if (= n note)
                                       #js {:background "#0c0"})
-                           :key n}
+                           :key     n}
             (or n "Mute")))
         (debounce-slider {:react-key "debounce" :min 30 :max 320 :value interval :on-change #(om/update-state! this assoc :interval %)})
-        #_ (let [i 1.5]
-          (sound-pattern {:react-key "pattern" :pattern (flatten [(chord "C3") i
-                                                                  (chord "G3") i
-                                                                  "A3" "C4" "E4" i
-                                                                  (chord "F3") i])}))
+        #_(let [i 1.5]
+            (sound-pattern {:react-key "pattern" :pattern (flatten [(chord "C3") i
+                                                                    (chord "G3") i
+                                                                    "A3" "C4" "E4" i
+                                                                    (chord "F3") i])}))
         (if note
           (sound-pattern {:react-key "pattern" :pattern (tick-pattern note (/ 60 interval))}))))))
 
@@ -148,7 +148,8 @@
     "D#4" 42
     "C8" 87)
 
-  (is (true? (-> (st/check-var #'audio/note->semitone) :result))))
+  (let [res (-> (st/check-var #'audio/note->semitone) :result)]
+    (is (true? res) res)))
 
 (deftest test-semitone->note
   (are [note semitone] (= (audio/semitone->note note) semitone)
@@ -157,4 +158,5 @@
     29 "D3"
     42 "Eb4")
 
-  (is (true? (-> (st/check-var #'audio/semitone->note) :result))))
+  (let [res (-> (st/check-var #'audio/semitone->note) :result)]
+    (is (true? res) res)))

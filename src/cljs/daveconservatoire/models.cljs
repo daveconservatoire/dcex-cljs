@@ -30,16 +30,27 @@
 (s/def :lesson/title string?)
 (s/def :lesson/description string?)
 (s/def :lesson/keywords string?)
-(s/def :lesson/type #{:lesson.type/lesson
+(s/def :lesson/type #{:lesson.type/video
                       :lesson.type/exercise
                       :lesson.type/playlist})
 (s/def :lesson/topic-id :db/id)
 (s/def :lesson/topic :model/topic)
 (s/def :lesson/course-id :db/id)
 (s/def :lesson/course :model/course)
+(s/def :lesson/playlist-items (s/coll-of :model/playlist-item []))
 
 (s/def :model/lesson
   (s/keys :opt [:db/id :url/slug :youtube/id
                 :lesson/title :lesson/description :lesson/keywords
                 :lesson/type :lesson/topic-id :lesson/topic
                 :lesson/course-id :lesson/course]))
+
+(s/def :playlist-item/title string?)
+(s/def :playlist-item/text string?)
+(s/def :playlist-item/credit string?)
+(s/def :playlist-item/lesson-id :db/id)
+(s/def :playlist-item/lesson :model/lesson)
+
+(s/def :model/playlist-item
+  (s/keys :opt [:db/id :youtube/id :playlist-item/title
+                :playlist-item/text :playlist-item/credit]))

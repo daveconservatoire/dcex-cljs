@@ -47,7 +47,12 @@
         {:playlist-item
          {:key    :playlist-item,
           :name   "PlaylistItem",
-          :fields {}}
+          :fields {:db/id                   "id"
+                   :youtube/id              "youtubeid"
+                   :playlist-item/lesson-id "relid"
+                   :playlist-item/title     "title"
+                   :playlist-item/text      "text"
+                   :playlist-item/credit    "credit"}}
 
          :search-term
          {:key    :search-term
@@ -173,16 +178,11 @@
 (defmethod row-vattribute [:lesson :lesson/topic] [env] (has-one env :topic :lesson/topic-id))
 (defmethod row-vattribute [:lesson :lesson/type] [env]
   (case (get-in env [:row :filetype])
-    "l" :lesson.type/lesson
+    "l" :lesson.type/video
     "e" :lesson.type/exercise
     "p" :lesson.type/playlist))
-#_(defmethod row-vattribute [:lesson :playlist-items] [env] (has-many env :playlist-item :relid))
 
-#_(defmethod row-vattribute [:user :exercice-answer] [env] (has-many env :user-exercise-answer :userId))
-
-#_(defmethod row-vattribute [:user-exercice-answer :user] [env] (has-one env :user :userId))
-
-#_(defmethod row-vattribute [:user-video-view :user] [env] (has-one env :user :userId))
+(defmethod row-vattribute [:lesson :lesson/playlist-items] [env] (has-many env :playlist-item :playlist-item/lesson-id))
 
 ;; ROOT READS
 

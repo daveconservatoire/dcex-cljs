@@ -57,7 +57,7 @@
       (is (= (->> (p/parse {:db ts/connection} [{[:lesson/by-slug "percussion"] [:db/id :lesson/title]}]) <!)
              {[:lesson/by-slug "percussion"] {:db/id 9 :db/table :lesson :lesson/title "Percussion"}}))
       (is (= (->> (p/parse {:db ts/connection} [{[:lesson/by-slug "percussion"] [:db/id :lesson/type]}]) <!)
-             {[:lesson/by-slug "percussion"] {:db/id 9 :db/table :lesson :lesson/type :lesson.type/lesson}}))
+             {[:lesson/by-slug "percussion"] {:db/id 9 :db/table :lesson :lesson/type :lesson.type/video}}))
       (is (= (->> (p/parse {:db ts/connection} [{[:lesson/by-slug "invalid"] [:db/id :lesson/title]}]) <!)
              {[:lesson/by-slug "invalid"] [:error :row-not-found]}))
       (done))))
@@ -70,7 +70,7 @@
       (done))))
 
 (deftest ^:only test-read-lesson-union
-  (let [lesson-union {:lesson.type/lesson   [:lesson/type :lesson/title]
+  (let [lesson-union {:lesson.type/video    [:lesson/type :lesson/title]
                       :lesson.type/playlist [:lesson/type :lesson/description]
                       :lesson.type/exercise [:lesson/type :lesson/title :url/slug]}]
     (async done
@@ -79,7 +79,7 @@
                              [{[:lesson/by-slug "percussion"]
                                lesson-union}]) <!)
                {[:lesson/by-slug "percussion"]
-                {:db/id 9 :db/table :lesson :lesson/title "Percussion" :lesson/type :lesson.type/lesson}}))
+                {:db/id 9 :db/table :lesson :lesson/title "Percussion" :lesson/type :lesson.type/video}}))
         (is (= (->> (p/parse {:db ts/connection}
                              [{[:lesson/by-slug "percussion-playlist"]
                                lesson-union}]) <!)

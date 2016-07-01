@@ -16,8 +16,8 @@
     (let [{:keys [::button-color]
            :or   {::button-color "orange"} :as props} (om/props this)]
       (dom/a (u/props->html {:href      "#"
-                           :className (str "btn dc-btn-" button-color)}
-                          props)
+                             :className (str "btn dc-btn-" button-color)}
+                            props)
         (om/children this)))))
 
 (def button (om/factory Button))
@@ -163,9 +163,24 @@
 
 (def lesson-video (om/factory LessonVideo))
 
+(om/defui ^:once LessonPlaylistItem
+  static om/IQuery
+  (query [_] [:db/id :playlist-item/title])
+
+  static om/Ident
+  (ident [_ props] (u/model-ident props))
+
+  Object
+  (render [this]
+    (let [{:keys []} (om/props this)]
+      (dom/div nil))))
+
+(def lesson-playlist-item (om/factory LessonPlaylistItem))
+
 (om/defui ^:once LessonPlaylist
   static om/IQuery
-  (query [_] [:lesson/type :lesson/description])
+  (query [_] [:lesson/type :lesson/description
+              {:lesson/playlist-items (om/get-query LessonPlaylistItem)}])
 
   Object
   (render [this]
@@ -186,13 +201,16 @@
 (def lesson-exercise (om/factory LessonExercise))
 
 (om/defui ^:once LessonPage
+  static uc/InitialAppState
+  (initial-state [_ _] {})
+
   static om/Ident
   (ident [_ {:keys [lesson/type db/id]}]
-    [type id])
+    [(or type :unknown) id])
 
   static om/IQuery
   (query [_]
-    {:lesson.type/lesson (om/get-query LessonVideo)
+    {:lesson.type/video    (om/get-query LessonVideo)
      :lesson.type/playlist (om/get-query LessonPlaylist)
      :lesson.type/exercise (om/get-query LessonExercise)})
 
@@ -206,7 +224,7 @@
     (let [{:keys [lesson/type] :as lesson} (u/route-prop this [:lesson/by-slug ::r/slug])]
       (dom/div nil
         "Lesson Page"
-        type))))
+        (pr-str (om/props this))))))
 
 (defmethod r/route->component ::r/lesson [_] LessonPage)
 
@@ -257,7 +275,8 @@
   Object
   (componentWillMount [this]
     (let [{:keys [app/route]} (om/props this)
-          initial-query (om/get-query (r/route->component route))]
+          page-comp (r/route->component route)
+          initial-query (om/get-query page-comp)]
       (om/set-query! this {:params {:route/data (u/normalize-route-data-query initial-query)}})))
 
   (render [this]
@@ -265,9 +284,9 @@
       (dom/div #js {:key react-key}
         (dom/h1 nil "Header")
         (dom/ul nil
-          (dom/li nil (link {:to ::r/home} "Home"))
-          (dom/li nil (link {:to ::r/about} "About"))
-          (dom/li nil (link {:to ::r/topic :params {::r/slug "getting-started"}} "Topic Getting Started")))
+          (dom/li nil (link {::r/handler ::r/home} "Home"))
+          (dom/li nil (link {::r/handler ::r/about} "About"))
+          (dom/li nil (link {::r/handler ::r/topic ::r/params {::r/slug "getting-started"}} "Topic Getting Started")))
         (if (= :loading (get-in data [:ui/fetch-state ::df/type]))
           (loading nil)
           ((u/route->factory route) data))))))

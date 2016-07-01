@@ -168,6 +168,41 @@
 
 (defmethod r/route->component ::r/topic [_] TopicPage)
 
+(om/defui ^:once LessonTopicMenuItem
+  static om/IQuery
+  (query [_] [:lesson/title :url/slug])
+
+  static om/Ident
+  (ident [_ props] (u/model-ident props))
+
+  Object
+  (render [this]
+    (let [{:keys [url/slug lesson/title]} (om/props this)]
+      (dom/div nil
+        (button {::r/handler ::r/lesson ::r/params {::r/slug slug}} title)))))
+
+(def lesson-topic-menu-item (om/factory LessonTopicMenuItem {:key-fn :db/id}))
+
+(om/defui ^:once LessonTopicMenu
+  static om/IQuery
+  (query [_] [:topic/title
+              {:topic/course (om/get-query CourseTopicsMenu)}
+              {:topic/lessons (om/get-query LessonTopicMenuItem)}])
+
+  static om/Ident
+  (ident [_ props] (u/model-ident props))
+
+  Object
+  (render [this]
+    (let [{:keys [topic/course topic/lessons topic/title]} (om/props this)]
+      (dom/div nil
+        (course-topics-menu course)
+        title
+        (dom/div nil
+          (map lesson-topic-menu-item lessons))))))
+
+(def lesson-topic-menu (om/factory LessonTopicMenu))
+
 (om/defui ^:once YoutubeVideo
   Object
   (render [this]
@@ -183,13 +218,13 @@
 (om/defui ^:once LessonVideo
   static om/IQuery
   (query [_] [:lesson/type :lesson/description :youtube/id
-              {:lesson/topic [{:topic/course (om/get-query CourseTopicsMenu)}]}])
+              {:lesson/topic (om/get-query LessonTopicMenu)}])
 
   Object
   (render [this]
-    (let [{:keys [lesson/description] :as props} (om/props this)]
+    (let [{:keys [lesson/description lesson/topic] :as props} (om/props this)]
       (dom/div nil
-        (course-topics-menu (get-in props [:lesson/topic :topic/course]))
+        (lesson-topic-menu topic)
         (dom/div #js {:className "vendor"} (youtube-video props))
         (dom/div nil description)))))
 
@@ -212,23 +247,29 @@
 (om/defui ^:once LessonPlaylist
   static om/IQuery
   (query [_] [:lesson/type :lesson/description
-              {:lesson/playlist-items (om/get-query LessonPlaylistItem)}])
+              {:lesson/playlist-items (om/get-query LessonPlaylistItem)}
+              {:lesson/topic (om/get-query LessonTopicMenu)}])
 
   Object
   (render [this]
-    (let [{:keys []} (om/props this)]
-      (dom/div nil "Playlist"))))
+    (let [{:keys [lesson/topic]} (om/props this)]
+      (dom/div nil
+        (lesson-topic-menu topic)
+        "Playlist"))))
 
 (def lesson-playlist (om/factory LessonPlaylist))
 
 (om/defui ^:once LessonExercise
   static om/IQuery
-  (query [_] [:lesson/type :lesson/title])
+  (query [_] [:lesson/type :lesson/title
+              {:lesson/topic (om/get-query LessonTopicMenu)}])
 
   Object
   (render [this]
-    (let [{:keys []} (om/props this)]
-      (dom/div nil "Exercise"))))
+    (let [{:keys [lesson/topic]} (om/props this)]
+      (dom/div nil
+        (lesson-topic-menu topic)
+        "Exercise"))))
 
 (def lesson-exercise (om/factory LessonExercise))
 
@@ -318,8 +359,7 @@
         (dom/h1 nil "Header")
         (dom/ul nil
           (dom/li nil (link {::r/handler ::r/home} "Home"))
-          (dom/li nil (link {::r/handler ::r/about} "About"))
-          (dom/li nil (link {::r/handler ::r/topic ::r/params {::r/slug "getting-started"}} "Topic Getting Started")))
+          (dom/li nil (link {::r/handler ::r/about} "About")))
         (if (= :loading (get-in data [:ui/fetch-state ::df/type]))
           (loading nil)
           ((u/route->factory route) data))))))

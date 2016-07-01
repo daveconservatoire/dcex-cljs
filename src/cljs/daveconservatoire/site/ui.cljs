@@ -124,6 +124,24 @@
 
 (def topic-side-bar-link (om/factory TopicSideBarLink))
 
+(om/defui ^:once CourseTopicsMenu
+  static om/IQuery
+  (query [_] [:course/title
+              {:course/topics (om/get-query TopicSideBarLink)}])
+
+  static om/Ident
+  (ident [_ props] (u/model-ident props))
+
+  Object
+  (render [this]
+    (let [course (om/props this)]
+      (dom/div nil
+        (:course/title course)
+        (dom/div nil
+          (map topic-side-bar-link (:course/topics course)))))))
+
+(def course-topics-menu (om/factory CourseTopicsMenu))
+
 (om/defui ^:once TopicPage
   static uc/InitialAppState
   (initial-state [_ _] {})
@@ -137,29 +155,43 @@
   (ident [_ props] (u/model-ident props))
 
   static om/IQuery
-  (query [_] [{:topic/course [:course/title
-                              {:course/topics (om/get-query TopicSideBarLink)}]}
+  (query [_] [{:topic/course (om/get-query CourseTopicsMenu)}
               {:topic/lessons (om/get-query LessonCell)}])
 
   Object
   (render [this]
     (let [{:keys [topic/lessons topic/course]} (u/route-prop this [:topic/by-slug ::r/slug])]
       (dom/div nil
-        (:course/title course)
+        (course-topics-menu course)
         (dom/div nil
-          (map topic-side-bar-link (:course/topics course))
           (map lesson-cell lessons))))))
 
 (defmethod r/route->component ::r/topic [_] TopicPage)
 
+(om/defui ^:once YoutubeVideo
+  Object
+  (render [this]
+    (let [{:keys [:youtube/id]} (om/props this)]
+      (dom/iframe #js {:width           "640"
+                       :height          "360"
+                       :src             (str "https://www.youtube.com/embed/" id)
+                       :frameborder     "0"
+                       :allowfullscreen true}))))
+
+(def youtube-video (om/factory YoutubeVideo))
+
 (om/defui ^:once LessonVideo
   static om/IQuery
-  (query [_] [:lesson/type :lesson/description :youtube/id])
+  (query [_] [:lesson/type :lesson/description :youtube/id
+              {:lesson/topic [{:topic/course (om/get-query CourseTopicsMenu)}]}])
 
   Object
   (render [this]
-    (let [{:keys []} (om/props this)]
-      (dom/div nil))))
+    (let [{:keys [lesson/description] :as props} (om/props this)]
+      (dom/div nil
+        (course-topics-menu (get-in props [:lesson/topic :topic/course]))
+        (dom/div #js {:className "vendor"} (youtube-video props))
+        (dom/div nil description)))))
 
 (def lesson-video (om/factory LessonVideo))
 
@@ -222,9 +254,10 @@
   Object
   (render [this]
     (let [{:keys [lesson/type] :as lesson} (u/route-prop this [:lesson/by-slug ::r/slug])]
-      (dom/div nil
-        "Lesson Page"
-        (pr-str (om/props this))))))
+      (case type
+        :lesson.type/video (lesson-video lesson)
+        :lesson.type/playlist (lesson-playlist lesson)
+        :lesson.type/exercise (lesson-exercise lesson)))))
 
 (defmethod r/route->component ::r/lesson [_] LessonPage)
 

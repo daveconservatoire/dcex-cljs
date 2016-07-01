@@ -182,7 +182,7 @@
     "e" :lesson.type/exercise
     "p" :lesson.type/playlist))
 
-(defmethod row-vattribute [:lesson :lesson/playlist-items] [env] (has-many env :playlist-item :playlist-item/lesson-id))
+(defmethod row-vattribute [:lesson :lesson/playlist-items] [env] (has-many env :playlist-item :playlist-item/lesson-id {:sort "sort"}))
 
 ;; ROOT READS
 

@@ -7,9 +7,9 @@
   :clean-targets ^{:protect false} ["resources/public/devcards" "resources/public/site" "target"]
 
   :test-paths ["test/server"]
-  :source-paths ["src/devcards" "src/cljs" "src/site" "script" "src/server" "src/dev"]
+  :source-paths ["src/devcards" "src/cljs" "src/site" "script" "src/server" "src/dev" "checkouts/om/src/main"]
 
-  :dependencies [[org.clojure/clojure "1.9.0-alpha7" :scope "provided"]
+  :dependencies [[org.clojure/clojure "1.9.0-alpha8" :scope "provided"]
                  [org.clojure/clojurescript "1.9.89" :scope "provided"]
                  [org.omcljs/om "1.0.0-alpha37"]
                  [figwheel-sidecar "0.5.4-4" :exclusions [clj-time joda-time org.clojure/tools.reader] :scope "test"]
@@ -18,7 +18,7 @@
                  [binaryage/devtools "0.7.0"]
                  [devcards "0.2.1-4" :exclusions [org.omcljs/om cljsjs/react-dom org.clojure/tools.reader cljsjs/react]]
                  [org.clojure/core.async "0.2.374"]
-                 [navis/untangled-client "0.5.3" :exclusions [org.omcljs/om com.cognitect/transit-cljs cljsjs/react-dom org.clojure/tools.reader cljsjs/react]]
+                 [navis/untangled-client "0.5.4-SNAPSHOT" :exclusions [org.omcljs/om com.cognitect/transit-cljs cljsjs/react-dom org.clojure/tools.reader cljsjs/react]]
                  [org.clojure/test.check "0.9.0"]
                  [com.rpl/specter "0.9.3"]
                  [com.cognitect/transit-cljs "0.8.239"]
@@ -33,7 +33,7 @@
               [{:id           "devcards"
                 :figwheel     {:devcards  true
                                :on-jsload "daveconservatoire.support.dev/reload-cycle"}
-                :source-paths ["src/devcards" "src/cljs"]
+                :source-paths ["checkouts/om/src/main" "src/devcards" "src/cljs"]
                 :compiler     {:main                 daveconservatoire.devcards
                                :source-map-timestamp true
                                :asset-path           "devcards"
@@ -46,7 +46,7 @@
 
                {:id           "site"
                 :figwheel     {:on-jsload "daveconservatoire.support.dev/reload-cycle"}
-                :source-paths ["src/cljs" "src/dev"]
+                :source-paths ["checkouts/om/src/main" "src/cljs" "src/dev"]
                 :compiler     {:main                 daveconservatoire.site.main
                                :source-map-timestamp true
                                :asset-path           "/site"
@@ -59,7 +59,7 @@
 
                ;; server builds
                {:id           "server-dev"
-                :source-paths ["src/cljs" "src/server"]
+                :source-paths ["checkouts/om/src/main" "src/cljs" "src/server"]
                 :figwheel     true
                 :compiler     {:main          daveconservatoire.server.core
                                :output-to     "target/server_dev/dcserver.js"
@@ -69,7 +69,7 @@
                                :source-map    true}}
 
                {:id           "server-test"
-                :source-paths ["src/cljs" "src/server" "test/server"]
+                :source-paths ["checkouts/om/src/main" "src/cljs" "src/server" "test/server"]
                 :figwheel     true
                 :compiler     {:main          daveconservatoire.server.suite
                                :output-to     "target/server_test/dctest.js"

@@ -73,3 +73,11 @@
 (s/fdef lesson-thumbnail-url
   :args (s/cat :lesson (s/keys :req [:lesson/type]))
   :ret string?)
+
+(defn current-uri-slug? [handler slug]
+  (= (r/current-handler) {::r/handler handler
+                          ::r/params  {::r/slug slug}}))
+
+(s/fdef current-uri-slug?
+  :args (s/cat :handler ::r/handler :slug ::r/slug)
+  :ret boolean?)

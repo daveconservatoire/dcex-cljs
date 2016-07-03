@@ -118,9 +118,13 @@
 
   Object
   (render [this]
-    (let [{:keys [url/slug topic/title]} (om/props this)]
+    (let [{:keys [url/slug topic/title]} (om/props this)
+          selected? (or (u/current-uri-slug? ::r/topic slug)
+                        (= slug (om/get-computed this :ui/topic-slug)))]
       (dom/div nil
-        (button {::r/handler ::r/topic ::r/params {::r/slug slug}} title)))))
+        (button {::r/handler ::r/topic ::r/params {::r/slug slug}
+                 :style (cond-> {}
+                          selected? (assoc :background "#000"))} title)))))
 
 (def topic-side-bar-link (om/factory TopicSideBarLink))
 
@@ -134,11 +138,13 @@
 
   Object
   (render [this]
-    (let [course (om/props this)]
+    (let [course (om/props this)
+          slug (om/get-computed this :ui/topic-slug)]
       (dom/div nil
         (:course/title course)
         (dom/div nil
-          (map topic-side-bar-link (:course/topics course)))))))
+          (map (comp topic-side-bar-link #(om/computed % {:ui/topic-slug slug}))
+               (:course/topics course)))))))
 
 (def course-topics-menu (om/factory CourseTopicsMenu))
 
@@ -177,15 +183,18 @@
 
   Object
   (render [this]
-    (let [{:keys [url/slug lesson/title]} (om/props this)]
+    (let [{:keys [url/slug lesson/title]} (om/props this)
+          selected? (u/current-uri-slug? ::r/lesson slug)]
       (dom/div nil
-        (button {::r/handler ::r/lesson ::r/params {::r/slug slug}} title)))))
+        (button {::r/handler ::r/lesson ::r/params {::r/slug slug}
+                 :style      (cond-> {}
+                               selected? (assoc :background "#000"))} title)))))
 
 (def lesson-topic-menu-item (om/factory LessonTopicMenuItem {:key-fn :db/id}))
 
 (om/defui ^:once LessonTopicMenu
   static om/IQuery
-  (query [_] [:topic/title
+  (query [_] [:topic/title :url/slug
               {:topic/course (om/get-query CourseTopicsMenu)}
               {:topic/lessons (om/get-query LessonTopicMenuItem)}])
 
@@ -194,12 +203,12 @@
 
   Object
   (render [this]
-    (let [{:keys [topic/course topic/lessons topic/title]} (om/props this)]
+    (let [{:keys [topic/course topic/lessons topic/title url/slug]} (om/props this)]
       (dom/div nil
-        (course-topics-menu course)
         title
         (dom/div nil
-          (map lesson-topic-menu-item lessons))))))
+          (map lesson-topic-menu-item lessons))
+        (course-topics-menu (om/computed course {:ui/topic-slug slug}))))))
 
 (def lesson-topic-menu (om/factory LessonTopicMenu))
 
@@ -298,7 +307,8 @@
       (case type
         :lesson.type/video (lesson-video lesson)
         :lesson.type/playlist (lesson-playlist lesson)
-        :lesson.type/exercise (lesson-exercise lesson)))))
+        :lesson.type/exercise (lesson-exercise lesson)
+        (dom/noscript nil)))))
 
 (defmethod r/route->component ::r/lesson [_] LessonPage)
 

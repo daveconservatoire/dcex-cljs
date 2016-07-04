@@ -17,6 +17,7 @@
         ["topic/" ::slug]  ::topic
         ["lesson/" ::slug] ::lesson}])
 
+
 (s/def ::slug string?)
 (s/def ::handler (->> (bidi/route-seq routes)
                       (map :handler)

@@ -3,6 +3,7 @@
             [om.dom :as dom]
             [daveconservatoire.site.routes :as r :refer [routes]]
             [daveconservatoire.site.ui.util :as u]
+            [daveconservatoire.site.ui-dave :as uid]
             [untangled.client.core :as uc]
             [untangled.client.impl.data-fetch :as df]
             [cljs.spec :as s]))
@@ -71,14 +72,15 @@
   (initial-state [_ _] {:app/courses []})
 
   static om/IQuery
-  (query [_] [{:app/courses (om/get-query HomeCourse)}])
+  (query [_] [{:app/courses (om/get-query uid/CourseWithTopics)}])
 
   Object
   (render [this]
     (let [{:keys [app/courses]} (om/props this)]
       (dom/div nil
-        "Home"
-        (map home-course courses)))))
+        (uid/hero {:react-key "hero"})
+        (uid/homeboxes {:react-key "homeboxes"})
+        (map uid/course-with-topics courses)))))
 
 (defmethod r/route->component ::r/home [_] HomePage)
 
@@ -366,10 +368,8 @@
   (render [this]
     (let [{:keys [app/route route/data ui/react-key]} (om/props this)]
       (dom/div #js {:key react-key}
-        (dom/h1 nil "Header")
-        (dom/ul nil
-          (dom/li nil (link {::r/handler ::r/home} "Home"))
-          (dom/li nil (link {::r/handler ::r/about} "About")))
+        (uid/desktop-menu {:react-key "desktop-menu"})
         (if (= :loading (get-in data [:ui/fetch-state ::df/type]))
           (loading nil)
-          ((u/route->factory route) data))))))
+          ((u/route->factory route) data))
+        (uid/footer {:react-key "footer"})))))

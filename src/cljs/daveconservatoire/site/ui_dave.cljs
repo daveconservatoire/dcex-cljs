@@ -181,9 +181,9 @@
 
   Object
   (render [this]
-    (let [{:keys [topic/title]} (om/props this)]
+    (let [{:keys [topic/title url/slug]} (om/props this)]
       (dom/li #js {:className "span4", :style #js {"marginBottom" 5}}
-        (dom/a #js {:className "btn btn-large btn-block dc-btn-yellow", :href "/topi"}
+        (link {:className "btn btn-large btn-block dc-btn-yellow" ::r/handler ::r/topic ::r/params {::r/slug slug}}
           (dom/h3 nil
             title))))))
 

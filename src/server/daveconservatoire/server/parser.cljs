@@ -195,7 +195,7 @@
                                             [[:where {:urltitle (ast-key-id ast)}]])}
     :lesson/by-slug {:value (query-sql-first (assoc env :table :lesson ::union-selector :lesson/type)
                                              [[:where {:urltitle (ast-key-id ast)}]])}
-    :app/courses {:value (query-table env :course)}
+    :app/courses {:value (query-table (assoc-in env [:ast :params :sort] "homepage_order") :course)}
     :app/topics {:value (query-table env :topic)}
 
     {:value [:error :not-found]}))

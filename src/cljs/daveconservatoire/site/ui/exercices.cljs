@@ -11,6 +11,28 @@
 (s/def ::progress-total number?)
 (s/def ::react-component object?)
 
+(s/def ::description string?)
+(s/def ::option (s/cat :value string? :label string?))
+(s/def ::options (s/+ (s/spec ::option)))
+
+(s/def ::ex-props (s/keys :req [::description ::options]))
+(s/def ::ex-answer (s/nilable string?))
+(s/def ::ex-total-questions pos-int?)
+(s/def ::streak-count nat-int?)
+
+(s/def ::value-descriptor
+  (s/or :sound ::audio/sound
+        :range (s/and (s/tuple ::audio/sound #{".."} ::audio/sound)
+                      (fn [[[_ a] _ [_ b] :as t]]
+                        (if (< (audio/note->semitone a)
+                               (audio/note->semitone b))
+                          t
+                          false)))
+        :list (s/coll-of ::audio/sound [])))
+
+(s/def ::pitch ::value-descriptor)
+(s/def ::variation pos-int?)
+
 (om/defui ^:once ProgressBar
   Object
   (render [this]
@@ -26,17 +48,11 @@
   :args (s/cat :props (s/keys :opt [::progress-total ::progress-value])
                :children (s/* ::react-component)))
 
-(s/def ::description string?)
-(s/def ::option (s/cat :value string? :label string?))
-(s/def ::options (s/+ (s/spec ::option)))
-
-(s/def ::ex-props (s/keys :req [::description ::options]))
-
 (defn play-notes [notes]
   (let [nodes (->> notes
                    (into [] (map (fn [s]
                                    {::audio/node-gen (->> s audio/semitone->note (get @audio/*sound-library*))}))))]
-    (audio/play-regular-sequence nodes {::audio/time (audio/current-time)
+    (audio/play-regular-sequence nodes {::audio/time     (audio/current-time)
                                         ::audio/interval 2})))
 
 (defn play-sound [c] (play-notes (-> (om/props c) ::notes)))
@@ -47,18 +63,18 @@
   (om/transact! component `[(ui/set-props ~props)]))
 
 (defn check-answer [c]
-  (let [{:keys [ui/ex-answer ::correct-answer ui/correct-count]} (om/props c)]
+  (let [{:keys [daveconservatoire.site.ui.exercices/ex-answer ::correct-answer daveconservatoire.site.ui.exercices/streak-count]} (om/props c)]
     (if (= ex-answer correct-answer)
       (do
         (merge-props! c
-          (merge {:ui/correct-count (inc correct-count)
-                  :ui/ex-answer nil})))
-      (um/set-value! c :ui/correct-count 0))))
+          (merge {::streak-count (inc streak-count)
+                  ::ex-answer    nil})))
+      (um/set-value! c ::streak-count 0))))
 
 (defn render-ex [c]
-  (let [{:keys [::description ::options :ui/ex-answer
-                :ui/ex-total-questions :ui/correct-count] :as props} (om/props c)]
-    (assert (s/valid? ::ex-props props))
+  (let [{:keys [::description ::options ::ex-answer
+                ::ex-total-questions ::streak-count] :as props} (om/props c)]
+    (assert (s/valid? ::ex-props props) (s/explain-str ::ex-props props))
     (dom/div #js {:className "lesson-content"}
       (dom/div #js {:className "single-exercise visited-no-recolor"
                     :style     #js {:overflow "hidden" :visibility "visible"}}
@@ -69,7 +85,7 @@
               (dom/div #js {:className "current-card-container card-type-problem"}
                 (dom/div #js {:className "current-card-container-inner vertical-shadow"}
                   (dom/div #js {:className "current-card-contents"}
-                    (progress-bar {::progress-value correct-count
+                    (progress-bar {::progress-value streak-count
                                    ::progress-total ex-total-questions})
                     (dom/div #js {:id "problem-and-answer" :className "framework-khan-exercises"}
                       (dom/div #js {:id "problemarea"}
@@ -79,7 +95,7 @@
                               (dom/p nil
                                 description)
                               (dom/a #js {:className "btn_primary"
-                                          :onClick #(play-sound c)}
+                                          :onClick   #(play-sound c)}
                                 "Play Again"))))
                         (dom/div #js {:id "hintsarea"}))
                       (dom/div #js {:id "answer_area_wrap"}
@@ -96,25 +112,16 @@
                                         (dom/input #js {:type     "radio" :name "exercice-answer"
                                                         :checked  (= ex-answer value)
                                                         :value    value
-                                                        :onChange #(um/set-string! c :ui/ex-answer :event %)})
+                                                        :onChange #(um/set-string! c ::ex-answer :event %)})
                                         (dom/span #js {:className "value"} label))))))
                               (dom/div #js {:className "answer-buttons"}
                                 (dom/div #js {:className "check-answer-wrapper"}
                                   (dom/input #js {:className "simple-button green" :type "button" :value "Check Answer"
-                                                  :onClick #(check-answer c)}))
+                                                  :onClick   #(check-answer c)}))
                                 (dom/input #js {:className "simple-button green" :id "next-question-button" :name "correctnextbutton" :style #js {:display "none"} :type "button" :value "Correct! Next Question..."})
                                 (dom/div #js {:id "positive-reinforcement" :style #js {:display "none"}}
                                   (dom/img #js {:src "/images/face-smiley.png"})))))))
                       (dom/div #js {:style #js {:clear "both"}}))))))))))))
-
-(s/def ::value-descriptor (s/or :sound ::audio/sound
-                                :range (s/and (s/tuple ::audio/sound #{".."} ::audio/sound)
-                                              (fn [[[_ a] _ [_ b] :as t]]
-                                                (if (< (audio/note->semitone a)
-                                                       (audio/note->semitone b))
-                                                  t
-                                                  false)))
-                                :list (s/coll-of ::audio/sound [])))
 
 (defn int-in [min max] (+ min (rand-int (- max min))))
 
@@ -134,16 +141,16 @@
 
 (om/defui ^:once Exercice
   static uc/InitialAppState
-  (initial-state [_ _] {:ui/ex-answer nil
-                        :ui/ex-total-questions 10
-                        :ui/correct-count 0})
+  (initial-state [_ _] {::ex-answer          nil
+                        ::ex-total-questions 10
+                        ::streak-count       0})
 
   static om/IQuery
-  (query [_] [::description ::options ::notes ::correct-answer :parent
-              :ui/ex-answer :ui/ex-total-questions :ui/correct-count])
+  (query [_] [::description ::options ::notes ::correct-answer ::parent
+              ::ex-answer ::ex-total-questions ::streak-count])
 
   static om/Ident
-  (ident [_ props] (om/ident (:parent props) props))
+  (ident [_ props] (om/ident (::parent props) props))
 
   Object
   (render [this]
@@ -168,9 +175,6 @@
       ::notes notes
       ::correct-answer (if (< a b) "higher" "lower"))))
 
-(s/def ::pitch ::value-descriptor)
-(s/def ::variation int?)
-
 (om/defui ^:once PitchDetection
   static uc/InitialAppState
   (initial-state [this _]
@@ -181,7 +185,7 @@
          ::options     [["lower" "Lower"] ["higher" "Higher"]]
          ::pitch       ["C3" ".." "B5"]
          ::variation   24
-         :parent       this})))
+         ::parent      this})))
 
   static om/Ident
   (ident [_ props] [:exercice/by-name "pitch"])

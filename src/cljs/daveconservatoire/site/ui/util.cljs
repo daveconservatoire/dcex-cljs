@@ -26,8 +26,7 @@
 (defn props->html [attrs props]
   (->> (merge-with html-attr-merge attrs props)
        (parse-route)
-       (filter (fn [[k _]] (not (namespace k))))
-       (into {})
+       (into {} (filter (fn [[k _]] (not (namespace k)))))
        (clj->js)))
 
 (s/fdef props->html

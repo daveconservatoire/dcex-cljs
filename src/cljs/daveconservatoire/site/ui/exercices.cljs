@@ -1,0 +1,196 @@
+(ns daveconservatoire.site.ui.exercices
+  (:require [om.next :as om :include-macros true]
+            [om.dom :as dom]
+            [untangled.client.core :as uc]
+            [untangled.client.mutations :as um]
+            [cljs.spec :as s]
+            [daveconservatoire.audio.core :as audio]
+            [daveconservatoire.site.ui.util :as u]))
+
+(s/def ::progress-value number?)
+(s/def ::progress-total number?)
+(s/def ::react-component object?)
+
+(om/defui ^:once ProgressBar
+  Object
+  (render [this]
+    (let [{:keys [::progress-value ::progress-total] :as props} (om/props this)
+          pct (-> (/ progress-value progress-total) (* 100))]
+      (dom/div (u/props->html {:className "progress progress-striped active success" :style {:margin 20}}
+                              props)
+        (dom/div #js {:className "bar" :style #js {:width (str pct "%")}})))))
+
+(def progress-bar (om/factory ProgressBar))
+
+(s/fdef progress-bar
+  :args (s/cat :props (s/keys :opt [::progress-total ::progress-value])
+               :children (s/* ::react-component)))
+
+(s/def ::description string?)
+(s/def ::option (s/cat :value string? :label string?))
+(s/def ::options (s/+ (s/spec ::option)))
+
+(s/def ::ex-props (s/keys :req [::description ::options]))
+
+(defn play-notes [notes]
+  (let [nodes (->> notes
+                   (into [] (map (fn [s]
+                                   {::audio/node-gen (->> s audio/semitone->note (get @audio/*sound-library*))}))))]
+    (audio/play-regular-sequence nodes {::audio/time (audio/current-time)
+                                        ::audio/interval 2})))
+
+(defn play-sound [c] (play-notes (-> (om/props c) ::notes)))
+
+(defn merge-props!
+  "Set a raw value on the given `field` of a `component`."
+  [component props]
+  (om/transact! component `[(ui/set-props ~props)]))
+
+(defn check-answer [c]
+  (let [{:keys [ui/ex-answer ::correct-answer ui/correct-count]} (om/props c)]
+    (if (= ex-answer correct-answer)
+      (do
+        (merge-props! c
+          (merge {:ui/correct-count (inc correct-count)
+                  :ui/ex-answer nil})))
+      (um/set-value! c :ui/correct-count 0))))
+
+(defn render-ex [c]
+  (let [{:keys [::description ::options :ui/ex-answer
+                :ui/ex-total-questions :ui/correct-count] :as props} (om/props c)]
+    (assert (s/valid? ::ex-props props))
+    (dom/div #js {:className "lesson-content"}
+      (dom/div #js {:className "single-exercise visited-no-recolor"
+                    :style     #js {:overflow "hidden" :visibility "visible"}}
+        (dom/article #js {:className "exercises-content clearfix"}
+          (dom/div #js {:className "exercises-body"}
+            (dom/div #js {:className "exercises-stack"})
+            (dom/div #js {:className "exercises-card current-card"}
+              (dom/div #js {:className "current-card-container card-type-problem"}
+                (dom/div #js {:className "current-card-container-inner vertical-shadow"}
+                  (dom/div #js {:className "current-card-contents"}
+                    (progress-bar {::progress-value correct-count
+                                   ::progress-total ex-total-questions})
+                    (dom/div #js {:id "problem-and-answer" :className "framework-khan-exercises"}
+                      (dom/div #js {:id "problemarea"}
+                        (dom/div #js {:id "workarea"}
+                          (dom/div #js {:id "problem-type-or-description"}
+                            (dom/div #js {:className "problem"}
+                              (dom/p nil
+                                description)
+                              (dom/a #js {:className "btn_primary"
+                                          :onClick #(play-sound c)}
+                                "Play Again"))))
+                        (dom/div #js {:id "hintsarea"}))
+                      (dom/div #js {:id "answer_area_wrap"}
+                        (dom/div #js {:id "answer_area"}
+                          (dom/form #js {:id "answerform" :name "answerform"}
+                            (dom/div #js {:className "info-box" :id "answercontent"}
+                              (dom/span #js {:className "info-box-header"}
+                                "Answer")
+                              (dom/div #js {:className "fancy-scrollbar"}
+                                (dom/ul nil
+                                  (for [[value label] options]
+                                    (dom/li #js {:key value}
+                                      (dom/label nil
+                                        (dom/input #js {:type     "radio" :name "exercice-answer"
+                                                        :checked  (= ex-answer value)
+                                                        :value    value
+                                                        :onChange #(um/set-string! c :ui/ex-answer :event %)})
+                                        (dom/span #js {:className "value"} label))))))
+                              (dom/div #js {:className "answer-buttons"}
+                                (dom/div #js {:className "check-answer-wrapper"}
+                                  (dom/input #js {:className "simple-button green" :type "button" :value "Check Answer"
+                                                  :onClick #(check-answer c)}))
+                                (dom/input #js {:className "simple-button green" :id "next-question-button" :name "correctnextbutton" :style #js {:display "none"} :type "button" :value "Correct! Next Question..."})
+                                (dom/div #js {:id "positive-reinforcement" :style #js {:display "none"}}
+                                  (dom/img #js {:src "/images/face-smiley.png"})))))))
+                      (dom/div #js {:style #js {:clear "both"}}))))))))))))
+
+(s/def ::value-descriptor (s/or :sound ::audio/sound
+                                :range (s/and (s/tuple ::audio/sound #{".."} ::audio/sound)
+                                              (fn [[[_ a] _ [_ b] :as t]]
+                                                (if (< (audio/note->semitone a)
+                                                       (audio/note->semitone b))
+                                                  t
+                                                  false)))
+                                :list (s/coll-of ::audio/sound [])))
+
+(defn int-in [min max] (+ min (rand-int (- max min))))
+
+(defn descriptor->value [desc]
+  {:pre [(s/valid? ::value-descriptor desc)]}
+  (let [[type] (s/conform ::value-descriptor desc)]
+    (audio/note->semitone
+      (case type
+        :sound desc
+        :list (rand-nth (vec desc))
+        :range (let [[a _ b] desc]
+                 (int-in (audio/note->semitone a) (audio/note->semitone b)))))))
+
+(s/fdef descriptor->value
+  :args (s/cat :desc ::value-descriptor)
+  :ret ::audio/semitone)
+
+(om/defui ^:once Exercice
+  static uc/InitialAppState
+  (initial-state [_ _] {:ui/ex-answer nil
+                        :ui/ex-total-questions 10
+                        :ui/correct-count 0})
+
+  static om/IQuery
+  (query [_] [::description ::options ::notes ::correct-answer :parent
+              :ui/ex-answer :ui/ex-total-questions :ui/correct-count])
+
+  static om/Ident
+  (ident [_ props] (om/ident (:parent props) props))
+
+  Object
+  (render [this]
+    (render-ex this)))
+
+(def exercice (om/factory Exercice))
+
+(defn rand-direction [] (rand-nth [1 -1]))
+
+(defn gen-pitch-notes [{:keys [::pitch ::variation]}]
+  (let [a (descriptor->value pitch)
+        b (+ a (* variation (rand-direction)))]
+    [a b]))
+
+(s/fdef gen-pitch-notes
+  :args (s/cat :data (s/keys :req [::pitch ::variation]))
+  :ret (s/tuple ::audio/semitone ::audio/semitone))
+
+(defn new-pitch-round [props]
+  (let [[a b :as notes] (gen-pitch-notes props)]
+    (assoc props
+      ::notes notes
+      ::correct-answer (if (< a b) "higher" "lower"))))
+
+(s/def ::pitch ::value-descriptor)
+(s/def ::variation int?)
+
+(om/defui ^:once PitchDetection
+  static uc/InitialAppState
+  (initial-state [this _]
+    (new-pitch-round
+      (merge
+        (uc/initial-state Exercice nil)
+        {::description "You will hear two notes. Is the second note lower or higher in pitch?"
+         ::options     [["lower" "Lower"] ["higher" "Higher"]]
+         ::pitch       ["C3" ".." "B5"]
+         ::variation   24
+         :parent       this})))
+
+  static om/Ident
+  (ident [_ props] [:exercice/by-name "pitch"])
+
+  static om/IQuery
+  (query [_] (vec (concat (om/get-query Exercice) [::pitch ::variation])))
+
+  Object
+  (render [this]
+    (exercice (om/props this))))
+
+(def pitch-detection (om/factory PitchDetection))

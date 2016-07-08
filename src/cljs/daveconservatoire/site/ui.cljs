@@ -221,8 +221,8 @@
       (dom/iframe #js {:width           "640"
                        :height          "360"
                        :src             (str "https://www.youtube.com/embed/" id)
-                       :frameborder     "0"
-                       :allowfullscreen true}))))
+                       :frameBorder     "0"
+                       :allowFullScreen true}))))
 
 (def youtube-video (om/factory YoutubeVideo))
 

@@ -2,6 +2,7 @@
   (:require [om.next :as om :include-macros true]
             [daveconservatoire.site.routes :as r :refer [routes]]
             [om.util :as om-u]
+            [goog.string :as gstr]
             [cljs.spec :as s]))
 
 (defn html-attr-merge [a b]
@@ -23,11 +24,14 @@
   :args (s/cat :attrs map?)
   :ret map?)
 
-(defn props->html [attrs props]
-  (->> (merge-with html-attr-merge attrs props)
-       (parse-route)
-       (into {} (filter (fn [[k _]] (not (namespace k)))))
-       (clj->js)))
+(defn props->html
+  ([props] (props->html {} props))
+  ([attrs props]
+   (->> (dissoc props :react-key)
+        (merge-with html-attr-merge attrs)
+        (parse-route)
+        (into {} (filter (fn [[k _]] (not (namespace k)))))
+        (clj->js))))
 
 (s/fdef props->html
   :args (s/cat :attrs map?
@@ -75,7 +79,7 @@
 
 (defn current-uri-slug? [handler slug]
   (= (r/current-handler) {::r/handler handler
-                          ::r/params  {::r/slug slug}}))
+                          ::r/params  {::r/slug (gstr/trim slug)}}))
 
 (s/fdef current-uri-slug?
   :args (s/cat :handler ::r/handler :slug ::r/slug)

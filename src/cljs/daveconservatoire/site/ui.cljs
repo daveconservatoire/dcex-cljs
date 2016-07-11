@@ -49,7 +49,7 @@
     (let [{:keys [topic/title url/slug]} (om/props this)]
       (button {::r/handler ::r/topic ::r/params {::r/slug slug}} title))))
 
-(def topic-link (om/factory TopicLink {:key-fn :db/id}))
+(def topic-link (om/factory TopicLink))
 
 (om/defui ^:once HomeCourse
   static om/IQuery
@@ -111,7 +111,7 @@
         (dom/img #js {:src (u/lesson-thumbnail-url lesson)})
         (link {::r/handler ::r/lesson ::r/params {::r/slug slug}} title)))))
 
-(def lesson-cell (om/factory LessonCell {:key-fn :db/id}))
+(def lesson-cell (om/factory LessonCell))
 
 (om/defui ^:once TopicSideBarLink
   static om/IQuery
@@ -194,7 +194,7 @@
                  :style      (cond-> {}
                                selected? (assoc :background "#000"))} title)))))
 
-(def lesson-topic-menu-item (om/factory LessonTopicMenuItem {:key-fn :db/id}))
+(def lesson-topic-menu-item (om/factory LessonTopicMenuItem))
 
 (om/defui ^:once LessonTopicMenu
   static om/IQuery
@@ -245,30 +245,46 @@
 
 (om/defui ^:once LessonPlaylistItem
   static om/IQuery
-  (query [_] [:db/id :playlist-item/title])
+  (query [_] [:db/id :youtube/id :playlist-item/title :playlist-item/text])
 
   static om/Ident
   (ident [_ props] (u/model-ident props))
 
   Object
   (render [this]
-    (let [{:keys []} (om/props this)]
-      (dom/div nil))))
+    (let [{:keys [youtube/id playlist-item/title playlist-item/text]} (om/props this)]
+      (dom/div nil
+        (dom/div #js {:className "vendor"} (youtube-video {:youtube/id id}))
+        (dom/div nil title)
+        (dom/div nil text)))))
 
 (def lesson-playlist-item (om/factory LessonPlaylistItem))
 
 (om/defui ^:once LessonPlaylist
   static om/IQuery
-  (query [_] [:lesson/type :lesson/description
+  (query [_] [:lesson/type :lesson/description :ui/selected-index :db/id
               {:lesson/playlist-items (om/get-query LessonPlaylistItem)}
               {:lesson/topic (om/get-query LessonTopicMenu)}])
 
   Object
   (render [this]
-    (let [{:keys [lesson/topic]} (om/props this)]
+    (let [{:keys [db/id lesson/topic lesson/type lesson/playlist-items ui/selected-index]} (om/props this)
+          selected-index (or selected-index 0)
+          item (nth (vec playlist-items) selected-index)
+          set-selected (fn [n]
+                         (om/transact! (om/get-reconciler this)
+                                       [type id]
+                                       [`(ui/set-props {:ui/selected-index ~n})
+                                        :route/data]))]
       (dom/div nil
         (lesson-topic-menu topic)
-        "Playlist"))))
+        (dom/div nil
+          (dom/button #js {:onClick #(set-selected (dec selected-index))
+                           :disabled (= 0 selected-index)} "<<")
+          (dom/button #js {:onClick #(set-selected (inc selected-index))
+                           :disabled (= (dec (count playlist-items)) selected-index)} ">>"))
+        (if item
+          (lesson-playlist-item item))))))
 
 (def lesson-playlist (om/factory LessonPlaylist))
 

@@ -7,6 +7,9 @@
             [daveconservatoire.audio.core :as audio]
             [daveconservatoire.site.ui.util :as u]))
 
+(defprotocol IExercice
+  (new-round [this props]))
+
 (s/def ::progress-value number?)
 (s/def ::progress-total number?)
 (s/def ::react-component object?)
@@ -63,13 +66,20 @@
   (om/transact! component `[(ui/set-props ~props)]))
 
 (defn check-answer [c]
-  (let [{:keys [daveconservatoire.site.ui.exercices/ex-answer ::correct-answer daveconservatoire.site.ui.exercices/streak-count]} (om/props c)]
+  (let [{:keys [::ex-answer ::correct-answer ::streak-count ::parent] :as props} (om/props c)]
     (if (= ex-answer correct-answer)
-      (do
-        (merge-props! c
-          (merge {::streak-count (inc streak-count)
-                  ::ex-answer    nil})))
+      (let [next-streak (inc streak-count)
+            new-props (new-round parent
+                             (merge props
+                                    {::streak-count next-streak
+                                     ::ex-answer    nil}))]
+        (om/transact! c `[(ui/set-props ~new-props) (dcex/play-round-sound)]))
       (um/set-value! c ::streak-count 0))))
+
+(defmethod um/mutate 'dcex/play-round-sound [{:keys [state ref]} _ _]
+  {:action
+   (fn []
+     (play-notes (::notes (get-in @state ref))))})
 
 (defn render-ex [c]
   (let [{:keys [::description ::options ::ex-answer
@@ -146,8 +156,7 @@
                         ::streak-count       0})
 
   static om/IQuery
-  (query [_] [::description ::options ::notes ::correct-answer ::parent
-              ::ex-answer ::ex-total-questions ::streak-count])
+  (query [_] ['*])
 
   static om/Ident
   (ident [_ props] (om/ident (::parent props) props))
@@ -169,16 +178,10 @@
   :args (s/cat :data (s/keys :req [::pitch ::variation]))
   :ret (s/tuple ::audio/semitone ::audio/semitone))
 
-(defn new-pitch-round [props]
-  (let [[a b :as notes] (gen-pitch-notes props)]
-    (assoc props
-      ::notes notes
-      ::correct-answer (if (< a b) "higher" "lower"))))
-
 (om/defui ^:once PitchDetection
   static uc/InitialAppState
   (initial-state [this _]
-    (new-pitch-round
+    (new-round this
       (merge
         (uc/initial-state Exercice nil)
         {::description "You will hear two notes. Is the second note lower or higher in pitch?"
@@ -191,7 +194,14 @@
   (ident [_ props] [:exercice/by-name "pitch"])
 
   static om/IQuery
-  (query [_] (vec (concat (om/get-query Exercice) [::pitch ::variation])))
+  (query [_] ['*])
+
+  static IExercice
+  (new-round [_ props]
+    (let [[a b :as notes] (gen-pitch-notes props)]
+      (assoc props
+        ::notes notes
+        ::correct-answer (if (< a b) "higher" "lower"))))
 
   Object
   (render [this]

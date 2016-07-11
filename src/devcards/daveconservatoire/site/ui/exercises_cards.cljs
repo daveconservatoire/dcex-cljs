@@ -1,7 +1,7 @@
-(ns daveconservatoire.site.ui.exercices-cards
+(ns daveconservatoire.site.ui.exercises-cards
   (:require [devcards.core :as dc :refer-macros [dom-node defcard deftest]]
             [cljs.test :refer-macros [is are run-tests async testing]]
-            [daveconservatoire.site.ui.exercices :as ex]
+            [daveconservatoire.site.ui.exercises :as ex]
             [untangled.client.core :as uc]
             [om.next :as om]
             [om.dom :as dom]))

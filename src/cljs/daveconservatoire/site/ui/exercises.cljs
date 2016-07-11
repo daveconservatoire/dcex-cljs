@@ -1,4 +1,4 @@
-(ns daveconservatoire.site.ui.exercices
+(ns daveconservatoire.site.ui.exercises
   (:require [om.next :as om :include-macros true]
             [om.dom :as dom]
             [untangled.client.core :as uc]
@@ -7,7 +7,7 @@
             [daveconservatoire.audio.core :as audio]
             [daveconservatoire.site.ui.util :as u]))
 
-(defprotocol IExercice
+(defprotocol IExercise
   (new-round [this props]))
 
 (s/def ::progress-value number?)
@@ -119,7 +119,7 @@
                                   (for [[value label] options]
                                     (dom/li #js {:key value}
                                       (dom/label nil
-                                        (dom/input #js {:type     "radio" :name "exercice-answer"
+                                        (dom/input #js {:type     "radio" :name "exercise-answer"
                                                         :checked  (= ex-answer value)
                                                         :value    value
                                                         :onChange #(um/set-string! c ::ex-answer :event %)})
@@ -149,7 +149,7 @@
   :args (s/cat :desc ::value-descriptor)
   :ret ::audio/semitone)
 
-(om/defui ^:once Exercice
+(om/defui ^:once Exercise
   static uc/InitialAppState
   (initial-state [_ _] {::ex-answer          nil
                         ::ex-total-questions 10
@@ -165,7 +165,7 @@
   (render [this]
     (render-ex this)))
 
-(def exercice (om/factory Exercice))
+(def exercise (om/factory Exercise))
 
 (defn rand-direction [] (rand-nth [1 -1]))
 
@@ -183,7 +183,7 @@
   (initial-state [this _]
     (new-round this
       (merge
-        (uc/initial-state Exercice nil)
+        (uc/initial-state Exercise nil)
         {::description "You will hear two notes. Is the second note lower or higher in pitch?"
          ::options     [["lower" "Lower"] ["higher" "Higher"]]
          ::pitch       ["C3" ".." "B5"]
@@ -191,12 +191,12 @@
          ::parent      this})))
 
   static om/Ident
-  (ident [_ props] [:exercice/by-name "pitch"])
+  (ident [_ props] [:exercise/by-name "pitch"])
 
   static om/IQuery
   (query [_] ['*])
 
-  static IExercice
+  static IExercise
   (new-round [_ props]
     (let [[a b :as notes] (gen-pitch-notes props)]
       (assoc props
@@ -205,6 +205,6 @@
 
   Object
   (render [this]
-    (exercice (om/props this))))
+    (exercise (om/props this))))
 
 (def pitch-detection (om/factory PitchDetection))

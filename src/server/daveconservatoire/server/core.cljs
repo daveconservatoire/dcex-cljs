@@ -14,6 +14,7 @@
 
 (defonce express (nodejs/require "express"))
 (defonce http (nodejs/require "http"))
+(defonce compression (nodejs/require "compression"))
 
 (defn express-get [app pattern f] (.get app pattern f))
 (defn express-post [app pattern f] (.post app pattern f))
@@ -38,6 +39,7 @@
     (.on s "end" (fn [] (put! c @out)))
     c))
 
+(express-use app (compression))
 (express-use app (.static express "resources/public"))
 
 (defn read-input [s] (ct/read (t/reader) s))

@@ -18,7 +18,6 @@
            data-query (if (implements? r/IRouteMiddleware comp)
                         (r/remote-query comp route)
                         (om/get-query comp))]
-       (js/console.log (implements? uc/InitialAppState comp))
        (if data-query
          (df/load-data reconciler [{:route/data data-query}] :post-mutation 'fetch/export-idents))
        (om/set-query! root {:params {:route/data (uiu/normalize-route-data-query data-query)}})

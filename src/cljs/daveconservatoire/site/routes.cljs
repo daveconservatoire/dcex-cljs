@@ -8,6 +8,14 @@
 
 (defmulti route->component ::handler)
 
+(defn route->component* [route]
+  (let [comp' (route->component route)
+        comp (js/Object.create (.-prototype comp'))
+        _ (set! (.-om$isComponent comp) false)]
+    (if (implements? IRouteMiddleware comp)
+      comp
+      comp')))
+
 (def routes
   ["/" {""                 ::home
         "about"            ::about

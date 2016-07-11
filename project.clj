@@ -2,7 +2,7 @@
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
-            :url "http://www.eclipse.org/legal/epl-v10.html"}
+            :url  "http://www.eclipse.org/legal/epl-v10.html"}
 
   :clean-targets ^{:protect false} ["resources/public/devcards" "resources/public/site" "target"]
 
@@ -56,6 +56,21 @@
                                :preloads             [daveconservatoire.support.dev]
                                :parallel-build       true
                                :recompile-dependents true
+                               :verbose              false}}
+
+               ;; prod
+               {:id           "site-min"
+                :source-paths ["src/cljs"]
+                :compiler     {:main                 daveconservatoire.site.main
+                               :source-map-timestamp true
+                               :pseudo-names         true
+                               :optimizations        :advanced
+                               :asset-path           "/site-min"
+                               :output-to            "resources/public/site-min/site-min.js"
+                               :output-dir           "resources/public/site-min"
+                               :parallel-build       true
+                               :recompile-dependents true
+                               :source-map           "resources/public/site-min/site-min.js.map"
                                :verbose              false}}
 
                ;; server builds

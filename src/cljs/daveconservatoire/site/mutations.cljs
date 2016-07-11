@@ -11,7 +11,7 @@
   [{:keys [state reconciler] :as env} _ route]
   {:action
    (fn []
-     (let [comp (r/route->component route)
+     (let [comp (r/route->component* route)
            root (-> env :reconciler :config :indexer deref
                     :class->components (get ui/Root) first)
            data-query (if (implements? r/IRouteMiddleware comp)

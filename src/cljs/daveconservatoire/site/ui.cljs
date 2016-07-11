@@ -281,22 +281,25 @@
   Object
   (componentDidMount [this]
     (let [{:keys [url/slug lesson/type db/id]} (om/props this)
-          {:keys [::ux/class ::ux/props] :as info} (ux/slug->exercice slug)
-          state (uc/initial-state class props)
-          ident (om/ident class state)]
-      (om/transact! (om/get-reconciler this) ident
-                    [`(ui/set-props ~state)])
-      (om/transact! (om/get-reconciler this) [type id]
-                    [`(ui/set-props {:exercise/data ~ident})])
-      (om/force-root-render! (om/get-reconciler this))))
+          {:keys [::ux/class ::ux/props] :as info} (ux/slug->exercice slug)]
+      (if info
+        (let [state (uc/initial-state class props)
+              ident (om/ident class state)]
+          (om/transact! (om/get-reconciler this) ident
+                        [`(ui/set-props ~state)])
+          (om/transact! (om/get-reconciler this) [type id]
+                        [`(ui/set-props {:exercise/data ~ident})])
+          (om/force-root-render! (om/get-reconciler this))))))
 
   (render [this]
     (let [{:keys [lesson/topic url/slug exercise/data]} (om/props this)
           {:keys [::ux/class]} (ux/slug->exercice slug)]
       (dom/div nil
         (lesson-topic-menu topic)
-        (when (get data ::ux/streak-count)
-          ((om/factory class) data))))))
+        (if class
+          (when (get data ::ux/streak-count)
+            ((om/factory class) data))
+          (str "Exercice [" slug "] not implemented"))))))
 
 (def lesson-exercise (om/factory LessonExercise))
 

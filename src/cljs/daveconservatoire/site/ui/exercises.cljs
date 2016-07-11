@@ -211,6 +211,8 @@
 
 (defmulti slug->exercice identity)
 
+(defmethod slug->exercice :default [_] nil)
+
 (defmethod slug->exercice "pitch-1" [_]
   {::class PitchDetection
    ::props {::variation 24}})

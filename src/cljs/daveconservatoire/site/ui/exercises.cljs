@@ -34,7 +34,7 @@
         :list (s/coll-of ::audio/sound [])))
 
 (s/def ::pitch ::value-descriptor)
-(s/def ::variation pos-int?)
+(s/def ::variation ::value-descriptor)
 
 (om/defui ^:once ProgressBar
   Object
@@ -171,7 +171,7 @@
 
 (defn gen-pitch-notes [{:keys [::pitch ::variation]}]
   (let [a (descriptor->value pitch)
-        b (+ a (* variation (rand-direction)))]
+        b (+ a (* (descriptor->value variation) (rand-direction)))]
     [a b]))
 
 (s/fdef gen-pitch-notes
@@ -180,7 +180,7 @@
 
 (om/defui ^:once PitchDetection
   static uc/InitialAppState
-  (initial-state [this _]
+  (initial-state [this props]
     (new-round this
       (merge
         (uc/initial-state Exercise nil)
@@ -188,13 +188,14 @@
          ::options     [["lower" "Lower"] ["higher" "Higher"]]
          ::pitch       ["C3" ".." "B5"]
          ::variation   24
-         ::parent      this})))
+         ::parent      this}
+        props)))
 
   static om/Ident
   (ident [_ props] [:exercise/by-name "pitch"])
 
   static om/IQuery
-  (query [_] ['*])
+  (query [_] '[*])
 
   static IExercise
   (new-round [_ props]
@@ -208,3 +209,17 @@
     (exercise (om/props this))))
 
 (def pitch-detection (om/factory PitchDetection))
+
+(defmulti slug->exercice identity)
+
+(defmethod slug->exercice "pitch-1" [_]
+  {::class PitchDetection
+   ::props {::variation 24}})
+
+(defmethod slug->exercice "pitch-2" [_]
+  {::class PitchDetection
+   ::props {::variation 12}})
+
+(defmethod slug->exercice "pitch-3" [_]
+  {::class PitchDetection
+   ::props {::variation 5}})

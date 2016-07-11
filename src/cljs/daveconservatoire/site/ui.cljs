@@ -4,7 +4,9 @@
             [daveconservatoire.site.routes :as r :refer [routes]]
             [daveconservatoire.site.ui.util :as u]
             [daveconservatoire.site.ui-dave :as uid]
+            [daveconservatoire.site.ui.exercises :as ux]
             [untangled.client.core :as uc]
+            [untangled.client.mutations :as um]
             [untangled.client.impl.data-fetch :as df]
             [cljs.spec :as s]))
 
@@ -125,8 +127,8 @@
                         (= slug (om/get-computed this :ui/topic-slug)))]
       (dom/div nil
         (button {::r/handler ::r/topic ::r/params {::r/slug slug}
-                 :style (cond-> {}
-                          selected? (assoc :background "#000"))} title)))))
+                 :style      (cond-> {}
+                               selected? (assoc :background "#000"))} title)))))
 
 (def topic-side-bar-link (om/factory TopicSideBarLink))
 
@@ -272,15 +274,29 @@
 
 (om/defui ^:once LessonExercise
   static om/IQuery
-  (query [_] [:lesson/type :lesson/title
+  (query [_] [:lesson/type :lesson/title :url/slug :db/id
+              {:exercise/data '[*]}
               {:lesson/topic (om/get-query LessonTopicMenu)}])
 
   Object
+  (componentDidMount [this]
+    (let [{:keys [url/slug lesson/type db/id]} (om/props this)
+          {:keys [::ux/class ::ux/props] :as info} (ux/slug->exercice slug)
+          state (uc/initial-state class props)
+          ident (om/ident class state)]
+      (om/transact! (om/get-reconciler this) ident
+                    [`(ui/set-props ~state)])
+      (om/transact! (om/get-reconciler this) [type id]
+                    [`(ui/set-props {:exercise/data ~ident})])
+      (om/force-root-render! (om/get-reconciler this))))
+
   (render [this]
-    (let [{:keys [lesson/topic]} (om/props this)]
+    (let [{:keys [lesson/topic url/slug exercise/data]} (om/props this)
+          {:keys [::ux/class]} (ux/slug->exercice slug)]
       (dom/div nil
         (lesson-topic-menu topic)
-        "Exercise"))))
+        (when (get data ::ux/streak-count)
+          ((om/factory class) data))))))
 
 (def lesson-exercise (om/factory LessonExercise))
 

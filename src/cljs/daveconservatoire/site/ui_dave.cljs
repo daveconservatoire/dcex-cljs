@@ -22,7 +22,7 @@
 (om/defui ^:once Link
   Object
   (render [this]
-    (dom/a (u/props->html {} (om/props this))
+    (dom/a (u/props->html (om/props this))
       (om/children this))))
 
 (def link (om/factory Link))
@@ -173,7 +173,7 @@
     (let [{:keys [topic/title url/slug]} (om/props this)]
       (dom/li #js {:className "span4", :style #js {"marginBottom" 5}}
         (link {:className "btn btn-large btn-block dc-btn-yellow" ::r/handler ::r/topic ::r/params {::r/slug slug} :react-key "link"}
-          (dom/h3 nil
+          (dom/h3 #js {:key "test"}
             title))))))
 
 (def home-course-topic (om/factory HomeCourseTopic {:keyfn :db/id}))

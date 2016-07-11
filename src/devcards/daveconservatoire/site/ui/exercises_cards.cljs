@@ -6,22 +6,45 @@
             [om.next :as om]
             [om.dom :as dom]))
 
-(defn ex-container [ex]
+(defn ex-container [{:keys [::ex/class ::ex/props]}]
   (om/ui
     static uc/InitialAppState
-    (initial-state [_ _] {:exercice (uc/initial-state ex nil)})
+    (initial-state [_ _] {:exercice (uc/initial-state class props)})
 
     static om/IQuery
-    (query [_] [{:exercice (om/get-query ex)}])
+    (query [_] [{:exercice (om/get-query class)}])
 
     Object
     (render [this]
             (let [{:keys [exercice]} (om/props this)]
               (ex/pitch-detection exercice)))))
 
-(def pitch-ex-app (atom (uc/new-untangled-test-client)))
+(def pitch-1-app (atom (uc/new-untangled-test-client)))
 
-(defcard pitch-ex
+(defcard pitch-1
   (dom-node
     (fn [_ node]
-      (reset! pitch-ex-app (uc/mount @pitch-ex-app (ex-container ex/PitchDetection) node)))))
+      (as-> (ex/slug->exercice "pitch-1") it
+        (ex-container it)
+        (uc/mount @pitch-1-app it node)
+        (reset! pitch-1-app it)))))
+
+(def pitch-2-app (atom (uc/new-untangled-test-client)))
+
+(defcard pitch-2
+  (dom-node
+    (fn [_ node]
+      (as-> (ex/slug->exercice "pitch-2") it
+        (ex-container it)
+        (uc/mount @pitch-2-app it node)
+        (reset! pitch-2-app it)))))
+
+(def pitch-3-app (atom (uc/new-untangled-test-client)))
+
+(defcard pitch-3
+  (dom-node
+    (fn [_ node]
+      (as-> (ex/slug->exercice "pitch-3") it
+        (ex-container it)
+        (uc/mount @pitch-3-app it node)
+        (reset! pitch-3-app it)))))

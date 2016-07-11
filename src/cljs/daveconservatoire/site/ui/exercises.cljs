@@ -60,11 +60,6 @@
 
 (defn play-sound [c] (play-notes (-> (om/props c) ::notes)))
 
-(defn merge-props!
-  "Set a raw value on the given `field` of a `component`."
-  [component props]
-  (om/transact! component `[(ui/set-props ~props)]))
-
 (defn check-answer [c]
   (let [{:keys [::ex-answer ::correct-answer ::streak-count ::parent] :as props} (om/props c)]
     (if (= ex-answer correct-answer)
@@ -168,6 +163,10 @@
 (def exercise (om/factory Exercise))
 
 (defn rand-direction [] (rand-nth [1 -1]))
+
+(s/fdef rand-direction
+  :args (s/cat)
+  :ret #{-1 1})
 
 (defn gen-pitch-notes [{:keys [::pitch ::variation]}]
   (let [a (descriptor->value pitch)

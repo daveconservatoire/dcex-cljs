@@ -24,7 +24,7 @@
 (defcard pitch-1
   (dom-node
     (fn [_ node]
-      (as-> (ex/slug->exercice "pitch-1") it
+      (as-> (ex/slug->exercise "pitch-1") it
         (ex-container it)
         (uc/mount @pitch-1-app it node)
         (reset! pitch-1-app it)))))
@@ -34,7 +34,7 @@
 (defcard pitch-2
   (dom-node
     (fn [_ node]
-      (as-> (ex/slug->exercice "pitch-2") it
+      (as-> (ex/slug->exercise "pitch-2") it
         (ex-container it)
         (uc/mount @pitch-2-app it node)
         (reset! pitch-2-app it)))))
@@ -44,7 +44,7 @@
 (defcard pitch-3
   (dom-node
     (fn [_ node]
-      (as-> (ex/slug->exercice "pitch-3") it
+      (as-> (ex/slug->exercise "pitch-3") it
         (ex-container it)
         (uc/mount @pitch-3-app it node)
         (reset! pitch-3-app it)))))

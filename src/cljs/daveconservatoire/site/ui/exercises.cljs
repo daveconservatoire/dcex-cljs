@@ -209,18 +209,18 @@
 
 (def pitch-detection (om/factory PitchDetection))
 
-(defmulti slug->exercice identity)
+(defmulti slug->exercise identity)
 
-(defmethod slug->exercice :default [_] nil)
+(defmethod slug->exercise :default [_] nil)
 
-(defmethod slug->exercice "pitch-1" [_]
+(defmethod slug->exercise "pitch-1" [_]
   {::class PitchDetection
    ::props {::variation 24}})
 
-(defmethod slug->exercice "pitch-2" [_]
+(defmethod slug->exercise "pitch-2" [_]
   {::class PitchDetection
    ::props {::variation 12}})
 
-(defmethod slug->exercice "pitch-3" [_]
+(defmethod slug->exercise "pitch-3" [_]
   {::class PitchDetection
    ::props {::variation 5}})

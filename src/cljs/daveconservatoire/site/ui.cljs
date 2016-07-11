@@ -297,7 +297,7 @@
   Object
   (componentDidMount [this]
     (let [{:keys [url/slug lesson/type db/id]} (om/props this)
-          {:keys [::ux/class ::ux/props] :as info} (ux/slug->exercice slug)]
+          {:keys [::ux/class ::ux/props] :as info} (ux/slug->exercise slug)]
       (if info
         (let [state (uc/initial-state class props)
               ident (om/ident class state)]
@@ -309,7 +309,7 @@
 
   (render [this]
     (let [{:keys [lesson/topic url/slug exercise/data]} (om/props this)
-          {:keys [::ux/class]} (ux/slug->exercice slug)]
+          {:keys [::ux/class]} (ux/slug->exercise slug)]
       (dom/div nil
         (lesson-topic-menu topic)
         (if class

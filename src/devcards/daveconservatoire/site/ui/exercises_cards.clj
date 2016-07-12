@@ -9,8 +9,8 @@
 
        (devcards.core/defcard ~slug
          (devcards.core/dom-node
-           (cljs.core/fn [~'_ node#]
-             (cljs.core/as-> (daveconservatoire.site.ui.exercises/slug->exercise ~slug-str) it#
+           (fn [~'_ node#]
+             (as-> (daveconservatoire.site.ui.exercises/slug->exercise ~slug-str) it#
                    (daveconservatoire.site.ui.exercises-cards/ex-container it#)
                    (untangled.client.core/mount (deref ~app-sym) it# node#)
-                   (cljs.core/reset! ~app-sym it#))))))))
+                   (reset! ~app-sym it#))))))))

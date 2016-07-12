@@ -85,7 +85,7 @@
           :fields {:db/id              "id"
                    :url/slug           "urltitle"
                    :youtube/id         "youtubeid"
-                   :lesson/topic-id    "lessonno"
+                   :lesson/topic-id    "topicno"
                    :lesson/course-id   "seriesno"
                    :lesson/title       "title"
                    :lesson/description "description"
@@ -169,10 +169,10 @@
     foreign-table))
 
 (defmethod row-vattribute [:course :course/topics] [env] (has-many env :topic :topic/course-id {:sort ["sortorder"]}))
-(defmethod row-vattribute [:course :course/lessons] [env] (has-many env :lesson :lesson/course-id))
+(defmethod row-vattribute [:course :course/lessons] [env] (has-many env :lesson :lesson/course-id {:sort ["lessonno"]}))
 
 (defmethod row-vattribute [:topic :topic/course] [env] (has-one env :course :topic/course-id))
-(defmethod row-vattribute [:topic :topic/lessons] [env] (has-many env :lesson :lesson/topic-id))
+(defmethod row-vattribute [:topic :topic/lessons] [env] (has-many env :lesson :lesson/topic-id {:sort ["lessonno"]}))
 
 (defmethod row-vattribute [:lesson :lesson/course] [env] (has-one env :course :lesson/course-id))
 (defmethod row-vattribute [:lesson :lesson/topic] [env] (has-one env :topic :lesson/topic-id))

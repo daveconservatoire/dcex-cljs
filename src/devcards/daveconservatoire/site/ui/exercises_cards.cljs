@@ -17,7 +17,7 @@
     Object
     (render [this]
             (let [{:keys [exercice]} (om/props this)]
-              (ex/pitch-detection exercice)))))
+              ((om/factory class) exercice)))))
 
 (def pitch-1-app (atom (uc/new-untangled-test-client)))
 
@@ -48,3 +48,13 @@
         (ex-container it)
         (uc/mount @pitch-3-app it node)
         (reset! pitch-3-app it)))))
+
+(def identifying-octaves-app (atom (uc/new-untangled-test-client)))
+
+(defcard identifying-octaves
+  (dom-node
+    (fn [_ node]
+      (as-> (ex/slug->exercise "identifying-octaves") it
+        (ex-container it)
+        (uc/mount @identifying-octaves-app it node)
+        (reset! identifying-octaves-app it)))))

@@ -65,9 +65,9 @@
     (if (= ex-answer correct-answer)
       (let [next-streak (inc streak-count)
             new-props (new-round parent
-                             (merge props
-                                    {::streak-count next-streak
-                                     ::ex-answer    nil}))]
+                        (merge props
+                               {::streak-count next-streak
+                                ::ex-answer    nil}))]
         (om/transact! c `[(ui/set-props ~new-props) (dcex/play-round-sound)]))
       (um/set-value! c ::streak-count 0))))
 
@@ -168,12 +168,12 @@
   :args (s/cat)
   :ret #{-1 1})
 
-(defn gen-pitch-notes [{:keys [::pitch ::variation]}]
+(defn vary-pitch [{:keys [::pitch ::variation]}]
   (let [a (descriptor->value pitch)
         b (+ a (* (descriptor->value variation) (rand-direction)))]
     [a b]))
 
-(s/fdef gen-pitch-notes
+(s/fdef vary-pitch
   :args (s/cat :data (s/keys :req [::pitch ::variation]))
   :ret (s/tuple ::audio/semitone ::audio/semitone))
 
@@ -198,7 +198,7 @@
 
   static IExercise
   (new-round [_ props]
-    (let [[a b :as notes] (gen-pitch-notes props)]
+    (let [[a b :as notes] (vary-pitch props)]
       (assoc props
         ::notes notes
         ::correct-answer (if (< a b) "higher" "lower"))))
@@ -207,7 +207,37 @@
   (render [this]
     (exercise (om/props this))))
 
-(def pitch-detection (om/factory PitchDetection))
+(om/defui ^:once IdentifyOctaves
+  static uc/InitialAppState
+  (initial-state [this props]
+    (new-round this
+      (merge
+        (uc/initial-state Exercise nil)
+        {::description "You will hear two notes. Are they an octave apart?"
+         ::options     [["yes" "Yes"] ["no" "No"]]
+         ::pitch       ["C3" ".." "B5"]
+         ::variation   [3 5 6 7 8 9 12 15 16]
+         ::parent      this}
+        props)))
+
+  static om/Ident
+  (ident [_ props] [:exercise/by-name "octaves"])
+
+  static om/IQuery
+  (query [_] '[*])
+
+  static IExercise
+  (new-round [_ props]
+    (let [[a b :as notes] (vary-pitch props)
+          distance (- b a)
+          octave? (zero? (mod distance 8))]
+      (assoc props
+        ::notes notes
+        ::correct-answer (if octave? "yes" "no"))))
+
+  Object
+  (render [this]
+    (exercise (om/props this))))
 
 (defmulti slug->exercise identity)
 
@@ -224,3 +254,7 @@
 (defmethod slug->exercise "pitch-3" [_]
   {::class PitchDetection
    ::props {::variation [1 ".." 9]}})
+
+(defmethod slug->exercise "identifying-octaves" [_]
+  {::class IdentifyOctaves
+   ::props {}})

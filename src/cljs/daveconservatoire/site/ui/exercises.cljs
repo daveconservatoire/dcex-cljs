@@ -215,12 +215,12 @@
 
 (defmethod slug->exercise "pitch-1" [_]
   {::class PitchDetection
-   ::props {::variation 24}})
+   ::props {::variation [12 ".." 24]}})
 
 (defmethod slug->exercise "pitch-2" [_]
   {::class PitchDetection
-   ::props {::variation 12}})
+   ::props {::variation [8 ".." 16]}})
 
 (defmethod slug->exercise "pitch-3" [_]
   {::class PitchDetection
-   ::props {::variation 5}})
+   ::props {::variation [1 ".." 9]}})

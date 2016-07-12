@@ -69,7 +69,7 @@
              {:route/data {:app/courses [{:db/id 4 :db/table :course} {:db/id 7 :db/table :course}]}}))
       (done))))
 
-(deftest ^:only test-read-lesson-union
+(deftest test-read-lesson-union
   (let [lesson-union {:lesson.type/video    [:lesson/type :lesson/title]
                       :lesson.type/playlist [:lesson/type :lesson/description]
                       :lesson.type/exercise [:lesson/type :lesson/title :url/slug]}]

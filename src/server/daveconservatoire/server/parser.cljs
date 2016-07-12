@@ -95,7 +95,7 @@
                            (let [m (:fields %)] (zipmap (map keyword (vals m)) (keys m))))
                  (vals specs)))))
 
-(defmulti row-vattribute (fn [{:keys [ast row]}] [(:db/table row) (:key ast)]))
+(defmulti row-vattribute (fn [env] (get-in env [:ast :key])))
 
 (defmethod row-vattribute :default [env] [:error :not-found])
 
@@ -168,21 +168,21 @@
       (:sort params) (update-in [:ast :params :sort] #(or % (:sort params))))
     foreign-table))
 
-(defmethod row-vattribute [:course :course/topics] [env] (has-many env :topic :topic/course-id {:sort ["sortorder"]}))
-(defmethod row-vattribute [:course :course/lessons] [env] (has-many env :lesson :lesson/course-id {:sort ["lessonno"]}))
+(defmethod row-vattribute :course/topics [env] (has-many env :topic :topic/course-id {:sort ["sortorder"]}))
+(defmethod row-vattribute :course/lessons [env] (has-many env :lesson :lesson/course-id {:sort ["lessonno"]}))
 
-(defmethod row-vattribute [:topic :topic/course] [env] (has-one env :course :topic/course-id))
-(defmethod row-vattribute [:topic :topic/lessons] [env] (has-many env :lesson :lesson/topic-id {:sort ["lessonno"]}))
+(defmethod row-vattribute :topic/course [env] (has-one env :course :topic/course-id))
+(defmethod row-vattribute :topic/lessons [env] (has-many env :lesson :lesson/topic-id {:sort ["lessonno"]}))
 
-(defmethod row-vattribute [:lesson :lesson/course] [env] (has-one env :course :lesson/course-id))
-(defmethod row-vattribute [:lesson :lesson/topic] [env] (has-one env :topic :lesson/topic-id))
-(defmethod row-vattribute [:lesson :lesson/type] [env]
+(defmethod row-vattribute :lesson/course [env] (has-one env :course :lesson/course-id))
+(defmethod row-vattribute :lesson/topic [env] (has-one env :topic :lesson/topic-id))
+(defmethod row-vattribute :lesson/type [env]
   (case (get-in env [:row :filetype])
     "l" :lesson.type/video
     "e" :lesson.type/exercise
     "p" :lesson.type/playlist))
 
-(defmethod row-vattribute [:lesson :lesson/playlist-items] [env] (has-many env :playlist-item :playlist-item/lesson-id {:sort "sort"}))
+(defmethod row-vattribute :lesson/playlist-items [env] (has-many env :playlist-item :playlist-item/lesson-id {:sort "sort"}))
 
 ;; ROOT READS
 

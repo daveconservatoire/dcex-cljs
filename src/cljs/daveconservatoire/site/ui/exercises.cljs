@@ -35,6 +35,9 @@
 
 (s/def ::pitch ::value-descriptor)
 (s/def ::variation ::value-descriptor)
+(s/def ::direction ::value-descriptor)
+(s/def ::intervals (s/coll-of ::audio/semitone []))
+(s/def ::random-direction? boolean?)
 
 (om/defui ^:once ProgressBar
   Object
@@ -168,9 +171,11 @@
   :args (s/cat)
   :ret #{-1 1})
 
-(defn vary-pitch [{:keys [::pitch ::variation]}]
+(defn vary-pitch [{:keys [::pitch ::variation ::direction]
+                   :or   {::direction [-1 1]}}]
   (let [a (descriptor->value pitch)
-        b (+ a (* (descriptor->value variation) (rand-direction)))]
+        b (+ a (* (descriptor->value variation)
+                  (descriptor->value direction)))]
     [a b]))
 
 (s/fdef vary-pitch
@@ -239,6 +244,47 @@
   (render [this]
     (exercise (om/props this))))
 
+(def INTERVAL-NAMES
+  {2  "Major 2nd"
+   4  "Major 3rd"
+   5  "Perfect 4th"
+   7  "Perfect 5th"
+   9  "Major 6th"
+   11 "Major 7th"
+   12 "Octave"})
+
+(om/defui ^:once Intervals
+  static uc/InitialAppState
+  (initial-state [this props]
+    (new-round this
+      (let [intervals (get props ::intervals [12 7 4 5 9 2 11])]
+        (merge
+          (uc/initial-state Exercise nil)
+          {::description "You will hear two notes - what is their interval?"
+           ::options     (mapv #(vector (str %) (INTERVAL-NAMES %)) intervals)
+           ::pitch       ["C3" ".." "B5"]
+           ::variation   intervals
+           ::parent      this}
+          props))))
+
+  static om/Ident
+  (ident [_ props] [:exercise/by-name "intervals"])
+
+  static om/IQuery
+  (query [_] '[*])
+
+  static IExercise
+  (new-round [_ props]
+    (let [[a b :as notes] (vary-pitch props)
+          distance (js/Math.abs (- b a))]
+      (assoc props
+        ::notes notes
+        ::correct-answer (str distance))))
+
+  Object
+  (render [this]
+    (exercise (om/props this))))
+
 (defmulti slug->exercise identity)
 
 (defmethod slug->exercise :default [_] nil)
@@ -258,3 +304,135 @@
 (defmethod slug->exercise "identifying-octaves" [_]
   {::class IdentifyOctaves
    ::props {}})
+
+(defmethod slug->exercise "intervals-1" [_]
+  {::class Intervals
+   ::props {::intervals [12 7]
+            ::pitch     ["C3" "C4" "C5"]
+            ::direction 1}})
+
+(defmethod slug->exercise "intervals-2" [_]
+  {::class Intervals
+   ::props {::intervals [12 7 4]
+            ::pitch     ["C3" "C4" "C5"]
+            ::direction 1}})
+
+(defmethod slug->exercise "intervals-3" [_]
+  {::class Intervals
+   ::props {::intervals [12 7 4 5]
+            ::pitch     ["C3" "C4" "C5"]
+            ::direction 1}})
+
+(defmethod slug->exercise "intervals-4" [_]
+  {::class Intervals
+   ::props {::intervals [12 7 4 5 9]
+            ::pitch     ["C3" "C4" "C5"]
+            ::direction 1}})
+
+(defmethod slug->exercise "intervals-5" [_]
+  {::class Intervals
+   ::props {::intervals [12 7 4 5 9 2]
+            ::pitch     ["C3" "C4" "C5"]
+            ::direction 1}})
+
+(defmethod slug->exercise "intervals-6" [_]
+  {::class Intervals
+   ::props {::intervals [12 7 4 5 9 2 11]
+            ::pitch     ["C3" "C4" "C5"]
+            ::direction 1}})
+
+(defmethod slug->exercise "intervals-7" [_]
+  {::class Intervals
+   ::props {::intervals [12 7]
+            ::direction 1}})
+
+(defmethod slug->exercise "intervals-8" [_]
+  {::class Intervals
+   ::props {::intervals [12 7 4]
+            ::direction 1}})
+
+(defmethod slug->exercise "intervals-9" [_]
+  {::class Intervals
+   ::props {::intervals [12 7 4 5]
+            ::direction 1}})
+
+(defmethod slug->exercise "intervals-10" [_]
+  {::class Intervals
+   ::props {::intervals [12 7 4 5 9]
+            ::direction 1}})
+
+(defmethod slug->exercise "intervals-11" [_]
+  {::class Intervals
+   ::props {::intervals [12 7 4 5 9 2]
+            ::direction 1}})
+
+(defmethod slug->exercise "intervals-12" [_]
+  {::class Intervals
+   ::props {::intervals [12 7 4 5 9 2 11]
+            ::direction 1}})
+
+(defmethod slug->exercise "intervals-13" [_]
+  {::class Intervals
+   ::props {::intervals [12 7]
+            ::pitch     ["C3" "C4" "C5"]
+            ::direction -1}})
+
+(defmethod slug->exercise "intervals-14" [_]
+  {::class Intervals
+   ::props {::intervals [12 7 4]
+            ::pitch     ["C3" "C4" "C5"]
+            ::direction -1}})
+
+(defmethod slug->exercise "intervals-15" [_]
+  {::class Intervals
+   ::props {::intervals [12 7 4 5]
+            ::pitch     ["C3" "C4" "C5"]
+            ::direction -1}})
+
+(defmethod slug->exercise "intervals-16" [_]
+  {::class Intervals
+   ::props {::intervals [12 7 4 5 9]
+            ::pitch     ["C3" "C4" "C5"]
+            ::direction -1}})
+
+(defmethod slug->exercise "intervals-17" [_]
+  {::class Intervals
+   ::props {::intervals [12 7 4 5 9 2]
+            ::pitch     ["C3" "C4" "C5"]
+            ::direction -1}})
+
+(defmethod slug->exercise "intervals-18" [_]
+  {::class Intervals
+   ::props {::intervals [12 7 4 5 9 2 11]
+            ::pitch     ["C3" "C4" "C5"]
+            ::direction -1}})
+
+(defmethod slug->exercise "intervals-19" [_]
+  {::class Intervals
+   ::props {::intervals [12 7]
+            ::direction -1}})
+
+(defmethod slug->exercise "intervals-20" [_]
+  {::class Intervals
+   ::props {::intervals [12 7 4]
+            ::direction -1}})
+
+(defmethod slug->exercise "intervals-21" [_]
+  {::class Intervals
+   ::props {::intervals [12 7 4 5]
+            ::direction -1}})
+
+(defmethod slug->exercise "intervals-22" [_]
+  {::class Intervals
+   ::props {::intervals [12 7 4 5 9]
+            ::direction -1}})
+
+(defmethod slug->exercise "intervals-23" [_]
+  {::class Intervals
+   ::props {::intervals [12 7 4 5 9 2]
+            ::direction -1}})
+
+(defmethod slug->exercise "intervals-24" [_]
+  {::class Intervals
+   ::props {::intervals [12 7 4 5 9 2 11]
+            ::direction -1}})

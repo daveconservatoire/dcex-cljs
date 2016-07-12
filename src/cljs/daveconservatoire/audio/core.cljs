@@ -220,7 +220,7 @@
 (s/def ::note (s/with-gen
                 (s/and string? #(re-matches NOTE-PATTERN %))
                 #(s/gen ALL-NOTES)))
-(s/def ::semitone (s/and integer? #(<= 0 % 87)))
+(s/def ::semitone int?)
 
 (s/def ::sound (s/or :note ::note :semitone ::semitone))
 

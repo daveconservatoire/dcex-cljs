@@ -123,14 +123,23 @@
         (select-keys accessors)
         (read-chan-values))))
 
-(defn query-sql [{:keys [table db] :as env} cmds]
+(defn cached-query [{:keys [db query-cache]} name cmds]
+  (go
+    (let [cache-key [name cmds]]
+      (if (contains? @query-cache cache-key)
+        (get @query-cache cache-key)
+        (let [res (<! (knex/query db name cmds))]
+          (swap! query-cache assoc cache-key res)
+          res)))))
+
+(defn query-sql [{:keys [table] :as env} cmds]
   (if-let [{:keys [name fields] :as table-spec} (get db-specs table)]
     (go
       (let [cmds (map (fn [[type v :as cmd]]
                         (if (= type :where)
                           [type (set/rename-keys v fields)]
                           cmd)) cmds)
-            rows (<! (knex/query db name cmds))
+            rows (<! (cached-query env name cmds))
             env (assoc env :table table-spec)]
         (<! (read-chan-seq #(parse-row env %) rows))))
     (throw (str "[Query SQL] No specs for table " table))))
@@ -188,17 +197,18 @@
 
 (defn ast-key-id [ast] (some-> ast :key second))
 
-(defn read [{:keys [ast parser] :as env} key params]
-  (case key
-    :route/data {:value (read-chan-values (parser env (:query ast)))}
-    :topic/by-slug {:value (query-sql-first (assoc env :table :topic)
-                                            [[:where {:urltitle (ast-key-id ast)}]])}
-    :lesson/by-slug {:value (query-sql-first (assoc env :table :lesson ::union-selector :lesson/type)
-                                             [[:where {:urltitle (ast-key-id ast)}]])}
-    :app/courses {:value (query-table (assoc-in env [:ast :params :sort] "homepage_order") :course)}
-    :app/topics {:value (query-table env :topic)}
+(defn read [{:keys [ast parser query-cache] :as env} key params]
+  (let [env (if query-cache env (assoc env :query-cache (atom {})))]
+    (case key
+      :route/data {:value (read-chan-values (parser env (:query ast)))}
+      :topic/by-slug {:value (query-sql-first (assoc env :table :topic)
+                                              [[:where {:urltitle (ast-key-id ast)}]])}
+      :lesson/by-slug {:value (query-sql-first (assoc env :table :lesson ::union-selector :lesson/type)
+                                               [[:where {:urltitle (ast-key-id ast)}]])}
+      :app/courses {:value (query-table (assoc-in env [:ast :params :sort] "homepage_order") :course)}
+      :app/topics {:value (query-table env :topic)}
 
-    {:value [:error :not-found]}))
+      {:value [:error :not-found]})))
 
 (def parser (om/parser {:read read}))
 

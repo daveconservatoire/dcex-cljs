@@ -27,12 +27,14 @@
   (async done
     (go
       (is (= (<! (p/query-sql-first {:db    ts/connection
+                                     :query-cache (atom {})
                                      :table :course
                                      :ast   (om/query->ast [:db/id :course/title])}
                                     [[:where {:url/slug "reading-music"}]]))
              {:db/id 4 :course/title "Reading Music" :db/table :course}))
 
       (is (= (<! (p/query-sql-first {:db    ts/connection
+                                     :query-cache (atom {})
                                      :table :course
                                      :ast   (om/query->ast [:db/id (list
                                                                      {:course/topics [:db/id :topic/title]}

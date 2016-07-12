@@ -7,5 +7,5 @@
      :connection {:host     "localhost"
                   :user     "root"
                   :password "root"
-                  :database "dcsite"
+                  :database "dcsite-pre"
                   :port     8889}}))

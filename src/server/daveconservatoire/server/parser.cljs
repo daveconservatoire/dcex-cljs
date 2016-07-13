@@ -77,7 +77,7 @@
   (zipmap (keys schema)
           (map #(let [m (:fields %)]
                  (assoc %
-                   :fields-getters
+                   ::reader-map
                    (zipmap (keys m)
                            (map
                              (fn [field]
@@ -93,7 +93,7 @@
 
 (defn row-getter [schema k f]
   (let [table (keyword (namespace k))]
-    (assoc-in schema [table :fields-getters k] f)))
+    (assoc-in schema [table ::reader-map k] f)))
 
 (def db-specs
   (-> (prepare-schema
@@ -143,14 +143,20 @@
                    :lesson/title       "title"
                    :lesson/description "description"
                    :lesson/keywords    "keywords"}}})
+
+      ; Course
       (row-getter :course/topics
         #(has-many % :topic :topic/course-id {:sort ["sortorder"]}))
       (row-getter :course/lessons
         #(has-many % :lesson :lesson/course-id {:sort ["lessonno"]}))
+
+      ; Topic
       (row-getter :topic/course
         #(has-one % :course :topic/course-id))
       (row-getter :topic/lessons
         #(has-many % :lesson :lesson/topic-id {:sort ["lessonno"]}))
+
+      ; Lesson
       (row-getter :lesson/course
         #(has-one % :course :lesson/course-id))
       (row-getter :lesson/topic
@@ -168,16 +174,18 @@
 
 (defn row-get [{:keys [table] :as env} row attr]
   (read-from (assoc env :row row :ast {:key attr :dispatch-key attr})
-    (:fields-getters table)))
+    (::reader-map table)))
 
 (defn parse-row [{:keys [table ast ::union-selector] :as env} row]
   (let [row' {:db/table (:key table) :db/id (row-get env row :db/id)}
-        readers [(:fields-getters table) placeholder-node]
+        readers [(::reader-map table) placeholder-node]
         ast (if (union-children? ast)
               (some-> ast :query (get (row-get env row union-selector)) (om/query->ast))
               ast)]
     (-> (reduce (fn [row' {:keys [key] :as ast}]
-                  (assoc row' key (read-from (assoc env :ast ast :row row) readers)))
+                  (if (contains? #{:db/id :db/table} key)
+                    row'
+                    (assoc row' key (read-from (assoc env :ast ast :row row) readers))))
                 row'
                 (:children ast))
         (read-chan-values))))

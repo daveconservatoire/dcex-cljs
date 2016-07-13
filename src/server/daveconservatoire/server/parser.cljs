@@ -5,7 +5,8 @@
             [cljs.core.async :as async :refer [<! >! put! close!]]
             [cljs.core.async.impl.protocols :refer [Channel]]
             [knex.core :as knex]
-            [daveconservatoire.models]))
+            [daveconservatoire.models]
+            [cljs.spec :as s]))
 
 ;; SUPPORT FUNCTIONS
 
@@ -40,87 +41,121 @@
                             (async/to-chan s))
       (<! (async/into [] out)))))
 
+(s/def ::reader (s/or :fn (s/and fn?
+                                 (s/fspec :args (s/cat :env ::s/any)
+                                          :ret ::s/any))
+                      :map (s/map-of keyword? ::reader)
+                      :list (s/coll-of ::reader [])))
+
+(defn placeholder-node [{:keys [ast parser] :as env}]
+  (if (= "placeholder" (namespace (:dispatch-key ast)))
+    (read-chan-values (parser env (:query ast)))
+    ::continue))
+
+(defn read-from* [{:keys [ast] :as env} reader]
+  (let [k (:dispatch-key ast)]
+    (cond
+      (fn? reader) (reader env)
+      (map? reader) (if-let [[_ v] (find reader k)]
+                      (read-from* env v)
+                      ::continue)
+      (vector? reader) (let [res (into [] (comp (map #(read-from* env %))
+                                                (remove #{::continue})
+                                                (take 1))
+                                          reader)]
+                         (if (seq res)
+                           (first res)
+                           ::continue)))))
+
+(defn read-from [env reader]
+  (let [res (read-from* env reader)]
+    (if (= res ::continue) nil res)))
+
 ;;; DB PART
 
+(defn prepare-schema [schema]
+  (zipmap (keys schema)
+          (map #(let [m (:fields %)]
+                 (assoc %
+                   :fields-getters
+                   (zipmap (keys m)
+                           (map
+                             (fn [field]
+                               (let [field (keyword field)]
+                                 (fn [{:keys [row]}]
+                                   (get row field))))
+                             (vals m)))
+                   :fields' (zipmap (map keyword (vals m)) (keys m))))
+               (vals schema))))
+
 (def db-specs
-  (let [specs
-        {:playlist-item
-         {:key    :playlist-item,
-          :name   "PlaylistItem",
-          :fields {:db/id                   "id"
-                   :youtube/id              "youtubeid"
-                   :playlist-item/lesson-id "relid"
-                   :playlist-item/title     "title"
-                   :playlist-item/text      "text"
-                   :playlist-item/credit    "credit"}}
+  (prepare-schema
+    {:playlist-item
+     {:key    :playlist-item,
+      :name   "PlaylistItem",
+      :fields {:db/id                   "id"
+               :youtube/id              "youtubeid"
+               :playlist-item/lesson-id "relid"
+               :playlist-item/title     "title"
+               :playlist-item/text      "text"
+               :playlist-item/credit    "credit"}}
 
-         :search-term
-         {:key    :search-term
-          :name   "SearchTerm"
-          :fields {}}
+     :search-term
+     {:key    :search-term
+      :name   "SearchTerm"
+      :fields {}}
 
-         :topic
-         {:key    :topic,
-          :name   "Topic",
-          :fields {:db/id             "id"
-                   :url/slug          "urltitle"
-                   :ordering/position "sortorder"
-                   :topic/course-id   "courseId"
-                   :topic/title       "title"
-                   :topic/colour      "colour"}},
+     :topic
+     {:key    :topic,
+      :name   "Topic",
+      :fields {:db/id             "id"
+               :url/slug          "urltitle"
+               :ordering/position "sortorder"
+               :topic/course-id   "courseId"
+               :topic/title       "title"
+               :topic/colour      "colour"}},
 
-         :course
-         {:key    :course,
-          :name   "Course",
-          :fields {:db/id              "id"
-                   :course/title       "title"
-                   :course/description "description"
-                   :course/author      "author"
-                   :url/slug           "urltitle"
-                   :ordering/position  "homepage_order"}},
+     :course
+     {:key    :course,
+      :name   "Course",
+      :fields {:db/id              "id"
+               :course/title       "title"
+               :course/description "description"
+               :course/author      "author"
+               :url/slug           "urltitle"
+               :ordering/position  "homepage_order"}},
 
-         :lesson
-         {:key    :lesson,
-          :name   "Lesson",
-          :fields {:db/id              "id"
-                   :url/slug           "urltitle"
-                   :youtube/id         "youtubeid"
-                   :lesson/topic-id    "topicno"
-                   :lesson/course-id   "seriesno"
-                   :lesson/title       "title"
-                   :lesson/description "description"
-                   :lesson/keywords    "keywords"}}}]
-    (zipmap (keys specs)
-            (map #(assoc % :fields'
-                           (let [m (:fields %)] (zipmap (map keyword (vals m)) (keys m))))
-                 (vals specs)))))
+     :lesson
+     {:key    :lesson,
+      :name   "Lesson",
+      :fields {:db/id              "id"
+               :url/slug           "urltitle"
+               :youtube/id         "youtubeid"
+               :lesson/topic-id    "topicno"
+               :lesson/course-id   "seriesno"
+               :lesson/title       "title"
+               :lesson/description "description"
+               :lesson/keywords    "keywords"}}}))
 
-(defmulti row-vattribute (fn [env] (get-in env [:ast :key])))
-
-(defmethod row-vattribute :default [env] [:error :not-found])
+(declare virtuals)
 
 (defn union-children? [ast]
   (= :union (some-> ast :children first :type)))
 
 (defn row-get [{:keys [table] :as env} row attr]
-  (if-let [field (get (:fields table) attr)]
-    (get row field)
-    (row-vattribute (assoc env :ast {:key attr} :row row))))
+  (read-from (assoc env :row row :ast {:key attr :dispatch-key attr})
+    [(:fields-getters table) virtuals]))
 
 (defn parse-row [{:keys [table ast ::union-selector] :as env} row]
-  (let [row (assoc row :db/table (:key table))
+  (let [row' {:db/table (:key table) :db/id (row-get env row :db/id)}
+        readers [(:fields-getters table) virtuals placeholder-node]
         ast (if (union-children? ast)
               (some-> ast :query (get (row-get env row union-selector)) (om/query->ast))
-              ast)
-        accessors (into #{:db/id :db/table} (map :key) (:children ast))
-        non-table (set/difference accessors (set (conj (keys (:fields table)) :db/table)))
-        virtual (filter #(contains? non-table (:key %)) (:children ast))
-        row (set/rename-keys row (:fields' table))]
-    (-> (reduce (fn [row {:keys [key] :as ast}]
-                  (assoc row key (row-vattribute (assoc env :ast ast :row row))))
-                row
-                virtual)
-        (select-keys accessors)
+              ast)]
+    (-> (reduce (fn [row' {:keys [key] :as ast}]
+                  (assoc row' key (read-from (assoc env :ast ast :row row) readers)))
+                row'
+                (:children ast))
         (read-chan-values))))
 
 (defn cached-query [{:keys [db query-cache]} name cmds]
@@ -166,49 +201,65 @@
 
 ;; RELATIONAL MAPPING
 
-(defn has-one [env foreign-table local-field]
-  (let [foreign-id (get-in env [:row local-field])]
+(defn has-one [{:keys [row] :as env} foreign-table local-field]
+  (let [foreign-id (row-get env row local-field)]
     (query-sql-first (assoc env :table foreign-table) [[:where {:db/id foreign-id}]])))
 
 (defn has-many [{:keys [row] :as env} foreign-table local-field & [params]]
   (query-table
     (cond-> (update-in env [:ast :params :where]
-                       #(assoc (or % {}) local-field (:db/id row)))
+                       #(assoc (or % {}) local-field (row-get env row :db/id)))
       (:sort params) (update-in [:ast :params :sort] #(or % (:sort params))))
     foreign-table))
 
-(defmethod row-vattribute :course/topics [env] (has-many env :topic :topic/course-id {:sort ["sortorder"]}))
-(defmethod row-vattribute :course/lessons [env] (has-many env :lesson :lesson/course-id {:sort ["lessonno"]}))
+(def virtuals
+  {:course/topics
+   #(has-many % :topic :topic/course-id {:sort ["sortorder"]})
 
-(defmethod row-vattribute :topic/course [env] (has-one env :course :topic/course-id))
-(defmethod row-vattribute :topic/lessons [env] (has-many env :lesson :lesson/topic-id {:sort ["lessonno"]}))
+   :course/lessons
+   #(has-many % :lesson :lesson/course-id {:sort ["lessonno"]})
 
-(defmethod row-vattribute :lesson/course [env] (has-one env :course :lesson/course-id))
-(defmethod row-vattribute :lesson/topic [env] (has-one env :topic :lesson/topic-id))
-(defmethod row-vattribute :lesson/type [env]
-  (case (get-in env [:row :filetype])
-    "l" :lesson.type/video
-    "e" :lesson.type/exercise
-    "p" :lesson.type/playlist))
+   :topic/course
+   #(has-one % :course :topic/course-id)
 
-(defmethod row-vattribute :lesson/playlist-items [env] (has-many env :playlist-item :playlist-item/lesson-id {:sort "sort"}))
+   :topic/lessons
+   #(has-many % :lesson :lesson/topic-id {:sort ["lessonno"]})
+
+   :lesson/course
+   #(has-one % :course :lesson/course-id)
+
+   :lesson/topic
+   #(has-one % :topic :lesson/topic-id)
+
+   :lesson/type
+   #(case (get-in % [:row :filetype])
+     "l" :lesson.type/video
+     "e" :lesson.type/exercise
+     "p" :lesson.type/playlist)
+
+   :lesson/playlist-items
+   #(has-many % :playlist-item :playlist-item/lesson-id {:sort "sort"})})
 
 ;; ROOT READS
 
 (defn ast-key-id [ast] (some-> ast :key second))
 
-(defn read [{:keys [ast parser query-cache] :as env} key params]
-  (let [env (if query-cache env (assoc env :query-cache (atom {})))]
-    (case key
-      :route/data {:value (read-chan-values (parser env (:query ast)))}
-      :topic/by-slug {:value (query-sql-first (assoc env :table :topic)
-                                              [[:where {:urltitle (ast-key-id ast)}]])}
-      :lesson/by-slug {:value (query-sql-first (assoc env :table :lesson ::union-selector :lesson/type)
-                                               [[:where {:urltitle (ast-key-id ast)}]])}
-      :app/courses {:value (query-table (assoc-in env [:ast :params :sort] "homepage_order") :course)}
-      :app/topics {:value (query-table env :topic)}
+(def root-endpoints
+  {:route/data     #(read-chan-values ((:parser %) % (:query (:ast %))))
+   :topic/by-slug  #(query-sql-first (assoc % :table :topic)
+                                     [[:where {:urltitle (ast-key-id (:ast %))}]])
+   :lesson/by-slug #(query-sql-first (assoc % :table :lesson ::union-selector :lesson/type)
+                                     [[:where {:urltitle (ast-key-id (:ast %))}]])
+   :app/courses    #(query-table (assoc-in % [:ast :params :sort] "homepage_order") :course)
+   :app/topics     #(query-table % :topic)})
 
-      {:value [:error :not-found]})))
+(defn read [{:keys [query-cache] :as env} _ _]
+  (let [env (if query-cache env (assoc env :query-cache (atom {})))]
+    {:value
+     (read-from env
+       [root-endpoints
+        placeholder-node
+        #(vector :error :not-found)])}))
 
 (def parser (om/parser {:read read}))
 

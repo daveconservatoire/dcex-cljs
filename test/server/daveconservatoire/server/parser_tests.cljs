@@ -69,6 +69,8 @@
     (go
       (is (= (<! (p/parse {:db ts/connection} [{:route/data [:app/courses]}]))
              {:route/data {:app/courses [{:db/id 4 :db/table :course} {:db/id 7 :db/table :course}]}}))
+      (is (= (<! (p/parse {:db ts/connection} [{:placeholder/anything [:app/courses]}]))
+             {:placeholder/anything {:app/courses [{:db/id 4 :db/table :course} {:db/id 7 :db/table :course}]}}))
       (done))))
 
 (deftest test-read-lesson-union
@@ -94,3 +96,37 @@
                 {:db/id 67 :db/table :lesson :lesson/title "Exercise: Tempo Markings Quiz" :lesson/type :lesson.type/exercise
                  :url/slug "tempo-markings"}}))
         (done)))))
+
+(defn q [q] (-> (om/query->ast q) :children first))
+
+(deftest test-read-key
+  (is (= (p/read-from {:ast (q [:name])} (fn [_] "value"))
+         "value"))
+  (is (= (p/read-from {:ast (q [:name])} (fn [_] nil))
+         nil))
+  (is (= (p/read-from {:ast (q [:name]) :x 42} (fn [env] (:x env)))
+         42))
+  (is (= (p/read-from {:ast (q [:name]) :x 42} [(fn [env] (:x env))])
+         42))
+  (is (= (p/read-from {:ast (q [:name]) :x 42} [{} {:name (fn [env] (:x env))}])
+         42))
+  (is (= (p/read-from {:ast (q [:name])} {})
+         nil))
+  (is (= (p/read-from {:ast (q [:name])} {:name #(str "value")})
+         "value"))
+  (is (= (p/read-from {:ast (q [:name])} {:name #(str "value")})
+         "value"))
+  (is (= (p/read-from {:ast (q [:name])} [])
+         nil))
+  (let [c (fn [_] ::p/continue)
+        m (fn [_] 42)]
+    (is (= (p/read-from {:ast (q [:name])} [c])
+           nil))
+    (is (= (p/read-from {:ast (q [:name])} [m])
+           42))
+    (is (= (p/read-from {:ast (q [:name])} [c m])
+           42))
+    (is (= (p/read-from {:ast (q [:name])} [c {:no #(str "value")} [c c] {:name #(str "Bil")}])
+           "Bil"))
+    (is (= (p/read-from {:ast (q [:name])} [(fn [_] nil)])
+           nil))))

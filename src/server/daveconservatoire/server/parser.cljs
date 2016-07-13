@@ -48,7 +48,7 @@
                       :list (s/coll-of ::reader [])))
 
 (defn placeholder-node [{:keys [ast parser] :as env}]
-  (if (= "placeholder" (namespace (:dispatch-key ast)))
+  (if (= "ph" (namespace (:dispatch-key ast)))
     (read-chan-values (parser env (:query ast)))
     ::continue))
 
@@ -88,67 +88,91 @@
                    :fields' (zipmap (map keyword (vals m)) (keys m))))
                (vals schema))))
 
+(declare has-many)
+(declare has-one)
+
+(defn row-getter [schema k f]
+  (let [table (keyword (namespace k))]
+    (assoc-in schema [table :fields-getters k] f)))
+
 (def db-specs
-  (prepare-schema
-    {:playlist-item
-     {:key    :playlist-item,
-      :name   "PlaylistItem",
-      :fields {:db/id                   "id"
-               :youtube/id              "youtubeid"
-               :playlist-item/lesson-id "relid"
-               :playlist-item/title     "title"
-               :playlist-item/text      "text"
-               :playlist-item/credit    "credit"}}
+  (-> (prepare-schema
+        {:playlist-item
+         {:key    :playlist-item,
+          :name   "PlaylistItem",
+          :fields {:db/id                   "id"
+                   :youtube/id              "youtubeid"
+                   :playlist-item/lesson-id "relid"
+                   :playlist-item/title     "title"
+                   :playlist-item/text      "text"
+                   :playlist-item/credit    "credit"}}
 
-     :search-term
-     {:key    :search-term
-      :name   "SearchTerm"
-      :fields {}}
+         :search-term
+         {:key    :search-term
+          :name   "SearchTerm"
+          :fields {}}
 
-     :topic
-     {:key    :topic,
-      :name   "Topic",
-      :fields {:db/id             "id"
-               :url/slug          "urltitle"
-               :ordering/position "sortorder"
-               :topic/course-id   "courseId"
-               :topic/title       "title"
-               :topic/colour      "colour"}},
+         :topic
+         {:key    :topic,
+          :name   "Topic",
+          :fields {:db/id             "id"
+                   :url/slug          "urltitle"
+                   :ordering/position "sortorder"
+                   :topic/course-id   "courseId"
+                   :topic/title       "title"
+                   :topic/colour      "colour"}},
 
-     :course
-     {:key    :course,
-      :name   "Course",
-      :fields {:db/id              "id"
-               :course/title       "title"
-               :course/description "description"
-               :course/author      "author"
-               :url/slug           "urltitle"
-               :ordering/position  "homepage_order"}},
+         :course
+         {:key    :course,
+          :name   "Course",
+          :fields {:db/id              "id"
+                   :course/title       "title"
+                   :course/description "description"
+                   :course/author      "author"
+                   :url/slug           "urltitle"
+                   :ordering/position  "homepage_order"}},
 
-     :lesson
-     {:key    :lesson,
-      :name   "Lesson",
-      :fields {:db/id              "id"
-               :url/slug           "urltitle"
-               :youtube/id         "youtubeid"
-               :lesson/topic-id    "topicno"
-               :lesson/course-id   "seriesno"
-               :lesson/title       "title"
-               :lesson/description "description"
-               :lesson/keywords    "keywords"}}}))
-
-(declare virtuals)
+         :lesson
+         {:key    :lesson,
+          :name   "Lesson",
+          :fields {:db/id              "id"
+                   :url/slug           "urltitle"
+                   :youtube/id         "youtubeid"
+                   :lesson/topic-id    "topicno"
+                   :lesson/course-id   "seriesno"
+                   :lesson/title       "title"
+                   :lesson/description "description"
+                   :lesson/keywords    "keywords"}}})
+      (row-getter :course/topics
+        #(has-many % :topic :topic/course-id {:sort ["sortorder"]}))
+      (row-getter :course/lessons
+        #(has-many % :lesson :lesson/course-id {:sort ["lessonno"]}))
+      (row-getter :topic/course
+        #(has-one % :course :topic/course-id))
+      (row-getter :topic/lessons
+        #(has-many % :lesson :lesson/topic-id {:sort ["lessonno"]}))
+      (row-getter :lesson/course
+        #(has-one % :course :lesson/course-id))
+      (row-getter :lesson/topic
+        #(has-one % :topic :lesson/topic-id))
+      (row-getter :lesson/type
+        #(case (get-in % [:row :filetype])
+          "l" :lesson.type/video
+          "e" :lesson.type/exercise
+          "p" :lesson.type/playlist))
+      (row-getter :lesson/playlist-items
+        #(has-many % :playlist-item :playlist-item/lesson-id {:sort "sort"}))))
 
 (defn union-children? [ast]
   (= :union (some-> ast :children first :type)))
 
 (defn row-get [{:keys [table] :as env} row attr]
   (read-from (assoc env :row row :ast {:key attr :dispatch-key attr})
-    [(:fields-getters table) virtuals]))
+    (:fields-getters table)))
 
 (defn parse-row [{:keys [table ast ::union-selector] :as env} row]
   (let [row' {:db/table (:key table) :db/id (row-get env row :db/id)}
-        readers [(:fields-getters table) virtuals placeholder-node]
+        readers [(:fields-getters table) placeholder-node]
         ast (if (union-children? ast)
               (some-> ast :query (get (row-get env row union-selector)) (om/query->ast))
               ast)]
@@ -211,34 +235,6 @@
                        #(assoc (or % {}) local-field (row-get env row :db/id)))
       (:sort params) (update-in [:ast :params :sort] #(or % (:sort params))))
     foreign-table))
-
-(def virtuals
-  {:course/topics
-   #(has-many % :topic :topic/course-id {:sort ["sortorder"]})
-
-   :course/lessons
-   #(has-many % :lesson :lesson/course-id {:sort ["lessonno"]})
-
-   :topic/course
-   #(has-one % :course :topic/course-id)
-
-   :topic/lessons
-   #(has-many % :lesson :lesson/topic-id {:sort ["lessonno"]})
-
-   :lesson/course
-   #(has-one % :course :lesson/course-id)
-
-   :lesson/topic
-   #(has-one % :topic :lesson/topic-id)
-
-   :lesson/type
-   #(case (get-in % [:row :filetype])
-     "l" :lesson.type/video
-     "e" :lesson.type/exercise
-     "p" :lesson.type/playlist)
-
-   :lesson/playlist-items
-   #(has-many % :playlist-item :playlist-item/lesson-id {:sort "sort"})})
 
 ;; ROOT READS
 

@@ -69,8 +69,8 @@
     (go
       (is (= (<! (p/parse {:db ts/connection} [{:route/data [:app/courses]}]))
              {:route/data {:app/courses [{:db/id 4 :db/table :course} {:db/id 7 :db/table :course}]}}))
-      (is (= (<! (p/parse {:db ts/connection} [{:placeholder/anything [:app/courses]}]))
-             {:placeholder/anything {:app/courses [{:db/id 4 :db/table :course} {:db/id 7 :db/table :course}]}}))
+      (is (= (<! (p/parse {:db ts/connection} [{:ph/anything [:app/courses]}]))
+             {:ph/anything {:app/courses [{:db/id 4 :db/table :course} {:db/id 7 :db/table :course}]}}))
       (done))))
 
 (deftest test-read-lesson-union

@@ -13,10 +13,28 @@
     <link rel="stylesheet" href="/css/fontawesome.css" />
     <link rel="stylesheet" href="/css/khan-site.css" />
     <link rel="stylesheet" href="/css/khan-exercise.css" />
+    <link rel="stylesheet" href="/css/auth.css" />
   </head>
   <body>
     <div id="app-container"></div>
     <script src="/site/site.js"></script>
+    <script>
+      window.fbAsyncInit = function() {
+        FB.init({
+          appId      : '151776615244731',
+          xfbml      : true,
+          version    : 'v2.6'
+        });
+      };
+
+      (function(d, s, id){
+        var js, fjs = d.getElementsByTagName(s)[0];
+        if (d.getElementById(id)) {return;}
+        js = d.createElement(s); js.id = id;
+        js.src = "//connect.facebook.net/en_US/sdk.js";
+        fjs.parentNode.insertBefore(js, fjs);
+      }(document, 'script', 'facebook-jssdk'));
+    </script>
   </body>
 </html>
 

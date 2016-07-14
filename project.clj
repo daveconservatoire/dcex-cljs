@@ -23,7 +23,8 @@
                  [com.rpl/specter "0.9.3"]
                  [com.cognitect/transit-cljs "0.8.239"]
                  [lein-doo "0.1.6" :scope "test"]
-                 [cljsjs/react "15.2.0-0"]]
+                 [cljsjs/react "15.2.1-0"]
+                 [cljsjs/react-dom "15.2.1-0"]]
 
   :plugins [[lein-cljsbuild "1.1.3"]
             [lein-doo "0.1.6"]]

@@ -23,28 +23,6 @@
 
       (done))))
 
-(deftest test-query-row
-  (async done
-    (go
-      (is (= (<! (p/query-sql-first {:db    ts/connection
-                                     :query-cache (atom {})
-                                     :table :course
-                                     :ast   (om/query->ast [:db/id :course/title])}
-                                    [[:where {:url/slug "reading-music"}]]))
-             {:db/id 4 :course/title "Reading Music" :db/table :course}))
-
-      (is (= (<! (p/query-sql-first {:db    ts/connection
-                                     :query-cache (atom {})
-                                     :table :course
-                                     :ast   (om/query->ast [:db/id (list
-                                                                     {:course/topics [:db/id :topic/title]}
-                                                                     {:limit 2})])}
-                                    [[:where {:db/id 4}]]))
-             {:db/id    4 :course/topics [{:db/id 18 :db/table :topic :topic/title "Getting Started"}
-                                          {:db/id 19 :db/table :topic :topic/title "Staff and Clefs"}]
-              :db/table :course}))
-      (done))))
-
 (deftest parser-read-topics
   (async done
     (go
@@ -96,37 +74,3 @@
                 {:db/id 67 :db/table :lesson :lesson/title "Exercise: Tempo Markings Quiz" :lesson/type :lesson.type/exercise
                  :url/slug "tempo-markings"}}))
         (done)))))
-
-(defn q [q] (-> (om/query->ast q) :children first))
-
-(deftest test-read-key
-  (is (= (p/read-from {:ast (q [:name])} (fn [_] "value"))
-         "value"))
-  (is (= (p/read-from {:ast (q [:name])} (fn [_] nil))
-         nil))
-  (is (= (p/read-from {:ast (q [:name]) :x 42} (fn [env] (:x env)))
-         42))
-  (is (= (p/read-from {:ast (q [:name]) :x 42} [(fn [env] (:x env))])
-         42))
-  (is (= (p/read-from {:ast (q [:name]) :x 42} [{} {:name (fn [env] (:x env))}])
-         42))
-  (is (= (p/read-from {:ast (q [:name])} {})
-         nil))
-  (is (= (p/read-from {:ast (q [:name])} {:name #(str "value")})
-         "value"))
-  (is (= (p/read-from {:ast (q [:name])} {:name #(str "value")})
-         "value"))
-  (is (= (p/read-from {:ast (q [:name])} [])
-         nil))
-  (let [c (fn [_] ::p/continue)
-        m (fn [_] 42)]
-    (is (= (p/read-from {:ast (q [:name])} [c])
-           nil))
-    (is (= (p/read-from {:ast (q [:name])} [m])
-           42))
-    (is (= (p/read-from {:ast (q [:name])} [c m])
-           42))
-    (is (= (p/read-from {:ast (q [:name])} [c {:no #(str "value")} [c c] {:name #(str "Bil")}])
-           "Bil"))
-    (is (= (p/read-from {:ast (q [:name])} [(fn [_] nil)])
-           nil))))

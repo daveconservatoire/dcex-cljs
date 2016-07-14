@@ -88,22 +88,19 @@
 (def root-endpoints
   {:route/data     #(l/read-chan-values ((:parser %) % (:query (:ast %))))
    :topic/by-slug  #(l/sql-first-node (assoc % :table :topic)
-                                      [[:where {:urltitle (l/ast-key-id (:ast %))}]])
+                     [[:where {:urltitle (l/ast-key-id (:ast %))}]])
    :lesson/by-slug #(l/sql-first-node (assoc % :table :lesson ::l/union-selector :lesson/type)
-                                      [[:where {:urltitle (l/ast-key-id (:ast %))}]])
+                     [[:where {:urltitle (l/ast-key-id (:ast %))}]])
    :app/courses    #(l/sql-table-node (assoc-in % [:ast :params :sort] "homepage_order") :course)
    :app/topics     #(l/sql-table-node % :topic)})
 
-(defn read [{:keys [query-cache] :as env} _ _]
-  (let [env (if query-cache env (assoc env :query-cache (atom {})
-                                           :db-specs db-specs))]
-    {:value
-     (l/read-from env
-       [root-endpoints
-        l/placeholder-node
-        #(vector :error :not-found)])}))
-
-(def parser (om/parser {:read read}))
+(def root-readers
+  [root-endpoints l/placeholder-node #(vector :error :not-found)])
 
 (defn parse [env tx]
-  (-> (parser env tx) (l/read-chan-values)))
+  (-> (l/parser
+        (assoc env
+          ::l/readers root-readers
+          :query-cache (atom {})
+          :db-specs db-specs) tx)
+      (l/read-chan-values)))

@@ -2,16 +2,16 @@
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
-            :url "http://www.eclipse.org/legal/epl-v10.html"}
+            :url  "http://www.eclipse.org/legal/epl-v10.html"}
 
   :clean-targets ^{:protect false} ["resources/public/devcards" "resources/public/site" "target"]
 
   :test-paths ["test/server"]
-  :source-paths ["src/devcards" "src/cljs" "src/site" "script" "src/server" "src/dev" "checkouts/om/src/main"]
+  :source-paths ["src/devcards" "src/cljs" "src/site" "script" "src/server" "src/dev"]
 
   :dependencies [[org.clojure/clojure "1.9.0-alpha8" :scope "provided"]
                  [org.clojure/clojurescript "1.9.89" :scope "provided"]
-                 [org.omcljs/om "1.0.0-alpha37"]
+                 [org.omcljs/om "1.0.0-alpha40"]
                  [figwheel-sidecar "0.5.4-4" :exclusions [clj-time joda-time org.clojure/tools.reader] :scope "test"]
                  [bidi "2.0.9"]
                  [kibu/pushy "0.3.6"]
@@ -22,7 +22,8 @@
                  [org.clojure/test.check "0.9.0"]
                  [com.rpl/specter "0.9.3"]
                  [com.cognitect/transit-cljs "0.8.239"]
-                 [lein-doo "0.1.6" :scope "test"]]
+                 [lein-doo "0.1.6" :scope "test"]
+                 [cljsjs/react "15.2.0-0"]]
 
   :plugins [[lein-cljsbuild "1.1.3"]
             [lein-doo "0.1.6"]]
@@ -33,7 +34,7 @@
               [{:id           "devcards"
                 :figwheel     {:devcards  true
                                :on-jsload "daveconservatoire.support.dev/reload-cycle"}
-                :source-paths ["checkouts/om/src/main" "src/devcards" "src/cljs"]
+                :source-paths ["src/devcards" "src/cljs"]
                 :compiler     {:main                 daveconservatoire.devcards
                                :source-map-timestamp true
                                :asset-path           "devcards"
@@ -46,7 +47,7 @@
 
                {:id           "site"
                 :figwheel     {:on-jsload "daveconservatoire.support.dev/reload-cycle"}
-                :source-paths ["checkouts/om/src/main" "src/cljs" "src/dev"]
+                :source-paths ["src/cljs" "src/dev"]
                 :compiler     {:main                 daveconservatoire.site.main
                                :source-map-timestamp true
                                :asset-path           "/site"
@@ -57,9 +58,24 @@
                                :recompile-dependents true
                                :verbose              false}}
 
+               ;; prod
+               {:id           "site-min"
+                :source-paths ["src/cljs"]
+                :compiler     {:main                 daveconservatoire.site.main
+                               :source-map-timestamp true
+                               :pseudo-names         true
+                               :optimizations        :advanced
+                               :asset-path           "/site-min"
+                               :output-to            "resources/public/site-min/site-min.js"
+                               :output-dir           "resources/public/site-min"
+                               :parallel-build       true
+                               :recompile-dependents true
+                               :source-map           "resources/public/site-min/site-min.js.map"
+                               :verbose              false}}
+
                ;; server builds
                {:id           "server-dev"
-                :source-paths ["checkouts/om/src/main" "src/cljs" "src/server"]
+                :source-paths ["src/cljs" "src/server"]
                 :figwheel     true
                 :compiler     {:main          daveconservatoire.server.core
                                :output-to     "target/server_dev/dcserver.js"
@@ -69,7 +85,7 @@
                                :source-map    true}}
 
                {:id           "server-test"
-                :source-paths ["checkouts/om/src/main" "src/cljs" "src/server" "test/server"]
+                :source-paths ["src/cljs" "src/server" "test/server"]
                 :figwheel     true
                 :compiler     {:main          daveconservatoire.server.suite
                                :output-to     "target/server_test/dctest.js"

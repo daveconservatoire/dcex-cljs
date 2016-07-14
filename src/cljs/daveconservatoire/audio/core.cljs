@@ -3,11 +3,11 @@
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
   (:require [daveconservatoire.audio.media.metronome :refer [metro]]
             [daveconservatoire.audio.media.piano :refer [piano]]
+            [daveconservatoire.support.specs :as ss]
             [goog.crypt.base64 :as g64]
             [goog.object :as gobj]
             [cljs.spec :as s]
-            [cljs.core.async :as async :refer [chan promise-chan put! close! <! >! alts!]]
-            [daveconservatoire.support.specs :as ss]))
+            [cljs.core.async :as async :refer [chan promise-chan put! close! <! >! alts!]]))
 
 (defonce AudioContext (or js/AudioContext js/webkitAudioContext))
 (defonce ^:dynamic *audio-context* (AudioContext.))
@@ -23,7 +23,7 @@
 (s/def ::node #(instance? js/AudioNode %))
 (s/def ::node-gen (s/fspec :args (s/cat) :ret ::node))
 (s/def ::buffer #(instance? js/AudioBuffer %))
-(s/def ::time (s/and number? pos?))
+(s/def ::time pos-int?)
 (s/def ::sound-point
   (s/and (s/keys :req [::time] :opt [::node ::node-gen])
          #(some #{::node ::node-gen} (keys %))))
@@ -31,6 +31,7 @@
 (s/def ::items-list
   (s/+ (s/cat :node-gens (s/+ ::node-gen)
               :interval ::time)))
+(s/def ::interval ::time)
 
 (defn decode-audio-data [buffer]
   {:pre [(s/valid? ::ss/array-buffer buffer)]}
@@ -126,6 +127,13 @@
   :args (s/cat :sound ::sound-point
                :tracker (s/? #(instance? Atom %))))
 
+(defn play-regular-sequence [nodes {:keys [::time ::interval]}]
+  (reduce (fn [t node]
+            (play (assoc node ::time t))
+            (+ t interval))
+          time
+          nodes))
+
 (defn loop-chan [items start chan]
   {:pre [(s/valid? ::items-list items)
          (s/valid? ::time start)
@@ -212,7 +220,7 @@
 (s/def ::note (s/with-gen
                 (s/and string? #(re-matches NOTE-PATTERN %))
                 #(s/gen ALL-NOTES)))
-(s/def ::semitone (s/and integer? #(<= 0 % 87)))
+(s/def ::semitone int?)
 
 (s/def ::sound (s/or :note ::note :semitone ::semitone))
 

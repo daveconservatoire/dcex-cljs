@@ -22,7 +22,7 @@
 (om/defui ^:once Link
   Object
   (render [this]
-    (dom/a (u/props->html {} (om/props this))
+    (dom/a (u/props->html (om/props this))
       (om/children this))))
 
 (def link (om/factory Link))
@@ -38,17 +38,6 @@
               "Welcome to Dave Conservatoire")))))))
 
 (def hero (om/factory Hero))
-
-(om/defui ^:once Testcomp
-  Object
-  (render [this]
-    (let [{:keys []} (om/props this)]
-      (dom/div #js {:className "test"}
-        "my Div"))))
-
-(def testcomp (om/factory Testcomp))
-
-#_(declare footer)
 
 (om/defui ^:once Homeboxes
   Object
@@ -168,30 +157,30 @@
           (dom/div #js {:className "inner_content"}
             (dom/div #js {:className "pad30"})
             (dom/h1 #js {:className "title"} title)
-            (dom/h1 #js {:className "intro"} intro)))))))
+            (dom/h1 #js {:className "intro" :dangerouslySetInnerHTML #js {:__html intro}})))))))
 
 (def course-banner (om/factory CourseBanner))
 
 (om/defui ^:once HomeCourseTopic
   static om/IQuery
-  (query [_] [:topic/title :url/slug])
+  (query [_] [:db/id :topic/title :url/slug])
 
   static om/Ident
   (ident [_ props] (u/model-ident props))
 
   Object
   (render [this]
-    (let [{:keys [topic/title]} (om/props this)]
+    (let [{:keys [topic/title url/slug]} (om/props this)]
       (dom/li #js {:className "span4", :style #js {"marginBottom" 5}}
-        (dom/a #js {:className "btn btn-large btn-block dc-btn-yellow", :href "/topi"}
-          (dom/h3 nil
+        (link {:className "btn btn-large btn-block dc-btn-yellow" ::r/handler ::r/topic ::r/params {::r/slug slug} :react-key "link"}
+          (dom/h3 #js {:key "test"}
             title))))))
 
-(def home-course-topic (om/factory HomeCourseTopic))
+(def home-course-topic (om/factory HomeCourseTopic {:keyfn :db/id}))
 
 (om/defui ^:once CourseWithTopics
   static om/IQuery
-  (query [_] [:course/title
+  (query [_] [:db/id :course/title :course/description
               {:course/topics (om/get-query HomeCourseTopic)}])
 
   static om/Ident
@@ -199,9 +188,9 @@
 
   Object
   (render [this]
-    (let [{:keys [course/title course/topics]} (om/props this)]
+    (let [{:keys [course/title course/topics course/description]} (om/props this)]
       (dom/div #js {}
-        (course-banner {:title title :intro "intro"})
+        (course-banner {:title title :intro description})
         (dom/div #js {:className "pad30"})
         (dom/div #js {:className "container wrapper"}
           (dom/div #js {:className "thumbnails tabbable"}
@@ -210,7 +199,7 @@
 
         (dom/div #js {:className "pad30"})))))
 
-(def course-with-topics (om/factory CourseWithTopics))
+(def course-with-topics (om/factory CourseWithTopics {:keyfn :db/id}))
 
 (om/defui ^:once PageBanner
   Object

@@ -1,9 +1,10 @@
 (ns daveconservatoire.site.mutations
-  (:require [untangled.client.mutations :as m]
+  (:require [untangled.client.core :as uc]
+            [untangled.client.mutations :as m]
+            [untangled.client.data-fetch :as df]
             [daveconservatoire.site.routes :as r]
             [daveconservatoire.site.ui :as ui]
             [daveconservatoire.site.ui.util :as uiu]
-            [untangled.client.data-fetch :as df]
             [om.next :as om]
             [om.util :as omu]))
 
@@ -11,7 +12,7 @@
   [{:keys [state reconciler] :as env} _ route]
   {:action
    (fn []
-     (let [comp (r/route->component route)
+     (let [comp (r/route->component* route)
            root (-> env :reconciler :config :indexer deref
                     :class->components (get ui/Root) first)
            data-query (if (implements? r/IRouteMiddleware comp)

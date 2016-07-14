@@ -12,6 +12,7 @@
     "test": "lein doo node server-test"
   },
   "dependencies": {
+    "compression": "^1.6.2",
     "express": "^4.13.4",
     "knex": "^0.10.0",
     "mysql": "^2.10.2"

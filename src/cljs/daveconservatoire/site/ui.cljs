@@ -4,7 +4,9 @@
             [daveconservatoire.site.routes :as r :refer [routes]]
             [daveconservatoire.site.ui.util :as u]
             [daveconservatoire.site.ui-dave :as uid]
+            [daveconservatoire.site.ui.exercises :as ux]
             [untangled.client.core :as uc]
+            [untangled.client.mutations :as um]
             [untangled.client.impl.data-fetch :as df]
             [cljs.spec :as s]))
 
@@ -47,7 +49,7 @@
     (let [{:keys [topic/title url/slug]} (om/props this)]
       (button {::r/handler ::r/topic ::r/params {::r/slug slug}} title))))
 
-(def topic-link (om/factory TopicLink {:key-fn :db/id}))
+(def topic-link (om/factory TopicLink))
 
 (om/defui ^:once HomeCourse
   static om/IQuery
@@ -109,7 +111,7 @@
         (dom/img #js {:src (u/lesson-thumbnail-url lesson)})
         (link {::r/handler ::r/lesson ::r/params {::r/slug slug}} title)))))
 
-(def lesson-cell (om/factory LessonCell {:key-fn :db/id}))
+(def lesson-cell (om/factory LessonCell))
 
 (om/defui ^:once TopicSideBarLink
   static om/IQuery
@@ -125,8 +127,8 @@
                         (= slug (om/get-computed this :ui/topic-slug)))]
       (dom/div nil
         (button {::r/handler ::r/topic ::r/params {::r/slug slug}
-                 :style (cond-> {}
-                          selected? (assoc :background "#000"))} title)))))
+                 :style      (cond-> {}
+                               selected? (assoc :background "#000"))} title)))))
 
 (def topic-side-bar-link (om/factory TopicSideBarLink))
 
@@ -192,7 +194,7 @@
                  :style      (cond-> {}
                                selected? (assoc :background "#000"))} title)))))
 
-(def lesson-topic-menu-item (om/factory LessonTopicMenuItem {:key-fn :db/id}))
+(def lesson-topic-menu-item (om/factory LessonTopicMenuItem))
 
 (om/defui ^:once LessonTopicMenu
   static om/IQuery
@@ -221,8 +223,8 @@
       (dom/iframe #js {:width           "640"
                        :height          "360"
                        :src             (str "https://www.youtube.com/embed/" id)
-                       :frameborder     "0"
-                       :allowfullscreen true}))))
+                       :frameBorder     "0"
+                       :allowFullScreen true}))))
 
 (def youtube-video (om/factory YoutubeVideo))
 
@@ -243,44 +245,77 @@
 
 (om/defui ^:once LessonPlaylistItem
   static om/IQuery
-  (query [_] [:db/id :playlist-item/title])
+  (query [_] [:db/id :youtube/id :playlist-item/title :playlist-item/text])
 
   static om/Ident
   (ident [_ props] (u/model-ident props))
 
   Object
   (render [this]
-    (let [{:keys []} (om/props this)]
-      (dom/div nil))))
+    (let [{:keys [youtube/id playlist-item/title playlist-item/text]} (om/props this)]
+      (dom/div nil
+        (dom/div #js {:className "vendor"} (youtube-video {:youtube/id id}))
+        (dom/div nil title)
+        (dom/div nil text)))))
 
 (def lesson-playlist-item (om/factory LessonPlaylistItem))
 
 (om/defui ^:once LessonPlaylist
   static om/IQuery
-  (query [_] [:lesson/type :lesson/description
+  (query [_] [:lesson/type :lesson/description :ui/selected-index :db/id
               {:lesson/playlist-items (om/get-query LessonPlaylistItem)}
               {:lesson/topic (om/get-query LessonTopicMenu)}])
 
   Object
   (render [this]
-    (let [{:keys [lesson/topic]} (om/props this)]
+    (let [{:keys [db/id lesson/topic lesson/type lesson/playlist-items ui/selected-index]} (om/props this)
+          selected-index (or selected-index 0)
+          item (nth (vec playlist-items) selected-index)
+          set-selected (fn [n]
+                         (om/transact! (om/get-reconciler this)
+                                       [type id]
+                                       [`(ui/set-props {:ui/selected-index ~n})
+                                        :route/data]))]
       (dom/div nil
         (lesson-topic-menu topic)
-        "Playlist"))))
+        (dom/div nil
+          (dom/button #js {:onClick #(set-selected (dec selected-index))
+                           :disabled (= 0 selected-index)} "<<")
+          (dom/button #js {:onClick #(set-selected (inc selected-index))
+                           :disabled (= (dec (count playlist-items)) selected-index)} ">>"))
+        (if item
+          (lesson-playlist-item item))))))
 
 (def lesson-playlist (om/factory LessonPlaylist))
 
 (om/defui ^:once LessonExercise
   static om/IQuery
-  (query [_] [:lesson/type :lesson/title
+  (query [_] [:lesson/type :lesson/title :url/slug :db/id
+              {:exercise/data '[*]}
               {:lesson/topic (om/get-query LessonTopicMenu)}])
 
   Object
+  (componentDidMount [this]
+    (let [{:keys [url/slug lesson/type db/id]} (om/props this)
+          {:keys [::ux/class ::ux/props] :as info} (ux/slug->exercise slug)]
+      (if info
+        (let [state (uc/initial-state class props)
+              ident (om/ident class state)]
+          (om/transact! (om/get-reconciler this) ident
+                        [`(ui/set-props ~state)])
+          (om/transact! (om/get-reconciler this) [type id]
+                        [`(ui/set-props {:exercise/data ~ident})])
+          (om/force-root-render! (om/get-reconciler this))))))
+
   (render [this]
-    (let [{:keys [lesson/topic]} (om/props this)]
+    (let [{:keys [lesson/topic url/slug exercise/data]} (om/props this)
+          {:keys [::ux/class]} (ux/slug->exercise slug)]
       (dom/div nil
         (lesson-topic-menu topic)
-        "Exercise"))))
+        (if class
+          (when (get data ::ux/streak-count)
+            ((om/factory class) data))
+          (str "Exercice [" slug "] not implemented"))))))
 
 (def lesson-exercise (om/factory LessonExercise))
 

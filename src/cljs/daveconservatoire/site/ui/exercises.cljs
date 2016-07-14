@@ -18,7 +18,7 @@
 (s/def ::option (s/cat :value string? :label string?))
 (s/def ::options (s/+ (s/spec ::option)))
 
-(s/def ::ex-props (s/keys :req [::description ::options]))
+(s/def ::ex-props (s/keys :req [::options]))
 (s/def ::ex-answer (s/nilable string?))
 (s/def ::ex-total-questions pos-int?)
 (s/def ::streak-count nat-int?)
@@ -36,7 +36,7 @@
 (s/def ::pitch ::value-descriptor)
 (s/def ::variation ::value-descriptor)
 (s/def ::direction ::value-descriptor)
-(s/def ::intervals (s/coll-of ::audio/semitone []))
+(s/def ::intervals (s/every ::audio/semitone))
 (s/def ::random-direction? boolean?)
 
 (om/defui ^:once ProgressBar
@@ -51,8 +51,8 @@
 (def progress-bar (om/factory ProgressBar))
 
 (s/fdef progress-bar
-  :args (s/cat :props (s/keys :opt [::progress-total ::progress-value])
-               :children (s/* ::react-component)))
+  :args (s/cat :props (s/keys :opt [::progress-total ::progress-value]))
+  :ret ::react-component)
 
 (defn play-notes [notes]
   (let [nodes (->> notes
@@ -78,58 +78,6 @@
   {:action
    (fn []
      (play-notes (::notes (get-in @state ref))))})
-
-(defn render-ex [c]
-  (let [{:keys [::description ::options ::ex-answer
-                ::ex-total-questions ::streak-count] :as props} (om/props c)]
-    (assert (s/valid? ::ex-props props) (s/explain-str ::ex-props props))
-    (dom/div #js {:className "lesson-content"}
-      (dom/div #js {:className "single-exercise visited-no-recolor"
-                    :style     #js {:overflow "hidden" :visibility "visible"}}
-        (dom/article #js {:className "exercises-content clearfix"}
-          (dom/div #js {:className "exercises-body"}
-            (dom/div #js {:className "exercises-stack"})
-            (dom/div #js {:className "exercises-card current-card"}
-              (dom/div #js {:className "current-card-container card-type-problem"}
-                (dom/div #js {:className "current-card-container-inner vertical-shadow"}
-                  (dom/div #js {:className "current-card-contents"}
-                    (progress-bar {::progress-value streak-count
-                                   ::progress-total ex-total-questions})
-                    (dom/div #js {:id "problem-and-answer" :className "framework-khan-exercises"}
-                      (dom/div #js {:id "problemarea"}
-                        (dom/div #js {:id "workarea"}
-                          (dom/div #js {:id "problem-type-or-description"}
-                            (dom/div #js {:className "problem"}
-                              (dom/p nil
-                                description)
-                              (dom/a #js {:className "btn_primary"
-                                          :onClick   #(play-sound c)}
-                                "Play Again"))))
-                        (dom/div #js {:id "hintsarea"}))
-                      (dom/div #js {:id "answer_area_wrap"}
-                        (dom/div #js {:id "answer_area"}
-                          (dom/form #js {:id "answerform" :name "answerform"}
-                            (dom/div #js {:className "info-box" :id "answercontent"}
-                              (dom/span #js {:className "info-box-header"}
-                                "Answer")
-                              (dom/div #js {:className "fancy-scrollbar"}
-                                (dom/ul nil
-                                  (for [[value label] options]
-                                    (dom/li #js {:key value}
-                                      (dom/label nil
-                                        (dom/input #js {:type     "radio" :name "exercise-answer"
-                                                        :checked  (= ex-answer value)
-                                                        :value    value
-                                                        :onChange #(um/set-string! c ::ex-answer :event %)})
-                                        (dom/span #js {:className "value"} label))))))
-                              (dom/div #js {:className "answer-buttons"}
-                                (dom/div #js {:className "check-answer-wrapper"}
-                                  (dom/input #js {:className "simple-button green" :type "button" :value "Check Answer"
-                                                  :onClick   #(check-answer c)}))
-                                (dom/input #js {:className "simple-button green" :id "next-question-button" :name "correctnextbutton" :style #js {:display "none"} :type "button" :value "Correct! Next Question..."})
-                                (dom/div #js {:id "positive-reinforcement" :style #js {:display "none"}}
-                                  (dom/img #js {:src "/images/face-smiley.png"})))))))
-                      (dom/div #js {:style #js {:clear "both"}}))))))))))))
 
 (defn int-in [min max] (+ min (rand-int (- max min))))
 
@@ -161,7 +109,55 @@
 
   Object
   (render [this]
-    (render-ex this)))
+    (let [{:keys [::options ::ex-answer ::ex-total-questions
+                  ::streak-count] :as props} (om/props this)]
+      (assert (s/valid? ::ex-props props) (s/explain-str ::ex-props props))
+      (dom/div #js {:className "lesson-content"}
+        (dom/div #js {:className "single-exercise visited-no-recolor"
+                      :style     #js {:overflow "hidden" :visibility "visible"}}
+          (dom/article #js {:className "exercises-content clearfix"}
+            (dom/div #js {:className "exercises-body"}
+              (dom/div #js {:className "exercises-stack"})
+              (dom/div #js {:className "exercises-card current-card"}
+                (dom/div #js {:className "current-card-container card-type-problem"}
+                  (dom/div #js {:className "current-card-container-inner vertical-shadow"}
+                    (dom/div #js {:className "current-card-contents"}
+                      (progress-bar {::progress-value streak-count
+                                     ::progress-total ex-total-questions})
+                      (dom/div #js {:id "problem-and-answer" :className "framework-khan-exercises"}
+                        (dom/div #js {:id "problemarea"}
+                          (dom/div #js {:id "workarea"}
+                            (dom/div #js {:id "problem-type-or-description"}
+                              (dom/div #js {:className "problem"}
+                                (om/children this)
+                                (dom/a #js {:className "btn_primary"
+                                            :onClick   #(play-sound this)}
+                                  "Play Again"))))
+                          (dom/div #js {:id "hintsarea"}))
+                        (dom/div #js {:id "answer_area_wrap"}
+                          (dom/div #js {:id "answer_area"}
+                            (dom/form #js {:id "answerform" :name "answerform"}
+                              (dom/div #js {:className "info-box" :id "answercontent"}
+                                (dom/span #js {:className "info-box-header"}
+                                  "Answer")
+                                (dom/div #js {:className "fancy-scrollbar"}
+                                  (dom/ul nil
+                                    (for [[value label] options]
+                                      (dom/li #js {:key value}
+                                        (dom/label nil
+                                          (dom/input #js {:type     "radio" :name "exercise-answer"
+                                                          :checked  (= ex-answer value)
+                                                          :value    value
+                                                          :onChange #(um/set-string! this ::ex-answer :event %)})
+                                          (dom/span #js {:className "value"} label))))))
+                                (dom/div #js {:className "answer-buttons"}
+                                  (dom/div #js {:className "check-answer-wrapper"}
+                                    (dom/input #js {:className "simple-button green" :type "button" :value "Check Answer"
+                                                    :onClick   #(check-answer this)}))
+                                  (dom/input #js {:className "simple-button green" :id "next-question-button" :name "correctnextbutton" :style #js {:display "none"} :type "button" :value "Correct! Next Question..."})
+                                  (dom/div #js {:id "positive-reinforcement" :style #js {:display "none"}}
+                                    (dom/img #js {:src "/images/face-smiley.png"})))))))
+                        (dom/div #js {:style #js {:clear "both"}})))))))))))))
 
 (def exercise (om/factory Exercise))
 
@@ -188,8 +184,7 @@
     (new-round this
       (merge
         (uc/initial-state Exercise nil)
-        {::description "You will hear two notes. Is the second note lower or higher in pitch?"
-         ::options     [["lower" "Lower"] ["higher" "Higher"]]
+        {::options     [["lower" "Lower"] ["higher" "Higher"]]
          ::pitch       ["C3" ".." "B5"]
          ::variation   24
          ::parent      this}
@@ -210,7 +205,8 @@
 
   Object
   (render [this]
-    (exercise (om/props this))))
+    (exercise (om/props this)
+      (dom/p nil "You will hear two notes. Is the second note lower or higher in pitch?"))))
 
 (om/defui ^:once IdentifyOctaves
   static uc/InitialAppState
@@ -218,8 +214,7 @@
     (new-round this
       (merge
         (uc/initial-state Exercise nil)
-        {::description "You will hear two notes. Are they an octave apart?"
-         ::options     [["yes" "Yes"] ["no" "No"]]
+        {::options     [["yes" "Yes"] ["no" "No"]]
          ::pitch       ["C3" ".." "B5"]
          ::variation   [3 5 6 7 8 9 12 15 16]
          ::parent      this}
@@ -242,7 +237,44 @@
 
   Object
   (render [this]
-    (exercise (om/props this))))
+    (exercise (om/props this)
+      (dom/p nil "You will hear two notes. Are they an octave apart?"))))
+
+(om/defui ^:once ReadingMusic
+  static uc/InitialAppState
+  (initial-state [this props]
+    (new-round this
+      (merge
+        (uc/initial-state Exercise nil)
+        {::options     [["C" "C"] ["D" "D"] ["E" "E"] ["F" "F"] ["G" "G"] ["A" "A"] ["B" "B"]]
+         ::parent      this}
+        props)))
+
+  static om/Ident
+  (ident [_ props] [:exercise/by-name "reading-music"])
+
+  static om/IQuery
+  (query [_] '[*])
+
+  static IExercise
+  (new-round [_ props]
+    (let [order ["E" "F" "G" "A" "B" "C" "D" "E" "F"]
+          pos (rand-int 9)
+          note (get order pos)
+          notes [(str note (cond-> 3
+                             (> pos 4) inc))]]
+      (assoc props
+        ::read-note (inc pos)
+        ::notes notes
+        ::correct-answer note)))
+
+  Object
+  (render [this]
+    (let [{:keys [::read-note] :as props} (om/props this)]
+      (exercise props
+        (dom/p #js {:key "p"} "Enter the letter name of the note displayed below. Please use a lower case letter (e.g. e, f or c).")
+        (dom/div #js {:key "img"}
+          (dom/img #js {:src (str "/img/trebleclefimages/" read-note ".jpg")}))))))
 
 (def INTERVAL-NAMES
   {2  "Major 2nd"
@@ -260,8 +292,7 @@
       (let [intervals (get props ::intervals [12 7 4 5 9 2 11])]
         (merge
           (uc/initial-state Exercise nil)
-          {::description "You will hear two notes - what is their interval?"
-           ::options     (mapv #(vector (str %) (INTERVAL-NAMES %)) intervals)
+          {::options     (mapv #(vector (str %) (INTERVAL-NAMES %)) intervals)
            ::pitch       ["C3" ".." "B5"]
            ::variation   intervals
            ::parent      this}
@@ -283,7 +314,8 @@
 
   Object
   (render [this]
-    (exercise (om/props this))))
+    (exercise (om/props this)
+      (dom/p nil "You will hear two notes - what is their interval?"))))
 
 (defmulti slug->exercise identity)
 
@@ -303,6 +335,10 @@
 
 (defmethod slug->exercise "identifying-octaves" [_]
   {::class IdentifyOctaves
+   ::props {}})
+
+(defmethod slug->exercise "treble-clef-reading" [_]
+  {::class ReadingMusic
    ::props {}})
 
 (defmethod slug->exercise "intervals-1" [_]

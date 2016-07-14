@@ -91,7 +91,7 @@
   Object
   (render [this]
     (let [{:keys []} (om/props this)]
-      (dom/div nil "About"))))
+      (uid/course-banner {:title "About" :intro "Intro2"}))))
 
 (defmethod r/route->component ::r/about [_] AboutPage)
 

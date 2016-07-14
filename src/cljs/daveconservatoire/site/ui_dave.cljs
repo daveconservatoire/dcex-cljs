@@ -134,7 +134,7 @@
           (dom/div #js {:className "navbar-inner"}
             (dom/div #js {:className "container"}
               (link {:id "desktopbrand", :className "brand", ::r/handler ::r/home}
-                (dom/img #js {:src "/img/dclogo3.png", :alt "Dave Conservatoire"}))
+                    (dom/img #js {:src "/img/dclogo3.png", :alt "Dave Conservatoire"}))
               (dom/div #js {:className "navbar"}
                 (dom/div #js {:className "navbuttons"}
                   (button {:react-key "btn-0" ::r/handler ::r/about, ::button-color "yellow"}
@@ -211,4 +211,17 @@
         (dom/div #js {:className "pad30"})))))
 
 (def course-with-topics (om/factory CourseWithTopics))
+
+(om/defui ^:once PageBanner
+  Object
+  (render [this]
+    (let [{:keys [title intro]} (om/props this)]
+      (dom/div #js {:className "banner"}
+        (dom/div #js {:className "pad30"})
+        (dom/div #js {:className "container intro_wrapper"}
+          (dom/div #js {:className "inner_content"}
+            (dom/h1 #js {:className "title"} title)
+            (dom/h1 #js {:className "intro"} intro)))))))
+
+(def page-banner (om/factory PageBanner))
 

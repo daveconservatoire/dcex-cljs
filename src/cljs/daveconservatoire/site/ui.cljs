@@ -13,6 +13,17 @@
 (s/def ::component om/component?)
 (s/def ::button-color #{"yellow" "orange" "redorange" "red"})
 
+(defn container [& children]
+  (dom/div #js {:className "container wrapper"}
+    (apply dom/div #js {:className "inner_content"}
+      children)))
+
+(defn banner [title]
+  (dom/div #js {:className "banner"}
+    (dom/div #js {:className "container intro_wrapper"}
+      (dom/div #js {:className "inner_content"}
+        (dom/h1 #js {:className "title"} title)))))
+
 (om/defui ^:once Button
   Object
   (render [this]
@@ -93,7 +104,7 @@
   Object
   (render [this]
     (let [{:keys []} (om/props this)]
-      (uid/course-banner {:title "About" :intro "Intro2"}))))
+      (uid/course-banner {:title "About" :intro "Intro"}))))
 
 (defmethod r/route->component ::r/about [_] AboutPage)
 
@@ -107,9 +118,10 @@
   Object
   (render [this]
     (let [{:keys [lesson/title url/slug] :as lesson} (om/props this)]
-      (dom/div nil
-        (dom/img #js {:src (u/lesson-thumbnail-url lesson)})
-        (link {::r/handler ::r/lesson ::r/params {::r/slug slug}} title)))))
+      (dom/div #js {:className "span2"}
+        (link {::r/handler ::r/lesson ::r/params {::r/slug slug} :className "thumbnail vertical-shadow suggested-action"}
+          (dom/img #js {:src (u/lesson-thumbnail-url lesson) :key "img"})
+          (dom/p nil title))))))
 
 (def lesson-cell (om/factory LessonCell))
 
@@ -125,10 +137,10 @@
     (let [{:keys [url/slug topic/title]} (om/props this)
           selected? (or (u/current-uri-slug? ::r/topic slug)
                         (= slug (om/get-computed this :ui/topic-slug)))]
-      (dom/div nil
-        (button {::r/handler ::r/topic ::r/params {::r/slug slug}
-                 :style      (cond-> {}
-                               selected? (assoc :background "#000"))} title)))))
+      (dom/li #js {:className (if selected? "dc-bg-orange active" "")}
+        (link {::r/handler ::r/topic ::r/params {::r/slug slug}}
+          (dom/i #js {:className "icon-chevron-right"})
+          title)))))
 
 (def topic-side-bar-link (om/factory TopicSideBarLink))
 
@@ -142,13 +154,19 @@
 
   Object
   (render [this]
-    (let [course (om/props this)
+    (let [{:keys [course/title course/topics]} (om/props this)
           slug (om/get-computed this :ui/topic-slug)]
       (dom/div nil
-        (:course/title course)
+        (dom/h6 nil "Course:")
+        (dom/ul #js {:className "nav nav-list bs-docs-sidenav activetopic" :style #js {:marginTop 10}}
+          (dom/li #js {:className "dc-bg-yellow active activetopiclink"}
+            (dom/a #js {:className "activetopiclink" :href "#"}
+              title)))
         (dom/div nil
-          (map (comp topic-side-bar-link #(om/computed % {:ui/topic-slug slug}))
-               (:course/topics course)))))))
+          (dom/h6 nil "Topics:")
+          (dom/ul #js {:className "nav nav-list bs-docs-sidenav"}
+            (map (comp topic-side-bar-link #(om/computed % {:ui/topic-slug slug}))
+                 topics)))))))
 
 (def course-topics-menu (om/factory CourseTopicsMenu))
 
@@ -171,10 +189,17 @@
   Object
   (render [this]
     (let [{:keys [topic/lessons topic/course]} (u/route-prop this [:topic/by-slug ::r/slug])]
-      (dom/div nil
-        (course-topics-menu course)
-        (dom/div nil
-          (map lesson-cell lessons))))))
+      (container
+        (dom/div #js {:className "row"}
+          (dom/div #js {:className "span4"}
+            (course-topics-menu course))
+          (dom/div #js {:className "span8"}
+            (dom/div #js {:className "tab-content" :style #js {:marginTop 32}}
+              (dom/div #js {:className "tab-pane active" :id "topic-all"}
+                (dom/div #js {:className "thumbnails"}
+                  (for [row (partition 4 4 nil lessons)]
+                    (dom/div #js {:className "row" :key (:url/slug (first row)) :style #js {:margin "0px 0px 20px 0px"}}
+                      (map lesson-cell row))))))))))))
 
 (defmethod r/route->component ::r/topic [_] TopicPage)
 
@@ -279,9 +304,9 @@
       (dom/div nil
         (lesson-topic-menu topic)
         (dom/div nil
-          (dom/button #js {:onClick #(set-selected (dec selected-index))
+          (dom/button #js {:onClick  #(set-selected (dec selected-index))
                            :disabled (= 0 selected-index)} "<<")
-          (dom/button #js {:onClick #(set-selected (inc selected-index))
+          (dom/button #js {:onClick  #(set-selected (inc selected-index))
                            :disabled (= (dec (count playlist-items)) selected-index)} ">>"))
         (if item
           (lesson-playlist-item item))))))

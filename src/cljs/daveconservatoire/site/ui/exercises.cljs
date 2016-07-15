@@ -16,7 +16,8 @@
 
 (s/def ::description string?)
 (s/def ::option (s/cat :value string? :label string?))
-(s/def ::options (s/+ (s/spec ::option)))
+(s/def ::options (s/or :text #{::option-type-text}
+                       :select (s/+ (s/spec ::option))))
 
 (s/def ::ex-props (s/keys :req [::options]))
 (s/def ::ex-answer (s/nilable string?))
@@ -110,7 +111,8 @@
   Object
   (render [this]
     (let [{:keys [::options ::ex-answer ::ex-total-questions
-                  ::streak-count] :as props} (om/props this)]
+                  ::streak-count] :as props} (om/props this)
+          [opt-type _] (s/conform ::options options)]
       (assert (s/valid? ::ex-props props) (s/explain-str ::ex-props props))
       (dom/div #js {:className "lesson-content"}
         (dom/div #js {:className "single-exercise visited-no-recolor"
@@ -136,20 +138,29 @@
                           (dom/div #js {:id "hintsarea"}))
                         (dom/div #js {:id "answer_area_wrap"}
                           (dom/div #js {:id "answer_area"}
-                            (dom/form #js {:id "answerform" :name "answerform"}
+                            (dom/form #js {:id "answerform" :name "answerform" :onSubmit #(do
+                                                                                           (check-answer this)
+                                                                                           (.preventDefault %))}
                               (dom/div #js {:className "info-box" :id "answercontent"}
                                 (dom/span #js {:className "info-box-header"}
                                   "Answer")
-                                (dom/div #js {:className "fancy-scrollbar"}
-                                  (dom/ul nil
-                                    (for [[value label] options]
-                                      (dom/li #js {:key value}
-                                        (dom/label nil
-                                          (dom/input #js {:type     "radio" :name "exercise-answer"
-                                                          :checked  (= ex-answer value)
-                                                          :value    value
-                                                          :onChange #(um/set-string! this ::ex-answer :event %)})
-                                          (dom/span #js {:className "value"} label))))))
+                                (dom/div #js {:className "fancy-scrollbar" :id "solutionarea"}
+                                  (case opt-type
+                                    :text
+                                    (dom/input #js {:type     "text"
+                                                    :value    (or ex-answer "")
+                                                    :onChange #(um/set-string! this ::ex-answer :event %)})
+
+                                    :select
+                                    (dom/ul nil
+                                      (for [[value label] options]
+                                        (dom/li #js {:key value}
+                                          (dom/label nil
+                                            (dom/input #js {:type     "radio" :name "exercise-answer"
+                                                            :checked  (= ex-answer value)
+                                                            :value    value
+                                                            :onChange #(um/set-string! this ::ex-answer :event %)})
+                                            (dom/span #js {:className "value"} label)))))))
                                 (dom/div #js {:className "answer-buttons"}
                                   (dom/div #js {:className "check-answer-wrapper"}
                                     (dom/input #js {:className "simple-button green" :type "button" :value "Check Answer"
@@ -184,10 +195,10 @@
     (new-round this
       (merge
         (uc/initial-state Exercise nil)
-        {::options     [["lower" "Lower"] ["higher" "Higher"]]
-         ::pitch       ["C3" ".." "B5"]
-         ::variation   24
-         ::parent      this}
+        {::options   [["lower" "Lower"] ["higher" "Higher"]]
+         ::pitch     ["C3" ".." "B5"]
+         ::variation 24
+         ::parent    this}
         props)))
 
   static om/Ident
@@ -214,10 +225,10 @@
     (new-round this
       (merge
         (uc/initial-state Exercise nil)
-        {::options     [["yes" "Yes"] ["no" "No"]]
-         ::pitch       ["C3" ".." "B5"]
-         ::variation   [3 5 6 7 8 9 12 15 16]
-         ::parent      this}
+        {::options   [["yes" "Yes"] ["no" "No"]]
+         ::pitch     ["C3" ".." "B5"]
+         ::variation [3 5 6 7 8 9 12 15 16]
+         ::parent    this}
         props)))
 
   static om/Ident
@@ -246,8 +257,8 @@
     (new-round this
       (merge
         (uc/initial-state Exercise nil)
-        {::options     [["C" "C"] ["D" "D"] ["E" "E"] ["F" "F"] ["G" "G"] ["A" "A"] ["B" "B"]]
-         ::parent      this}
+        {::options ::option-type-text
+         ::parent  this}
         props)))
 
   static om/Ident
@@ -266,7 +277,7 @@
       (assoc props
         ::read-note (inc pos)
         ::notes notes
-        ::correct-answer note)))
+        ::correct-answer (.toLowerCase note))))
 
   Object
   (render [this]
@@ -292,10 +303,10 @@
       (let [intervals (get props ::intervals [12 7 4 5 9 2 11])]
         (merge
           (uc/initial-state Exercise nil)
-          {::options     (mapv #(vector (str %) (INTERVAL-NAMES %)) intervals)
-           ::pitch       ["C3" ".." "B5"]
-           ::variation   intervals
-           ::parent      this}
+          {::options   (mapv #(vector (str %) (INTERVAL-NAMES %)) intervals)
+           ::pitch     ["C3" ".." "B5"]
+           ::variation intervals
+           ::parent    this}
           props))))
 
   static om/Ident

@@ -10,8 +10,8 @@
 (s/def :course/title string?)
 (s/def :course/description string?)
 (s/def :course/author string?)
-(s/def :course/topics (s/coll-of :model/topic []))
-(s/def :course/lessons (s/coll-of :model/lesson []))
+(s/def :course/topics (s/every :model/topic))
+(s/def :course/lessons (s/every :model/lesson))
 
 (s/def :model/course
   (s/keys :opt [:db/id :url/slug :ordering/position

@@ -8,8 +8,11 @@
             [om.next :as om]))
 
 (deftest parse-read-not-found
-  (is (= (p/parser {} [:invalid])
-         {:invalid [:error :not-found]})))
+  (async done
+    (go
+      (is (= (<! (p/parse {} [:invalid]))
+             {:invalid [:error :not-found]}))
+      (done))))
 
 (deftest parser-read-courses
   (async done

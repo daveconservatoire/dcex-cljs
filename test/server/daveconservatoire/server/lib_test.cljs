@@ -11,21 +11,23 @@
   (async done
     (go
       (is (= (<! (l/sql-first-node {:db          ts/connection
+                                    :parser      l/parser
                                     :db-specs    p/db-specs
                                     :query-cache (atom {})
                                     :table       :course
-                                    :ast         (om/query->ast [:db/id :course/title])}
-                                   [[:where {:url/slug "reading-music"}]]))
+                                    :ast         {:query [:course/title]}}
+                   [[:where {:url/slug "reading-music"}]]))
              {:db/id 4 :course/title "Reading Music" :db/table :course}))
 
       (is (= (<! (l/sql-first-node {:db          ts/connection
+                                    :parser      l/parser
                                     :db-specs    p/db-specs
                                     :query-cache (atom {})
                                     :table       :course
-                                    :ast         (om/query->ast [:db/id (list
-                                                                          {:course/topics [:db/id :topic/title]}
-                                                                          {:limit 2})])}
-                                   [[:where {:db/id 4}]]))
+                                    :ast         {:query [(list
+                                                            {:course/topics [:db/id :topic/title]}
+                                                            {:limit 2})]}}
+                   [[:where {:db/id 4}]]))
              {:db/id    4 :course/topics [{:db/id 18 :db/table :topic :topic/title "Getting Started"}
                                           {:db/id 19 :db/table :topic :topic/title "Staff and Clefs"}]
               :db/table :course}))

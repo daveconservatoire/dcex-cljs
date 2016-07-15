@@ -102,17 +102,17 @@
   (read-from (assoc env :row row :ast {:key attr :dispatch-key attr})
     (::reader-map table)))
 
-(defn parse-row [{:keys [table ast ::union-selector] :as env} row]
+(defn parse-row [{:keys [table ast ::union-selector parser] :as env} row]
   (let [row' {:db/table (:key table) :db/id (row-get env row :db/id)}
-        readers [(::reader-map table) placeholder-node]
-        ast (if (union-children? ast)
-              (some-> ast :query (get (row-get env row union-selector)) (om/query->ast))
-              ast)]
-    (-> (reduce (fn [row' {:keys [key] :as ast}]
-                  (assoc row' key (read-from (assoc env :ast ast :row row) readers)))
-                row'
-                (:children ast))
-        (read-chan-values))))
+        query (if (union-children? ast)
+                (some-> ast :query (get (row-get env row union-selector)))
+                (:query ast))]
+    (if query
+      (-> (merge
+            row'
+            (parser (assoc env :row row) query))
+          (read-chan-values))
+      row')))
 
 (defn cached-query [{:keys [db query-cache]} name cmds]
   (go
@@ -124,14 +124,15 @@
           res)))))
 
 (defn sql-node [{:keys [table db-specs] :as env} cmds]
-  (if-let [{:keys [name fields] :as table-spec} (get db-specs table)]
+  (if-let [{:keys [name fields ::reader-map] :as table-spec} (get db-specs table)]
     (go
       (let [cmds (map (fn [[type v :as cmd]]
                         (if (= type :where)
                           [type (set/rename-keys v fields)]
                           cmd)) cmds)
             rows (<! (cached-query env name cmds))
-            env (assoc env :table table-spec)]
+            env (assoc env :table table-spec
+                           ::readers [reader-map placeholder-node])]
         (<! (read-chan-seq #(parse-row env %) rows))))
     (throw (str "[Query SQL] No specs for table " table))))
 
@@ -167,3 +168,11 @@
                        #(assoc (or % {}) local-field (row-get env row :db/id)))
       (:sort params) (update-in [:ast :params :sort] #(or % (:sort params))))
     foreign-table))
+
+;; PARSER
+
+(defn read [{:keys [::readers] :as env} _ _]
+  {:value
+   (read-from env readers)})
+
+(def parser (om/parser {:read read}))

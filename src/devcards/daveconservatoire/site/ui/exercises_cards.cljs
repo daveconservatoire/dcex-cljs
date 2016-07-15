@@ -24,6 +24,7 @@
 (defex pitch-2)
 (defex pitch-3)
 (defex identifying-octaves)
+(defex treble-clef-reading)
 (defex intervals-1)
 (defex intervals-2)
 (defex intervals-3)

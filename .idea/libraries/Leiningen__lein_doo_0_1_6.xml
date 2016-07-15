@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="Leiningen: lein-doo:0.1.6">
-    <CLASSES>
-      <root url="jar://$MAVEN_REPOSITORY$/lein-doo/lein-doo/0.1.6/lein-doo-0.1.6.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>

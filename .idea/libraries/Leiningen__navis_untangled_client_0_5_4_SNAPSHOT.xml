@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="Leiningen: navis/untangled-client:0.5.4-SNAPSHOT">
-    <CLASSES>
-      <root url="jar://$MAVEN_REPOSITORY$/navis/untangled-client/0.5.4-SNAPSHOT/untangled-client-0.5.4-SNAPSHOT.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>

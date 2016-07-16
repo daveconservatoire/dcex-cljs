@@ -102,19 +102,22 @@
   Object
   (render [this]
     (let [{:keys []} (om/props this)]
-      (dom/div #js {:className "navbar"}
+      (dom/div #js {:className "navbar" :style #js {:marginBottom 0 :textAlign "center"}}
         (dom/div #js {:className "navbar-inner"}
           (dom/div #js {:className "container"}
             (dom/div #js {:className "row"}
               (dom/div #js {:className "span12"}
-                (dom/div #js {:className "copyright"}
+                (dom/div #js {:className "copyright" :style #js {:paddingTop 10}}
                   "© Dave Conservatoire 2016. The videos and exercises on this site are available under a "
                   (dom/a #js {:href "http://creativecommons.org/licenses/by-nc-sa/3.0/", :target "_blank"}
-                    "CC BY-NC-SA Licence"))))))))))
+                    "CC BY-NC-SA Licence") ".")))))))))
 
 (def footer (om/factory Footer))
 
 (om/defui ^:once DesktopMenu
+  static om/IQuery
+  (query [_] [{:app/current-user [:user/name :user/score]}])
+
   Object
   (render [this]
     (let [{:keys []} (om/props this)]
@@ -123,7 +126,7 @@
           (dom/div #js {:className "navbar-inner"}
             (dom/div #js {:className "container"}
               (link {:id "desktopbrand", :className "brand", ::r/handler ::r/home}
-                    (dom/img #js {:src "/img/dclogo3.png", :alt "Dave Conservatoire"}))
+                (dom/img #js {:src "/img/dclogo3.png" :alt "Dave Conservatoire" :key "logo"}))
               (dom/div #js {:className "navbar"}
                 (dom/div #js {:className "navbuttons"}
                   (button {:react-key "btn-0" ::r/handler ::r/about, ::button-color "yellow"}
@@ -134,7 +137,7 @@
                     "Personal Tuition")
                   (button {:react-key "btn-3" :href "/contact", ::button-color "red"}
                     "Contact")
-                  (button {:react-key "btn-4" :href "/login" :className "loginbutton", ::button-color "red"}
+                  (button {:react-key "btn-4" ::r/handler ::r/login :className "loginbutton", ::button-color "red"}
                     "Login")
                   (dom/span #js {:id "socialmediaicons"}
                     (dom/a #js {:href "http://www.youtube.com/daveconservatoire", :target "_blank"}
@@ -173,7 +176,7 @@
     (let [{:keys [topic/title url/slug]} (om/props this)]
       (dom/li #js {:className "span4", :style #js {"marginBottom" 5}}
         (link {:className "btn btn-large btn-block dc-btn-yellow" ::r/handler ::r/topic ::r/params {::r/slug slug} :react-key "link"}
-          (dom/h3 #js {:key "test"}
+          (dom/h3 #js {:key "title"}
             title))))))
 
 (def home-course-topic (om/factory HomeCourseTopic {:keyfn :db/id}))

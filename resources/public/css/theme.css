@@ -2289,10 +2289,8 @@ right: 0px;
 
 .loading-enter.loading-enter-active .loading-bar {
 	width: 60%;
-	transition: width 200ms ease-in;
 }
 
 .loading-leave.loading-leave-active .loading-bar {
 	width: 100%;
-	transition: width 200ms ease-in;
 }

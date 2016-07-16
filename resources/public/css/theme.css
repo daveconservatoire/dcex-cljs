@@ -2288,7 +2288,7 @@ right: 0px;
 }
 
 .loading-enter.loading-enter-active .loading-bar {
-	width: 60%;
+	width: 30%;
 }
 
 .loading-leave.loading-leave-active .loading-bar {

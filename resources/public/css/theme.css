@@ -2282,3 +2282,17 @@ right: 0px;
 #vidcontainer {
   margin: 0 auto; text-align: center;
 }
+
+.loading-enter .loading-bar {
+	width: 0;
+}
+
+.loading-enter.loading-enter-active .loading-bar {
+	width: 60%;
+	transition: width 200ms ease-in;
+}
+
+.loading-leave.loading-leave-active .loading-bar {
+	width: 100%;
+	transition: width 200ms ease-in;
+}

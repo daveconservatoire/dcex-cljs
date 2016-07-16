@@ -13,6 +13,8 @@
 (s/def ::component om/component?)
 (s/def ::button-color #{"yellow" "orange" "redorange" "red"})
 
+(def transition-group (js/React.createFactory js/React.addons.CSSTransitionGroup))
+
 (defn container [& children]
   (dom/div #js {:className "container wrapper"}
     (apply dom/div #js {:className "inner_content"}
@@ -387,7 +389,7 @@
 
 (om/defui ^:once Loading
   Object
-  (initLocalState [_] {:show? false})
+  (initLocalState [_] {:show? true})
 
   (componentDidMount [this]
     (js/setTimeout
@@ -395,10 +397,9 @@
       100))
 
   (render [this]
-    (let [show? (om/get-state this :show?)]
-      (if show?
-        (dom/div nil "Loading page data...")
-        (dom/noscript nil)))))
+    (dom/div #js {:style #js {:position "fixed" :top 0 :left 0 :right 0}}
+      (dom/div #js {:className "loading-bar" :style #js {:background "#F7941E"
+                                :height 4}}))))
 
 (def loading (om/factory Loading))
 
@@ -429,7 +430,8 @@
     (let [{:keys [app/route route/data ui/react-key]} (om/props this)]
       (dom/div #js {:key react-key}
         (uid/desktop-menu {:react-key "desktop-menu"})
-        (if (= :loading (get-in data [:ui/fetch-state ::df/type]))
-          (loading nil)
-          ((u/route->factory route) data))
+        (transition-group #js {:transitionName "loading" :transitionEnterTimeout 200 :transitionLeaveTimeout 200}
+          (if (= :loading (get-in data [:ui/fetch-state ::df/type]))
+            (loading nil)))
+        ((u/route->factory route) data)
         (uid/footer {:react-key "footer"})))))

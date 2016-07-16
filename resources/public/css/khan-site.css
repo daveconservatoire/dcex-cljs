@@ -2102,25 +2102,6 @@ button.close {
 .collapse.in {
   height: auto;
 }
-.row {
-  margin-left: -20px;
-  *zoom: 1;
-}
-.row:before,
-.row:after {
-  display: table;
-  content: "";
-  line-height: 0;
-}
-.row:after {
-  clear: both;
-}
-[class*="span"] {
-  float: left;
-  min-height: 1px;
-  margin-left: 20px;
-}
-
 
 #outer-wrapper {
   min-height: 100%;
@@ -3961,15 +3942,7 @@ a [class*=" icon-"] {
   vertical-align: -10%;
   font-size: 1.3333333333333333em;
 }
-.btn [class^="icon-"],
-.nav [class^="icon-"],
-.btn [class*=" icon-"],
-.nav [class*=" icon-"] {
-  display: inline;
-  /* keeps button heights with and without icons the same */
 
-  line-height: .6em;
-}
 .btn [class^="icon-"].icon-spin,
 .nav [class^="icon-"].icon-spin,
 .btn [class*=" icon-"].icon-spin,

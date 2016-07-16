@@ -234,10 +234,8 @@
   (render [this]
     (let [{:keys [topic/course topic/lessons topic/title url/slug]} (om/props this)]
       (dom/div nil
-        title
-        (dom/div nil
-          (map lesson-topic-menu-item lessons))
-        (course-topics-menu (om/computed course {:ui/topic-slug slug}))))))
+        (course-topics-menu (om/computed course {:ui/topic-slug slug})))
+      )))
 
 (def lesson-topic-menu (om/factory LessonTopicMenu))
 
@@ -261,10 +259,16 @@
   Object
   (render [this]
     (let [{:keys [lesson/description lesson/topic] :as props} (om/props this)]
-      (dom/div nil
-        (lesson-topic-menu topic)
-        (dom/div #js {:className "vendor"} (youtube-video props))
-        (dom/div nil description)))))
+      (container
+        (dom/div #js {:className "row"}
+          (dom/div #js {:className "span3"}
+            (lesson-topic-menu topic))
+          (dom/div #js {:className "span9"}
+            (dom/div #js {:className "lesson-content"}
+              (dom/div #js {:className "vendor"} (youtube-video props))
+              (dom/div #js {:className "well"}
+                description
+                ))))))))
 
 (def lesson-video (om/factory LessonVideo))
 

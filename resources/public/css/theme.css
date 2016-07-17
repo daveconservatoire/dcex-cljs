@@ -2283,3 +2283,18 @@ right: 0px;
 #vidcontainer {
   margin: 0 auto; text-align: center;
 }
+<<<<<<< HEAD
+=======
+
+.loading-enter .loading-bar {
+	width: 0;
+}
+
+.loading-enter.loading-enter-active .loading-bar {
+	width: 30%;
+}
+
+.loading-leave.loading-leave-active .loading-bar {
+	width: 100%;
+}
+>>>>>>> origin/master

@@ -13,6 +13,8 @@
 (s/def ::component om/component?)
 (s/def ::button-color #{"yellow" "orange" "redorange" "red"})
 
+(def transition-group (js/React.createFactory js/React.addons.CSSTransitionGroup))
+
 (defn container [& children]
   (dom/div #js {:className "container wrapper"}
     (apply dom/div #js {:className "inner_content"}
@@ -97,6 +99,62 @@
 
 (defmethod r/route->component ::r/home [_] HomePage)
 
+(om/defui ^:once LoginPage
+  static uc/InitialAppState
+  (initial-state [_ _] {})
+
+  Object
+  (render [this]
+    (let [{:keys []} (om/props this)]
+      (dom/div nil
+        (banner "Login")
+        (container
+          (dom/h3 nil
+            "Do you already have an account on one of these sites? Click the logo to use your account to login here:")
+          (dom/p nil \u00a0)
+          (dom/div #js {:className "services"}
+            (dom/div #js {:className "auth-services row"}
+              (dom/div #js {:style #js {:height 100}, :className "span4 suggested-action google_oauth"}
+                (dom/a #js {:className "auth-link google_oauth", :href "/login?service=google"}
+                  (dom/span #js {:className "auth-title"}
+                    "Login with Google")
+                  (dom/span #js {:className "auth-icon google_oauth"}
+                    (dom/i #js {}))))
+              (dom/div #js {:style #js {:height 100}, :className "span4 suggested-action facebook"}
+                (dom/a #js {:className "auth-link facebook", :href "/login?service=facebook"}
+                  (dom/span #js {:className "auth-title"}
+                    "Login with Facebook")
+                  (dom/span #js {:className "auth-icon facebook"}
+                    (dom/i #js {}))))))
+          (dom/p nil \u00a0)
+          (dom/h3 nil
+            "Why should I log in?")
+          (dom/p nil
+            "Logging in helps us to keep track of what you've been learning about, assess your progress and make the site better!")
+          (dom/p nil \u00a0)
+          (dom/h3 nil
+            "Why are you asking me to login with my Google or Facebook account?")
+          (dom/p nil
+            "Rather than make you sign up for yet another online service with a new username and password to remember, you can use an account you already have set up.  This is the safest and easiest way for you to login with us.")
+          (dom/p nil \u00a0)
+          (dom/h3 nil
+            "Won't this give you access to all my private data?")
+          (dom/p nil
+            "Definitely not!  The only information we will ever store about you is your name and email address - and how awesome you're becoming at music!")
+          (dom/p nil \u00a0)
+          (dom/h3 nil
+            "What if I don't have an account with one of these sites?")
+          (dom/p nil
+            "No problem!  Just go sign up "
+            (dom/a #js {:href "https://accounts.google.com/SignUp?continue=https%3A%2F%2Faccounts.google.com%2FManageAccount", :target "_blank"}
+              "here")
+            " or "
+            (dom/a #js {:href "http://www.facebook.com/r.php?locale=en_GB", :target "_blank"}
+              "here")
+            ". "))))))
+
+(defmethod r/route->component ::r/login [_] LoginPage)
+
 (om/defui ^:once AboutPage
   static uc/InitialAppState
   (initial-state [_ _] {})
@@ -121,7 +179,7 @@
       (dom/div #js {:className "span2"}
         (link {::r/handler ::r/lesson ::r/params {::r/slug slug} :className "thumbnail vertical-shadow suggested-action"}
           (dom/img #js {:src (u/lesson-thumbnail-url lesson) :key "img"})
-          (dom/p nil title))))))
+          (dom/p #js {:key "p"} title))))))
 
 (def lesson-cell (om/factory LessonCell))
 
@@ -139,7 +197,7 @@
                         (= slug (om/get-computed this :ui/topic-slug)))]
       (dom/li #js {:className (if selected? "dc-bg-orange active" "")}
         (link {::r/handler ::r/topic ::r/params {::r/slug slug}}
-          (dom/i #js {:className "icon-chevron-right"})
+          (dom/i #js {:className "icon-chevron-right" :key "i"})
           title)))))
 
 (def topic-side-bar-link (om/factory TopicSideBarLink))
@@ -391,7 +449,7 @@
 
 (om/defui ^:once Loading
   Object
-  (initLocalState [_] {:show? false})
+  (initLocalState [_] {:show? true})
 
   (componentDidMount [this]
     (js/setTimeout
@@ -399,10 +457,11 @@
       100))
 
   (render [this]
-    (let [show? (om/get-state this :show?)]
-      (if show?
-        (dom/div nil "Loading page data...")
-        (dom/noscript nil)))))
+    (dom/div #js {:style #js {:position "fixed" :top 0 :left 0 :right 0}}
+      (dom/div #js {:className "loading-bar"
+                    :style #js {:background "#F7941E"
+                                :transition "width 200ms"
+                                :height 4}}))))
 
 (def loading (om/factory Loading))
 
@@ -433,7 +492,8 @@
     (let [{:keys [app/route route/data ui/react-key]} (om/props this)]
       (dom/div #js {:key react-key}
         (uid/desktop-menu {:react-key "desktop-menu"})
-        (if (= :loading (get-in data [:ui/fetch-state ::df/type]))
-          (loading nil)
-          ((u/route->factory route) data))
+        (transition-group #js {:transitionName "loading" :transitionEnterTimeout 200 :transitionLeaveTimeout 200}
+          (if (= :loading (get-in data [:ui/fetch-state ::df/type]))
+            (loading nil)))
+        ((u/route->factory route) data)
         (uid/footer {:react-key "footer"})))))

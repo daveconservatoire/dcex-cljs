@@ -18,6 +18,7 @@
 
 (def routes
   ["/" {""                 ::home
+        "login"            ::login
         "about"            ::about
         "donate"           ::donate
         "tuition"          ::tuition

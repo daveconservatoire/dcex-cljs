@@ -8,27 +8,32 @@
             [om.next :as om]
             [om.util :as omu]))
 
+(defn update-page [{:keys [state]} {:keys [route route/data]}]
+  (om/set-query! (-> @state ::om/queries ffirst) {:params {:route/data data}})
+  (swap! state assoc :app/route route))
+
 (defmethod m/mutate 'app/set-route
   [{:keys [state reconciler] :as env} _ route]
   {:action
    (fn []
      (let [comp (r/route->component* route)
-           root (-> env :reconciler :config :indexer deref
-                    :class->components (get ui/Root) first)
            data-query (if (implements? r/IRouteMiddleware comp)
                         (r/remote-query comp route)
-                        (om/get-query comp))]
+                        (om/get-query comp))
+           norm-query (uiu/normalize-route-data-query data-query)
+           page-data {:route      route
+                      :route/data norm-query}]
        (if data-query
-         (df/load-data reconciler [{:route/data data-query}] :post-mutation 'fetch/export-idents))
-       (om/set-query! root {:params {:route/data (uiu/normalize-route-data-query data-query)}})
-       (js/setTimeout
-         #(swap! state assoc :app/route route)
-         10)))})
+         (do
+           (df/load-data reconciler [{:route/data data-query}] :post-mutation 'fetch/complete-set-route)
+           (swap! state assoc :app/route-swap page-data))
+         (update-page env page-data))))})
 
-(defmethod m/mutate 'fetch/export-idents
-  [{:keys [state]} _ _]
+(defmethod m/mutate 'fetch/complete-set-route
+  [{:keys [state] :as env} _ _]
   {:action
    (fn []
+     (update-page env (get @state :app/route-swap))
      (let [pairs (filter (fn [[k _]] (omu/ident? k)) (get @state :route/data))]
        (if (seq pairs)
          (swap! state (fn [st]

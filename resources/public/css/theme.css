@@ -2283,8 +2283,6 @@ right: 0px;
 #vidcontainer {
   margin: 0 auto; text-align: center;
 }
-<<<<<<< HEAD
-=======
 
 .loading-enter .loading-bar {
 	width: 0;
@@ -2297,4 +2295,3 @@ right: 0px;
 .loading-leave.loading-leave-active .loading-bar {
 	width: 100%;
 }
->>>>>>> origin/master

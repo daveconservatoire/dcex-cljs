@@ -303,7 +303,7 @@
     (let [{:keys [:youtube/id]} (om/props this)]
       (dom/iframe #js {:width           "640"
                        :height          "360"
-                       :src             (str "https://www.youtube.com/embed/" id)
+                       :src             (str "https://www.youtube.com/embed/" id "?showinfo=0&rel=0")
                        :frameBorder     "0"
                        :allowFullScreen true}))))
 
@@ -342,8 +342,9 @@
     (let [{:keys [youtube/id playlist-item/title playlist-item/text]} (om/props this)]
       (dom/div nil
         (dom/div #js {:className "vendor"} (youtube-video {:youtube/id id}))
-        (dom/div nil title)
-        (dom/div nil text)))))
+        (dom/div #js {:className "well"}
+          (dom/div nil title)
+          (dom/div nil text))))))
 
 (def lesson-playlist-item (om/factory LessonPlaylistItem))
 
@@ -363,15 +364,19 @@
                                        [type id]
                                        [`(ui/set-props {:ui/selected-index ~n})
                                         :route/data]))]
-      (dom/div nil
-        (lesson-topic-menu topic)
-        (dom/div nil
-          (dom/button #js {:onClick  #(set-selected (dec selected-index))
-                           :disabled (= 0 selected-index)} "<<")
-          (dom/button #js {:onClick  #(set-selected (inc selected-index))
-                           :disabled (= (dec (count playlist-items)) selected-index)} ">>"))
-        (if item
-          (lesson-playlist-item item))))))
+      (container
+        (dom/div #js {:className "row"}
+          (dom/div #js {:className "span3"}
+            (lesson-topic-menu topic))
+          (dom/div #js {:className "span9"}
+            (dom/div #js {:className "lesson-content"}
+              (if item
+                (lesson-playlist-item item))
+              (dom/div nil
+                (dom/button #js {:onClick  #(set-selected (dec selected-index))
+                                 :disabled (= 0 selected-index)} "<<")
+                (dom/button #js {:style    #js {:float "right"} :onClick #(set-selected (inc selected-index))
+                                 :disabled (= (dec (count playlist-items)) selected-index)} ">>")))))))))
 
 (def lesson-playlist (om/factory LessonPlaylist))
 
@@ -397,12 +402,15 @@
   (render [this]
     (let [{:keys [lesson/topic url/slug exercise/data]} (om/props this)
           {:keys [::ux/class]} (ux/slug->exercise slug)]
-      (dom/div nil
-        (lesson-topic-menu topic)
-        (if class
-          (when (get data ::ux/streak-count)
-            ((om/factory class) data))
-          (str "Exercice [" slug "] not implemented"))))))
+      (container
+        (dom/div #js {:className "row"}
+          (dom/div #js {:className "span3"}
+            (lesson-topic-menu topic))
+          (dom/div #js {:className "span9"}
+            (if class
+              (when (get data ::ux/streak-count)
+                ((om/factory class) data))
+              (str "Exercice [" slug "] not implemented"))))))))
 
 (def lesson-exercise (om/factory LessonExercise))
 

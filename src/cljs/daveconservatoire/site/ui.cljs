@@ -100,9 +100,6 @@
 (defmethod r/route->component ::r/home [_] HomePage)
 
 (om/defui ^:once LoginPage
-  static uc/InitialAppState
-  (initial-state [_ _] {})
-
   Object
   (render [this]
     (let [{:keys []} (om/props this)]
@@ -156,9 +153,6 @@
 (defmethod r/route->component ::r/login [_] LoginPage)
 
 (om/defui ^:once AboutPage
-  static uc/InitialAppState
-  (initial-state [_ _] {})
-
   Object
   (render [this]
     (let [{:keys []} (om/props this)]
@@ -229,9 +223,6 @@
 (def course-topics-menu (om/factory CourseTopicsMenu))
 
 (om/defui ^:once TopicPage
-  static uc/InitialAppState
-  (initial-state [_ _] {})
-
   static r/IRouteMiddleware
   (remote-query [this route]
     (let [slug (get-in route [::r/params ::r/slug])]
@@ -415,9 +406,6 @@
 (def lesson-exercise (om/factory LessonExercise))
 
 (om/defui ^:once LessonPage
-  static uc/InitialAppState
-  (initial-state [_ _] {})
-
   static om/Ident
   (ident [_ {:keys [lesson/type db/id]}]
     [(or type :unknown) id])
@@ -445,9 +433,6 @@
 (defmethod r/route->component ::r/lesson [_] LessonPage)
 
 (om/defui ^:once NotFoundPage
-  static uc/InitialAppState
-  (initial-state [_ _] {})
-
   Object
   (render [this]
     (let [{:keys []} (om/props this)]
@@ -478,7 +463,7 @@
   (initial-state [_ _]
     (let [route (r/current-handler)]
       {:app/route  route
-       :route/data (uc/initial-state (r/route->component route) route)}))
+       :route/data (r/route->initial-state route)}))
 
   static om/IQueryParams
   (params [this]

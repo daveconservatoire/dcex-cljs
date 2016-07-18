@@ -1,7 +1,8 @@
 (ns daveconservatoire.site.routes
   (:require [cljs.spec :as s]
             [pushy.core :as pushy]
-            [bidi.bidi :as bidi]))
+            [bidi.bidi :as bidi]
+            [untangled.client.core :as uc]))
 
 (defprotocol IRouteMiddleware
   (remote-query [this route]))
@@ -15,6 +16,12 @@
     (if (implements? IRouteMiddleware comp)
       comp
       comp')))
+
+(defn route->initial-state [route]
+  (let [c (route->component route)]
+    (if (implements? uc/InitialAppState c)
+      (uc/initial-state c route)
+      {})))
 
 (def routes
   ["/" {""                 ::home

@@ -12,9 +12,9 @@
     :else b))
 
 (s/fdef html-attr-merge
-  :args (s/cat :a ::s/any
-               :b ::s/any)
-  :ret ::s/any)
+  :args (s/cat :a any?
+               :b any?)
+  :ret any?)
 
 (defn parse-route [{:keys [::r/handler] :as attrs}]
   (cond-> attrs
@@ -54,7 +54,7 @@
 (s/fdef route-prop
   :args (s/cat :component om/component?
                :target (s/tuple keyword? keyword?))
-  :ret ::s/any)
+  :ret any?)
 
 (defn normalize-route-data-query [q]
   (conj (or q [])

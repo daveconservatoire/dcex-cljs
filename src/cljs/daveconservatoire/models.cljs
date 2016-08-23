@@ -37,7 +37,7 @@
 (s/def :lesson/topic :model/topic)
 (s/def :lesson/course-id :db/id)
 (s/def :lesson/course :model/course)
-(s/def :lesson/playlist-items (s/coll-of :model/playlist-item []))
+(s/def :lesson/playlist-items (s/coll-of :model/playlist-item))
 
 (s/def :model/lesson
   (s/keys :opt [:db/id :url/slug :youtube/id

@@ -162,7 +162,7 @@
     (.stop node)))
 
 (s/fdef stop-all
-  :args (s/cat :nodes (s/coll-of ::node [])))
+  :args (s/cat :nodes (s/coll-of ::node)))
 
 (defn consume-loop [interval chan]
   (let [control (async/chan)
@@ -205,7 +205,7 @@
 (def MAJOR-ARRANGEMENTS {0 [0, 4, 7] 1 [0, 3, 7] 2 [0, 3, 7] 3 [0, 4, 7] 4 [0, 4, 7] 5 [0, 3, 7] 6 [0, 3, 6]})
 
 (s/def ::semitone-interval integer?)
-(s/def ::chord-intervals (s/coll-of ::semitone-interval []))
+(s/def ::chord-intervals (s/coll-of ::semitone-interval))
 
 (def NOTE-PATTERN #"^([A-G])([b#]?)([0-8])$")
 
@@ -261,7 +261,7 @@
 
 (s/fdef chord
   :args (s/cat :base ::sound :arrange ::chord-intervals)
-  :ret (s/coll-of ::note []))
+  :ret (s/coll-of ::note))
 
 (defn major-chord-progression [base progression]
   (let [base (note->semitone base)]
@@ -272,4 +272,4 @@
 (s/def ::scale-position (s/int-in 0 7))
 
 (s/fdef major-chord-progression
-  :args (s/cat :base ::sound :progression (s/coll-of ::scale-position [])))
+  :args (s/cat :base ::sound :progression (s/coll-of ::scale-position)))

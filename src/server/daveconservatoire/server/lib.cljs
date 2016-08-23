@@ -46,10 +46,10 @@
       (<! (async/into [] out)))))
 
 (s/def ::reader (s/or :fn (s/and fn?
-                                 (s/fspec :args (s/cat :env ::s/any)
-                                          :ret ::s/any))
+                                 (s/fspec :args (s/cat :env any?)
+                                          :ret any?))
                       :map (s/map-of keyword? ::reader)
-                      :list (s/coll-of ::reader [])))
+                      :list (s/coll-of ::reader)))
 
 (defn read-from* [{:keys [ast] :as env} reader]
   (let [k (:dispatch-key ast)]

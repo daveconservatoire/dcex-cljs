@@ -148,8 +148,7 @@
     "D#4" 42
     "C8" 87)
 
-  (let [res (-> (st/check-var #'audio/note->semitone) :result)]
-    (is (true? res) res)))
+  (is (= (st/result-type (st/check `audio/note->semitone)) :check-passed)))
 
 (deftest test-semitone->note
   (are [note semitone] (= (audio/semitone->note note) semitone)
@@ -158,5 +157,4 @@
     29 "D3"
     42 "Eb4")
 
-  (let [res (-> (st/check-var #'audio/semitone->note) :result)]
-    (is (true? res) res)))
+  (is (= (st/result-type (st/check `audio/semitone->note)) :check-passed)))

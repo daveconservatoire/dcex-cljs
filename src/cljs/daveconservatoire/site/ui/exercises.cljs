@@ -33,7 +33,7 @@
                                (audio/note->semitone b))
                           t
                           false)))
-        :list (s/coll-of ::audio/sound [])))
+        :list (s/coll-of ::audio/sound)))
 
 (s/def ::pitch ::value-descriptor)
 (s/def ::variation ::value-descriptor)

@@ -118,7 +118,7 @@
                   (dom/span #js {:className "auth-icon google_oauth"}
                     (dom/i #js {}))))
               (dom/div #js {:style #js {:height 100}, :className "span4 suggested-action facebook"}
-                (dom/a #js {:className "auth-link facebook", :href "/login?service=facebook"}
+                (dom/a #js {:className "auth-link facebook", :href "/facebook-login"}
                   (dom/span #js {:className "auth-title"}
                     "Login with Facebook")
                   (dom/span #js {:className "auth-icon facebook"}

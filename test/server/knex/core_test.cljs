@@ -13,4 +13,10 @@
              "Reading Music"))
       (done))))
 
-(comment (run-tests))
+(deftest test-query-first
+  (async done
+    (go
+      (is (= (->> (knex/query-first ts/connection "Course" []) <!
+                  :title)
+             "Reading Music"))
+      (done))))

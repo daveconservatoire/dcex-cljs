@@ -16,3 +16,4 @@ resources/public/devcards
 resources/public/site
 node_modules/
 .idea/
+server.edn

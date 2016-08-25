@@ -1,7 +1,9 @@
 (ns knex.core
   (:require-macros [cljs.core.async.macros :refer [go]])
+  (:refer-clojure :exclude [count])
   (:require [cljs.nodejs :as nodejs]
             [cljs.core.async :refer [chan <! put! promise-chan]]
+            [common.async :as ca :refer-macros [<?]]
             [goog.object :as gobj]
             [goog.string :as gstr]))
 
@@ -33,9 +35,25 @@
   ([connection table cmds]
    (promise->chan (call-chain (connection table) cmds))))
 
+(defn query-first [connection table cmds]
+  (go
+    (-> (query connection table cmds) <? first)))
+
 (defn raw
   ([connection sql args]
    (go
      (let [res (<! (promise->chan (.raw connection sql (clj->js args))))]
        (->> (first res)
             (map convert-object))))))
+
+(defn insert [connection table data]
+  (-> (connection table)
+      (.insert (clj->js data))
+      (promise->chan)))
+
+(defn count [connection table field]
+  (go
+    (-> (connection table)
+        (.count field)
+        (promise->chan) <!
+        ffirst second)))

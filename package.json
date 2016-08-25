@@ -14,8 +14,10 @@
   "dependencies": {
     "compression": "^1.6.2",
     "express": "^4.13.4",
+    "express-session": "^1.14.1",
     "knex": "^0.10.0",
-    "mysql": "^2.10.2"
+    "mysql": "^2.10.2",
+    "superagent": "^2.2.0"
   },
   "devDependencies": {
     "source-map-support": "0.4.0",

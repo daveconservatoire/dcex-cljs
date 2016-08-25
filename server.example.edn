@@ -1,0 +1,12 @@
+{:database
+ {:client     "mysql"
+  :connection {:host     "localhost"
+               :user     "root"
+               :password "root"
+               :database "dcsite"
+               :port     8889}}
+
+ :facebook
+ {:daveconservatoire.server.facebook/client-id     "CLIENT_ID"
+  :daveconservatoire.server.facebook/client-secret "CLIENT_SECRET"
+  :daveconservatoire.server.facebook/redirect-uri  "http://localhost:3000/facebook-return"}}

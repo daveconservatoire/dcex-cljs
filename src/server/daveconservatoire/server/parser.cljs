@@ -56,7 +56,14 @@
                    :lesson/course-id   "seriesno"
                    :lesson/title       "title"
                    :lesson/description "description"
-                   :lesson/keywords    "keywords"}}})
+                   :lesson/keywords    "keywords"}}
+
+         :user
+         {:key :user
+          :name "User"
+          :fields {:db/id "id"
+                   :user/name "name"
+                   :user/email "email"}}})
 
       ; Course
       (l/row-getter :course/topics
@@ -92,7 +99,10 @@
    :lesson/by-slug #(l/sql-first-node (assoc % :table :lesson ::l/union-selector :lesson/type)
                      [[:where {:urltitle (l/ast-key-id (:ast %))}]])
    :app/courses    #(l/sql-table-node (assoc-in % [:ast :params :sort] "homepage_order") :course)
-   :app/topics     #(l/sql-table-node % :topic)})
+   :app/topics     #(l/sql-table-node % :topic)
+   :app/me         #(if-let [id (:current-user-id %)]
+                     (l/sql-first-node (assoc % :table :user)
+                      [[:where {:id id}]]))})
 
 (def root-readers
   [root-endpoints l/placeholder-node #(vector :error :not-found)])

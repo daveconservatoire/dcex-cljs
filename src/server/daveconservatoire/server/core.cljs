@@ -29,6 +29,7 @@
 (defonce http (nodejs/require "http"))
 (defonce compression (nodejs/require "compression"))
 (defonce session (nodejs/require "express-session"))
+(defonce RedisStore ((nodejs/require "connect-redis") session))
 
 (defn express-get [app pattern f] (.get app pattern f))
 (defn express-post [app pattern f] (.post app pattern f))
@@ -56,6 +57,7 @@
 (express-use app (compression))
 (express-use app (.static express "resources/public"))
 (express-use app (session #js {:secret "keyboard caaaat"
+                               :store (RedisStore. #js {})
                                :resave false
                                :saveUninitialized false
                                :cookie #js {:maxAge 60000}}))
@@ -90,7 +92,6 @@
           (cljs.pprint/pprint tx)
           (js/console.log "out")
           (cljs.pprint/pprint out)
-          (js/console.log "for user" (current-user req))
           (.send res (write out)))
         (catch :default e
           (.send res (str "Error: " e)))))))
@@ -137,6 +138,13 @@
   :args (s/cat :response ::fb/auth-response)
   :ret ::db-user)
 
+(defn session-set! [req k v]
+  (gobj/set (.-session req) k v))
+
+(s/fdef session-set!
+  :args (s/cat :req any? :key string? :value string?)
+  :ret any?)
+
 (express-get app "/facebook-return"
   (fn [req res]
     (go
@@ -144,7 +152,7 @@
         (let [query (->> (.. req -query) js->clj
                          (to-facebook-keys))
               user (<? (process-facebook-return query))]
-          (gobj/set (.-session req) "user" (:id user))
+          (session-set! req "user" (:id user))
           (.redirect res "/"))
         (catch :default e
           (.send res (str "Error: " e)))))))

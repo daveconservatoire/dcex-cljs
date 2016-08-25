@@ -116,11 +116,11 @@
 
 (om/defui ^:once DesktopMenu
   static om/IQuery
-  (query [_] [{:app/current-user [:user/name :user/score]}])
+  (query [_] [:user/name :user/score])
 
   Object
   (render [this]
-    (let [{:keys []} (om/props this)]
+    (let [{:user/keys [name]} (om/props this)]
       (dom/div #js {:className "header hidden-phone"}
         (dom/div #js {:className "navbar"}
           (dom/div #js {:className "navbar-inner"}
@@ -137,8 +137,26 @@
                     "Personal Tuition")
                   (button {:react-key "btn-3" :href "/contact", ::button-color "red"}
                     "Contact")
-                  (button {:react-key "btn-4" ::r/handler ::r/login :className "loginbutton", ::button-color "red"}
-                    "Login")
+                  (if name
+                    (dom/div #js {:className "btn-group loginbutton"}
+                      (link {:className "btn btn-success " ::r/handler ::r/profile
+                             :style #js {:marginRight 0}}
+                        (dom/i #js {:className "icon-user icon-white"}) " " name " ("
+                        (dom/span #js {:id "pointstotal"}
+                          "XXX")
+                        " Points)")
+                      (dom/a #js {:className "btn btn-success dropdown-toggle", :data-toggle "dropdown", :href "#profilemenu"}
+                        (dom/span #js {:className "caret"}))
+                      (dom/ul #js {:className "dropdown-menu profilemenudd"}
+                        (dom/li #js {}
+                          (dom/a #js {:href "/profile"}
+                            (dom/i #js {:className "icon-pencil"}) " My Profile"))
+                        (dom/li #js {:className "divider"})
+                        (dom/li #js {}
+                          (dom/a #js {:href "/site/logout"}
+                            (dom/i #js {:className "icon-share-alt"}) "Logout"))))
+                    (button {:react-key "btn-4" ::r/handler ::r/login :className "loginbutton", ::button-color "red"}
+                      "Login"))
                   (dom/span #js {:id "socialmediaicons"}
                     (dom/a #js {:href "http://www.youtube.com/daveconservatoire", :target "_blank"}
                       (dom/img #js {:className "socialicon", :src "/img/socialicons/youtube.png"}))

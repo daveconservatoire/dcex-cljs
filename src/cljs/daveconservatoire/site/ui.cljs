@@ -432,6 +432,19 @@
 
 (defmethod r/route->component ::r/lesson [_] LessonPage)
 
+(om/defui ^:once ProfilePage
+  static om/IQuery
+  (query [_]
+    [{:app/me [:user/name]}])
+
+  Object
+  (render [this]
+    (let [{:user/keys [name]} (:app/me (om/props this))]
+      (container
+        (dom/div nil "Profile Page " name)))))
+
+(defmethod r/route->component ::r/profile [_] ProfilePage)
+
 (om/defui ^:once NotFoundPage
   Object
   (render [this]
@@ -471,8 +484,9 @@
 
   static om/IQuery
   (query [this]
-    '[:app/route :ui/react-key
-      {:route/data ?route/data}])
+    [:app/route :ui/react-key
+     {:app/me (om/get-query uid/DesktopMenu)}
+     {:route/data '?route/data}])
 
   Object
   (componentWillMount [this]
@@ -482,9 +496,9 @@
       (om/set-query! this {:params {:route/data (u/normalize-route-data-query initial-query)}})))
 
   (render [this]
-    (let [{:keys [app/route route/data ui/react-key]} (om/props this)]
+    (let [{:keys [app/route app/me route/data ui/react-key]} (om/props this)]
       (dom/div #js {:key react-key}
-        (uid/desktop-menu {:react-key "desktop-menu"})
+        (uid/desktop-menu (assoc me :react-key "desktop-menu"))
         (transition-group #js {:transitionName "loading" :transitionEnterTimeout 200 :transitionLeaveTimeout 200}
           (if (= :loading (get-in data [:ui/fetch-state ::df/type]))
             (loading nil)))

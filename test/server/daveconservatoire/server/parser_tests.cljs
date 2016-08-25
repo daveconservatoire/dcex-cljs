@@ -77,3 +77,14 @@
                 {:db/id 67 :db/table :lesson :lesson/title "Exercise: Tempo Markings Quiz" :lesson/type :lesson.type/exercise
                  :url/slug "tempo-markings"}}))
         (done)))))
+
+(deftest test-read-me
+  (async done
+    (go
+      (is (= (->> (p/parse {:db ts/connection :current-user-id 720} [{:app/me [:db/id]}]) <!
+                  :app/me)
+             {:db/id 720 :db/table :user}))
+      (is (= (->> (p/parse {:db ts/connection} [{:app/me [:db/id]}]) <!
+                  :app/me)
+             nil))
+      (done))))

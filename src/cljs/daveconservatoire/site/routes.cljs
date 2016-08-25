@@ -26,6 +26,7 @@
 (def routes
   ["/" {""                 ::home
         "login"            ::login
+        "profile"          ::profile
         "about"            ::about
         "donate"           ::donate
         "tuition"          ::tuition
@@ -44,7 +45,7 @@
 (s/def ::route (s/keys :req [::handler] :opt [::params]))
 
 (defn path-for [{:keys [::handler ::params] :as route
-                 :or {::params {}}}]
+                 :or   {::params {}}}]
   {:pre [(s/valid? ::route route)]}
   (apply bidi/path-for routes handler (flatten1 params)))
 
@@ -55,7 +56,7 @@
 (defn match-route [path]
   (if-let [{:keys [handler route-params]} (bidi/match-route routes path)]
     {::handler handler
-     ::params route-params}))
+     ::params  route-params}))
 
 (s/fdef match-route
   :args (s/cat :path ::path)

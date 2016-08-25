@@ -54,3 +54,9 @@
 (s/def :model/playlist-item
   (s/keys :opt [:db/id :youtube/id :playlist-item/title
                 :playlist-item/text :playlist-item/credit]))
+
+(s/def :user/name string?)
+(s/def :user/email string?)
+
+(s/def :model/user
+  (s/keys :opt [:db/id :user/name :user/email]))

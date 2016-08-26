@@ -11,8 +11,7 @@
 
 (def db-specs
   (-> (l/prepare-schema
-        {:playlist-item
-         {:key    :playlist-item,
+        [{:key    :playlist-item,
           :name   "PlaylistItem",
           :fields {:db/id                   "id"
                    :youtube/id              "youtubeid"
@@ -21,12 +20,10 @@
                    :playlist-item/text      "text"
                    :playlist-item/credit    "credit"}}
 
-         :search-term
          {:key    :search-term
           :name   "SearchTerm"
           :fields {}}
 
-         :topic
          {:key    :topic,
           :name   "Topic",
           :fields {:db/id             "id"
@@ -36,7 +33,6 @@
                    :topic/title       "title"
                    :topic/colour      "colour"}},
 
-         :course
          {:key    :course,
           :name   "Course",
           :fields {:db/id              "id"
@@ -46,7 +42,6 @@
                    :url/slug           "urltitle"
                    :ordering/position  "homepage_order"}},
 
-         :lesson
          {:key    :lesson,
           :name   "Lesson",
           :fields {:db/id              "id"
@@ -58,12 +53,11 @@
                    :lesson/description "description"
                    :lesson/keywords    "keywords"}}
 
-         :user
-         {:key :user
-          :name "User"
-          :fields {:db/id "id"
-                   :user/name "name"
-                   :user/email "email"}}})
+         {:key    :user
+          :name   "User"
+          :fields {:db/id      "id"
+                   :user/name  "name"
+                   :user/email "email"}}])
 
       ; Course
       (l/row-getter :course/topics

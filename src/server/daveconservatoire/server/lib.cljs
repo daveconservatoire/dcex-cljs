@@ -80,7 +80,7 @@
 ;;; DB PART
 
 (defn prepare-schema [schema]
-  (zipmap (keys schema)
+  (zipmap (map :key schema)
           (map #(let [m (:fields %)]
                  (assoc %
                    ::reader-map
@@ -92,7 +92,7 @@
                                    (get row field))))
                              (vals m)))
                    :fields' (zipmap (map keyword (vals m)) (keys m))))
-               (vals schema))))
+               schema)))
 
 (defn row-getter [schema k f]
   (let [table (keyword (namespace k))]

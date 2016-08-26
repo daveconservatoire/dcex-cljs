@@ -116,9 +116,7 @@
 
 (om/defui ^:once DesktopMenu
   static om/Ident
-  (ident [_ props]
-    (if (:db/id props)
-      (u/model-ident props)))
+  (ident [_ props] (u/model-ident props))
 
   static om/IQuery
   (query [_] [:user/name :user/score])

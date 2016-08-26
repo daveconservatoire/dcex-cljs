@@ -581,7 +581,7 @@
 
   Object
   (render [this]
-    (let [{:keys [app/me]} (:app/me (om/props this))]
+    (let [{:keys [app/me]} (om/props this)]
       (profile-page (profile-dashboard me)))))
 
 (defmethod r/route->component ::r/profile [_] ProfilePage)

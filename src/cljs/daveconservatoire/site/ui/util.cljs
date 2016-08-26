@@ -24,11 +24,18 @@
   :args (s/cat :attrs map?)
   :ret map?)
 
+(defn merge-props [a b]
+  (merge-with html-attr-merge a b))
+
+(s/fdef merge-props
+  :args (s/cat :a map? :b map?)
+  :ret map?)
+
 (defn props->html
   ([props] (props->html {} props))
   ([attrs props]
    (->> (dissoc props :react-key)
-        (merge-with html-attr-merge attrs)
+        (merge-props attrs)
         (parse-route)
         (into {} (filter (fn [[k _]] (not (namespace k)))))
         (clj->js))))

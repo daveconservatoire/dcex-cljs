@@ -3,6 +3,7 @@
             [om.dom :as dom]
             [daveconservatoire.site.routes :as r :refer [routes]]
             [daveconservatoire.site.ui.util :as u]
+            [daveconservatoire.site.ui.listeners :as l]
             [untangled.client.core :as uc]
             [untangled.client.impl.data-fetch :as df]
             [cljs.spec :as s]))
@@ -114,6 +115,51 @@
 
 (def footer (om/factory Footer))
 
+(om/defui ^:once ButtonDropdown
+  Object
+  (initLocalState [_] {:open? false})
+
+  (render [this]
+    (let [{:keys [::title] :as props} (om/props this)
+          {:keys [open?]} (om/get-state this)]
+      (dom/div #js {:className (str "btn-group loginbutton" (if open? " open"))}
+        (link (u/merge-props
+                {:className "btn btn-success"
+                 :style     {:marginRight 0}}
+                props)
+          title)
+        (if open?
+          (l/simple-listener {:on-trigger #(om/set-state! this {:open? false})}))
+        (dom/a #js {:className "btn btn-success dropdown-toggle", :href "#"
+                    :onClick #(om/set-state! this {:open? (not open?)})}
+          (dom/span #js {:className "caret"}))
+        (apply dom/ul #js {:className "dropdown-menu profilemenudd"} (om/children this))))))
+
+(def button-dropdown (om/factory ButtonDropdown))
+
+(defn button-dropdown-item [& children]
+  (apply dom/li #js {} children))
+
+(defn button-dropdown-divider []
+  (dom/li #js {:className "divider"}))
+
+(defn user-menu-status [{:user/keys [name]}]
+  (button-dropdown
+    {::r/handler ::r/profile
+     :react-key  "user-menu-status"
+     ::title     (dom/div nil
+                   (dom/i #js {:className "icon-user icon-white"}) " " name " ("
+                   (dom/span #js {:id "pointstotal"}
+                     "XXX")
+                   " Points)")}
+    (button-dropdown-item
+      (link {::r/handler ::r/profile}
+        (dom/i #js {:className "icon-pencil"}) " My Profile"))
+    (button-dropdown-divider)
+    (button-dropdown-item
+      (link {}
+        (dom/i #js {:className "icon-share-alt"}) "Logout"))))
+
 (om/defui ^:once DesktopMenu
   static om/Ident
   (ident [_ props] (u/model-ident props))
@@ -123,7 +169,7 @@
 
   Object
   (render [this]
-    (let [{:user/keys [name]} (om/props this)]
+    (let [{:user/keys [name] :as props} (om/props this)]
       (dom/div #js {:className "header hidden-phone"}
         (dom/div #js {:className "navbar"}
           (dom/div #js {:className "navbar-inner"}
@@ -141,23 +187,7 @@
                   (button {:react-key "btn-3" :href "/contact", ::button-color "red"}
                     "Contact")
                   (if name
-                    (dom/div #js {:className "btn-group loginbutton"}
-                      (link {:className "btn btn-success " ::r/handler ::r/profile
-                             :style #js {:marginRight 0}}
-                        (dom/i #js {:className "icon-user icon-white"}) " " name " ("
-                        (dom/span #js {:id "pointstotal"}
-                          "XXX")
-                        " Points)")
-                      (dom/a #js {:className "btn btn-success dropdown-toggle", :data-toggle "dropdown", :href "#profilemenu"}
-                        (dom/span #js {:className "caret"}))
-                      (dom/ul #js {:className "dropdown-menu profilemenudd"}
-                        (dom/li #js {}
-                          (dom/a #js {:href "/profile"}
-                            (dom/i #js {:className "icon-pencil"}) " My Profile"))
-                        (dom/li #js {:className "divider"})
-                        (dom/li #js {}
-                          (dom/a #js {:href "/site/logout"}
-                            (dom/i #js {:className "icon-share-alt"}) "Logout"))))
+                    (user-menu-status props)
                     (button {:react-key "btn-4" ::r/handler ::r/login :className "loginbutton", ::button-color "red"}
                       "Login"))
                   (dom/span #js {:id "socialmediaicons"}

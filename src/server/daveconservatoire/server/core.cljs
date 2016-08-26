@@ -11,6 +11,7 @@
             [daveconservatoire.server.data :as d]
             [daveconservatoire.server.parser :as parser]
             [daveconservatoire.server.facebook :as fb]
+            [express.core :as ex]
             [goog.object :as gobj]
             [knex.core :as knex]
             [om.transit :as t]))
@@ -31,10 +32,6 @@
 (defonce session (nodejs/require "express-session"))
 (defonce RedisStore ((nodejs/require "connect-redis") session))
 
-(defn express-get [app pattern f] (.get app pattern f))
-(defn express-post [app pattern f] (.post app pattern f))
-(defn express-use [app middleware] (.use app middleware))
-
 (defonce connection
   (knex/create-connection
     {:client     "mysql"
@@ -54,13 +51,13 @@
     (.on s "end" (fn [] (put! c @out)))
     c))
 
-(express-use app (compression))
-(express-use app (.static express "resources/public"))
-(express-use app (session #js {:secret "Ksa28zi*PdbzLm?qLb]b"
-                               :store (RedisStore. #js {})
-                               :resave true
+(ex/use app (compression))
+(ex/use app (.static express "resources/public"))
+(ex/use app (session #js {:secret                 "Ksa28zi*PdbzLm?qLb]b"
+                               :store             (RedisStore. #js {})
+                               :resave            true
                                :saveUninitialized false
-                               :cookie #js {:maxAge 600000}}))
+                               :cookie            #js {:maxAge 600000}}))
 
 (defn read-input [s] (ct/read (t/reader) s))
 (defn spit-out [s] (ct/write (t/writer) s))
@@ -78,14 +75,15 @@
 (defn current-user [req]
   (or (gobj/getValueByKeys req "session" "user") nil))
 
-(express-post app "/api"
-  (fn [req res]
+(ex/post app "/api"
+         (fn [req res]
     (go
       (try
         (let [{:keys [read write]} (req-io req)
               tx (-> (read-stream req) <!
                      read)
               out (<! (parser/parse {:db connection
+                                     :http-request req
                                      :current-user-id (current-user req)}
                                     tx))]
           (js/console.log "in")
@@ -96,20 +94,21 @@
         (catch :default e
           (.send res (str "Error: " e)))))))
 
-(express-post app "/api-pretty"
-  (fn [req res]
+(ex/post app "/api-pretty"
+         (fn [req res]
     (go
       (try
         (let [tx (-> (read-stream req) <!
                      (read-string))]
           (.send res (with-out-str
                        (cljs.pprint/pprint (<! (parser/parse {:db connection
+                                                              :http-request req
                                                               :current-user-id (current-user req)} tx))))))
         (catch :default e
           (.send res (str "Error: " e)))))))
 
-(express-get app "/facebook-login"
-  (fn [req res]
+(ex/get app "/facebook-login"
+        (fn [req res]
     (.redirect res (fb/login-url (assoc facebook ::fb/scope [:public-profile :email])))))
 
 (defn to-facebook-keys [query]
@@ -138,27 +137,20 @@
   :args (s/cat :response ::fb/auth-response)
   :ret ::db-user)
 
-(defn session-set! [req k v]
-  (gobj/set (.-session req) k v))
-
-(s/fdef session-set!
-  :args (s/cat :req any? :key string? :value string?)
-  :ret any?)
-
-(express-get app "/facebook-return"
-  (fn [req res]
+(ex/get app "/facebook-return"
+        (fn [req res]
     (go
       (try
         (let [query (->> (.. req -query) js->clj
                          (to-facebook-keys))
               user (<? (process-facebook-return query))]
-          (session-set! req "user" (:id user))
+          (ex/session-set! req "user" (:id user))
           (.redirect res "/profile"))
         (catch :default e
           (.send res (str "Error: " e)))))))
 
-(express-get app #".+"
-  (fn [_ res]
+(ex/get app #".+"
+        (fn [_ res]
     (.sendFile res (str (.cwd nodejs/process) "/resources/public/index.html"))))
 
 (defn -main []

@@ -143,22 +143,23 @@
 (defn button-dropdown-divider []
   (dom/li #js {:className "divider"}))
 
-(defn user-menu-status [{:user/keys [name]}]
-  (button-dropdown
-    {::r/handler ::r/profile
-     :react-key  "user-menu-status"
-     ::title     (dom/div nil
-                   (dom/i #js {:className "icon-user icon-white"}) " " name " ("
-                   (dom/span #js {:id "pointstotal"}
-                     "XXX")
-                   " Points)")}
-    (button-dropdown-item
-      (link {::r/handler ::r/profile}
-        (dom/i #js {:className "icon-pencil"}) " My Profile"))
-    (button-dropdown-divider)
-    (button-dropdown-item
-      (link {}
-        (dom/i #js {:className "icon-share-alt"}) "Logout"))))
+(defn user-menu-status [comp]
+  (let [{:user/keys [name]} (om/props comp)]
+    (button-dropdown
+      {::r/handler ::r/profile
+       :react-key  "user-menu-status"
+       ::title     (dom/div nil
+                     (dom/i #js {:className "icon-user icon-white"}) " " name " ("
+                     (dom/span #js {:id "pointstotal"}
+                       "XXX")
+                     " Points)")}
+      (button-dropdown-item
+        (link {::r/handler ::r/profile}
+          (dom/i #js {:className "icon-pencil"}) " My Profile"))
+      (button-dropdown-divider)
+      (button-dropdown-item
+        (dom/a #js {:href "#" :onClick #(om/transact! comp ['(app/logout)])}
+           (dom/i #js {:className "icon-share-alt"}) "Logout")))))
 
 (om/defui ^:once DesktopMenu
   static om/Ident
@@ -187,7 +188,7 @@
                   (button {:react-key "btn-3" :href "/contact", ::button-color "red"}
                     "Contact")
                   (if name
-                    (user-menu-status props)
+                    (user-menu-status this)
                     (button {:react-key "btn-4" ::r/handler ::r/login :className "loginbutton", ::button-color "red"}
                       "Login"))
                   (dom/span #js {:id "socialmediaicons"}

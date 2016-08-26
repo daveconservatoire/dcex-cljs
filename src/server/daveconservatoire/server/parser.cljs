@@ -4,9 +4,10 @@
             [clojure.set :as set]
             [cljs.core.async :as async :refer [<! >! put! close!]]
             [cljs.core.async.impl.protocols :refer [Channel]]
+            [cljs.spec :as s]
+            [express.core :as ex]
             [knex.core :as knex]
             [daveconservatoire.models]
-            [cljs.spec :as s]
             [daveconservatoire.server.lib :as l]))
 
 (def db-specs
@@ -102,8 +103,20 @@
 (def root-readers
   [root-endpoints l/placeholder-node #(vector :error :not-found)])
 
+;; MUTATIONS
+
+(defmulti mutate om/dispatch)
+
+(defmethod mutate 'app/logout
+  [{:keys [http-request]} _ _]
+  {:action (fn [] (ex/session-set! http-request "user" nil))})
+
+;; PARSER
+
+(def parser (om/parser {:read l/read :mutate mutate}))
+
 (defn parse [env tx]
-  (-> (l/parser
+  (-> (parser
         (assoc env
           ::l/readers root-readers
           :query-cache (atom {})

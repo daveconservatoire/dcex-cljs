@@ -40,3 +40,8 @@
            (swap! state (fn [st]
                           (reduce (fn [s [k v]] (assoc-in s k v))
                                   st pairs)))))))})
+
+(defmethod m/mutate 'app/logout
+  [{:keys [state]} _ _]
+  {:action #(swap! state dissoc :app/me)
+   :remote true})

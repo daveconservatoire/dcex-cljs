@@ -57,6 +57,7 @@
 
 (s/def :user/name string?)
 (s/def :user/email string?)
+(s/def :user/about string?)
 
 (s/def :model/user
   (s/keys :opt [:db/id :user/name :user/email]))

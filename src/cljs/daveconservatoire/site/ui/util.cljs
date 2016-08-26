@@ -1,7 +1,7 @@
 (ns daveconservatoire.site.ui.util
   (:require [om.next :as om :include-macros true]
             [daveconservatoire.site.routes :as r :refer [routes]]
-            [om.util :as om-u]
+            [om.util :as omu]
             [goog.string :as gstr]
             [cljs.spec :as s]))
 
@@ -45,7 +45,7 @@
 
 (s/fdef model-ident
   :args (s/cat :model (s/keys :opt [:db/id :db/table]))
-  :ret om-u/ident?)
+  :ret omu/ident?)
 
 (defn route-prop [c [k route-param]]
   (let [{:keys [app/route] :as props} (if (om/component? c) (om/props c) c)]

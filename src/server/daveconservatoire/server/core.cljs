@@ -56,11 +56,11 @@
 
 (express-use app (compression))
 (express-use app (.static express "resources/public"))
-(express-use app (session #js {:secret "keyboard caaaat"
+(express-use app (session #js {:secret "Ksa28zi*PdbzLm?qLb]b"
                                :store (RedisStore. #js {})
-                               :resave false
+                               :resave true
                                :saveUninitialized false
-                               :cookie #js {:maxAge 60000}}))
+                               :cookie #js {:maxAge 600000}}))
 
 (defn read-input [s] (ct/read (t/reader) s))
 (defn spit-out [s] (ct/write (t/writer) s))

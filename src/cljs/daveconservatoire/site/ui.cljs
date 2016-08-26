@@ -50,6 +50,15 @@
 
 (def link (om/factory Link))
 
+(defn nav-list [props & children]
+  (apply dom/div (u/props->html {:className "nav nav-list bs-docs-sidenav"} props)
+    children))
+
+(defn nav-item [props content]
+  (dom/li #js {}
+    (dom/a (u/props->html {} props)
+      (dom/i #js {:className "icon-chevron-right"}) content)))
+
 (om/defui ^:once TopicLink
   static om/IQuery
   (query [_] [:topic/title :url/slug])
@@ -283,8 +292,7 @@
   (render [this]
     (let [{:keys [topic/course topic/lessons topic/title url/slug]} (om/props this)]
       (dom/div nil
-        (course-topics-menu (om/computed course {:ui/topic-slug slug})))
-      )))
+        (course-topics-menu (om/computed course {:ui/topic-slug slug}))))))
 
 (def lesson-topic-menu (om/factory LessonTopicMenu))
 
@@ -432,16 +440,149 @@
 
 (defmethod r/route->component ::r/lesson [_] LessonPage)
 
-(om/defui ^:once ProfilePage
+(om/defui ^:once ProfileDashboard
+  static om/Ident
+  (ident [_ props]
+    (u/model-ident props))
+
   static om/IQuery
   (query [_]
-    [{:app/me [:user/name]}])
+    [:db/id :user/name :user/about])
 
   Object
   (render [this]
-    (let [{:user/keys [name]} (:app/me (om/props this))]
-      (container
-        (dom/div nil "Profile Page " name)))))
+    (let [{:user/keys [name about]} (om/props this)]
+      (dom/div #js {:className "span10"}
+        (dom/div #js {:className "row"}
+          (dom/div #js {:className "profile-topbar"}
+            (dom/div #js {:className "span5 whiteback"}
+              (dom/div #js {:className "padding"}
+                (dom/a #js {:href "#myModal", :role "button", :className "btn dc-btn-red pull-right", :data-toggle "modal"}
+                  "Update your info")
+                (dom/h1 #js {:style #js {:margin 0}} name)
+                (dom/h3 #js {} "About me")
+                (dom/p #js {} about)))
+            (dom/div #js {:className "span5 whiteback"}
+              (dom/div #js {:className "padding"}
+                (dom/i #js {:className "icon-star intro-icon-large dc-text-orange pull-right"})
+                (dom/h1 #js {:style #js {:margin 0}} "My Subscription")
+                (dom/h1 #js {} "$9.00 per month")
+                (dom/p #js {} "Thank you so much for your subscription. Your support is vital in helping us serve music students around the world.")))))
+        (dom/div #js {:className "pad30"})
+        (dom/div #js {:className "row"}
+          (dom/div #js {:className "span5 whiteback"}
+            (dom/div #js {:className "padding"}
+              (dom/h3 #js {}
+                "Statistics")
+              (dom/table #js {:style #js {:margin 0 :width "100%"}}
+                (dom/tbody #js {}
+                  (dom/tr #js {}
+                    (dom/td #js {} "Groove Score:")
+                    (dom/td #js {:className "pull-right"} "5830"))
+                  (dom/tr #js {}
+                    (dom/td #js {} "Lessons Viewed:")
+                    (dom/td #js {:className "pull-right"} "324"))
+                  (dom/tr #js {}
+                    (dom/td #js {} "Exercises Answered:")
+                    (dom/td #js {:className "pull-right"} "1854"))
+                  (dom/tr #js {}
+                    (dom/td #js {} "Member Since:")
+                    (dom/td #js {:className "pull-right"} "July 25th 2015"))))))
+          (dom/div #js {:className "span5 whiteback"}
+            (dom/div #js {:className "padding"}
+              (dom/h3 #js {} "Recent Activity")
+              (dom/table #js {:className "table "}
+                (dom/tbody #js {}
+                  (dom/tr #js {}
+                    (dom/td #js {}
+                      (dom/i #js {:className "icon-facetime-video"}))
+                    (dom/td #js {}
+                      (dom/strong #js {} "Watched:")
+                      (dom/a #js {:href "/lesson/bassclef"} "The Bass Clef")))
+                  (dom/tr #js {}
+                    (dom/td #js {}
+                      (dom/i #js {:className "icon-list-alt"}))
+                    (dom/td #js {}
+                      (dom/strong #js {} "Practiced:")
+                      (dom/a #js {:href "/lesson/treble-clef-reading"} "Exercise: Reading the Treble Clef")))
+                  (dom/tr #js {}
+                    (dom/td #js {}
+                      (dom/i #js {:className "icon-star-empty"}))
+                    (dom/td #js {}
+                      (dom/strong #js {}
+                        "Mastered:")
+                      (dom/a #js {:href "/lesson/treble-clef-reading"}
+                        "Exercise: Reading the Treble Clef")))
+                  (dom/tr #js {}
+                    (dom/td #js {}
+                      (dom/i #js {:className "icon-list-alt"}))
+                    (dom/td #js {}
+                      (dom/strong #js {}
+                        "Practiced:")
+                      (dom/a #js {:href "/lesson/treble-clef-reading"}
+                        "Exercise: Reading the Treble Clef")))
+                  (dom/tr #js {})
+                  (dom/tr #js {})
+                  (dom/tr #js {})
+                  (dom/tr #js {}
+                    (dom/td #js {}
+                      (dom/i #js {:className "icon-facetime-video"}))
+                    (dom/td #js {}
+                      (dom/strong #js {}
+                        "Watched:")
+                      (dom/a #js {:href "/lesson/introducing-key"}
+                        "What is a key?")))
+                  (dom/tr #js {})
+                  (dom/tr #js {}
+                    (dom/td #js {}
+                      (dom/i #js {:className "icon-facetime-video"}))
+                    (dom/td #js {}
+                      (dom/strong #js {}
+                        "Watched:")
+                      (dom/a #js {:href "/lesson/pitch-and-octaves"}
+                        "Pitch and Octaves")))
+                  (dom/tr #js {})
+                  (dom/tr #js {}
+                    (dom/td #js {}
+                      (dom/i #js {:className "icon-star-empty"}))
+                    (dom/td #js {}
+                      (dom/strong #js {}
+                        "Mastered:")
+                      (dom/a #js {:href "/lesson/intervals-12"}
+                        "Exercise: Major 7th")))
+                  (dom/tr #js {})
+                  (dom/tr #js {})
+                  (dom/tr #js {}
+                    (dom/td #js {}
+                      (dom/i #js {:className "icon-star-empty"}))
+                    (dom/td #js {}
+                      (dom/strong #js {}
+                        "Mastered:")
+                      (dom/a #js {:href "/lesson/intervals-11"}
+                        "Exercise: Major 2nd"))))))))))))
+
+(def profile-dashboard (om/factory ProfileDashboard))
+
+(defn profile-page [child]
+  (container
+    (dom/div #js {:style #js {:height 13}})
+    (dom/div #js {:className "row"}
+      (dom/div #js {:className "span2"}
+        (nav-list {}
+          (nav-item {::r/handler ::r/profile} "Dashboard")
+          (nav-item {::r/handler ::r/profile} "Activity Log")
+          (nav-item {::r/handler ::r/profile} "Focus")))
+      child)))
+
+(om/defui ^:once ProfilePage
+  static om/IQuery
+  (query [_]
+    [{:app/me (om/get-query ProfileDashboard)}])
+
+  Object
+  (render [this]
+    (let [{:keys [app/me]} (:app/me (om/props this))]
+      (profile-page (profile-dashboard me)))))
 
 (defmethod r/route->component ::r/profile [_] ProfilePage)
 

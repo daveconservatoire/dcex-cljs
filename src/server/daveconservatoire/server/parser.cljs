@@ -57,7 +57,8 @@
           :name   "User"
           :fields {:db/id      "id"
                    :user/name  "name"
-                   :user/email "email"}}])
+                   :user/email "email"
+                   :user/about "biog"}}])
 
       ; Course
       (l/row-getter :course/topics

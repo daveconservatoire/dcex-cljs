@@ -1,9 +1,8 @@
 (ns daveconservatoire.site.mutations
-  (:require [untangled.client.core :as uc]
-            [untangled.client.mutations :as m]
+  (:require [untangled.client.mutations :as m]
             [untangled.client.data-fetch :as df]
             [daveconservatoire.site.routes :as r]
-            [daveconservatoire.site.ui :as ui]
+            [daveconservatoire.site.ui-dave :as uid]
             [daveconservatoire.site.ui.util :as uiu]
             [om.next :as om]
             [om.util :as omu]))
@@ -25,7 +24,8 @@
                       :route/data norm-query}]
        (if data-query
          (do
-           (df/load-data reconciler [{:route/data data-query}] :post-mutation 'fetch/complete-set-route)
+           (df/load-data reconciler [{:route/data data-query}
+                                     {:app/me (om/get-query uid/DesktopMenu)}] :post-mutation 'fetch/complete-set-route)
            (swap! state assoc :app/route-swap page-data))
          (update-page env page-data))))})
 
@@ -34,8 +34,9 @@
   {:action
    (fn []
      (update-page env (get @state :app/route-swap))
-     (let [pairs (filter (fn [[k _]] (omu/ident? k)) (get @state :route/data))]
-       (if (seq pairs)
-         (swap! state (fn [st]
-                        (reduce (fn [s [k v]] (assoc-in s k v))
-                                st pairs))))))})
+     (if (map? (get @state :route/data))
+       (let [pairs (filter (fn [[k _]] (omu/ident? k)) (get @state :route/data))]
+         (if (seq pairs)
+           (swap! state (fn [st]
+                          (reduce (fn [s [k v]] (assoc-in s k v))
+                                  st pairs)))))))})

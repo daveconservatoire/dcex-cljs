@@ -153,7 +153,7 @@
                          (to-facebook-keys))
               user (<? (process-facebook-return query))]
           (session-set! req "user" (:id user))
-          (.redirect res "/"))
+          (.redirect res "/profile"))
         (catch :default e
           (.send res (str "Error: " e)))))))
 

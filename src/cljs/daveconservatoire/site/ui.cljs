@@ -8,7 +8,8 @@
             [untangled.client.core :as uc]
             [untangled.client.mutations :as um]
             [untangled.client.impl.data-fetch :as df]
-            [cljs.spec :as s]))
+            [cljs.spec :as s]
+            [om.util :as omu]))
 
 (s/def ::component om/component?)
 (s/def ::button-color #{"yellow" "orange" "redorange" "red"})
@@ -181,8 +182,8 @@
     (let [{:keys [lesson/title url/slug] :as lesson} (om/props this)]
       (dom/div #js {:className "span2"}
         (link {::r/handler ::r/lesson ::r/params {::r/slug slug} :className "thumbnail vertical-shadow suggested-action"}
-          (dom/img #js {:src (u/lesson-thumbnail-url lesson) :key "img"})
-          (dom/p #js {:key "p"} title))))))
+              (dom/img #js {:src (u/lesson-thumbnail-url lesson) :key "img"})
+              (dom/p #js {:key "p"} title))))))
 
 (def lesson-cell (om/factory LessonCell))
 
@@ -200,8 +201,8 @@
                         (= slug (om/get-computed this :ui/topic-slug)))]
       (dom/li #js {:className (if selected? "dc-bg-orange active" "")}
         (link {::r/handler ::r/topic ::r/params {::r/slug slug}}
-          (dom/i #js {:className "icon-chevron-right" :key "i"})
-          title)))))
+              (dom/i #js {:className "icon-chevron-right" :key "i"})
+              title)))))
 
 (def topic-side-bar-link (om/factory TopicSideBarLink))
 
@@ -574,10 +575,28 @@
           (nav-item {::r/handler ::r/profile} "Focus")))
       child)))
 
+(defn comp-state [c]
+  (some-> c om/get-reconciler :config :state))
+
+(defn auth-state [state]
+  (let [user (get state :app/me)]
+    (cond
+      (some-> user first (= :user/by-id)) ::authenticated
+      (or (some-> user first (= :unknown))
+          (and (map? user)
+               (contains? user :ui/fetch-state))) ::loading
+      :else ::guest)))
+
+(defprotocol IRequireAuth
+  (auth-required? [_]))
+
 (om/defui ^:once ProfilePage
   static om/IQuery
   (query [_]
     [{:app/me (om/get-query ProfileDashboard)}])
+
+  static IRequireAuth
+  (auth-required? [_] true)
 
   Object
   (render [this]
@@ -606,9 +625,9 @@
   (render [this]
     (dom/div #js {:style #js {:position "fixed" :top 0 :left 0 :right 0}}
       (dom/div #js {:className "loading-bar"
-                    :style #js {:background "#F7941E"
-                                :transition "width 200ms"
-                                :height 4}}))))
+                    :style     #js {:background "#F7941E"
+                                    :transition "width 200ms"
+                                    :height     4}}))))
 
 (def loading (om/factory Loading))
 
@@ -617,7 +636,8 @@
   (initial-state [_ _]
     (let [route (r/current-handler)]
       {:app/route  route
-       :route/data (r/route->initial-state route)}))
+       :route/data (r/route->initial-state route)
+       :app/me     {:ui/fetch-state {}}}))
 
   static om/IQueryParams
   (params [this]
@@ -636,12 +656,28 @@
           initial-query (om/get-query page-comp)]
       (om/set-query! this {:params {:route/data (u/normalize-route-data-query initial-query)}})))
 
+  (componentDidMount [this]
+    (add-watch (some-> (om/get-reconciler this) :config :state)
+               :auth-state-detector
+               (fn [_ _ o n]
+                 (let [{:app/keys [route]} n]
+                   (if (or (not= (:app/route o) route)
+                           (not= (:app/me o) (:app/me n)))
+                     (let [comp (some-> route r/route->component*)
+                           auth-req? (if (implements? IRequireAuth comp)
+                                   (auth-required? comp) false)]
+                       (when (and auth-req? (= (auth-state n) ::guest))
+                         (om/transact! this `[(app/set-route ~{::r/handler ::r/login})]))))))))
+
+  (componentWillUnmount [this]
+    (remove-watch (some-> (om/get-reconciler this) :config :state) :auth-state-detector))
+
   (render [this]
     (let [{:keys [app/route app/me route/data ui/react-key]} (om/props this)]
       (dom/div #js {:key react-key}
         (uid/desktop-menu (assoc me :react-key "desktop-menu"))
         (transition-group #js {:transitionName "loading" :transitionEnterTimeout 200 :transitionLeaveTimeout 200}
-          (if (= :loading (get-in data [:ui/fetch-state ::df/type]))
-            (loading nil)))
+                          (if (= :loading (get-in data [:ui/fetch-state ::df/type]))
+                            (loading nil)))
         ((u/route->factory route) data)
         (uid/footer {:react-key "footer"})))))

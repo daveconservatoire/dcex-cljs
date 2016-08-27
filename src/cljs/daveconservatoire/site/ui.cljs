@@ -56,8 +56,11 @@
     children))
 
 (defn nav-item [props content]
-  (dom/li #js {}
-    (dom/a (u/props->html {} props)
+  (dom/li (u/props->html
+            (cond-> {}
+              (::selected props) (assoc :className "dc-bg-orange active"))
+            (dissoc props ::r/handler))
+    (link (select-keys props [::r/handler ::r/params])
       (dom/i #js {:className "icon-chevron-right"}) content)))
 
 (om/defui ^:once TopicLink
@@ -199,10 +202,9 @@
     (let [{:keys [url/slug topic/title]} (om/props this)
           selected? (or (u/current-uri-slug? ::r/topic slug)
                         (= slug (om/get-computed this :ui/topic-slug)))]
-      (dom/li #js {:className (if selected? "dc-bg-orange active" "")}
-        (link {::r/handler ::r/topic ::r/params {::r/slug slug}}
-              (dom/i #js {:className "icon-chevron-right" :key "i"})
-              title)))))
+      (nav-item {::selected  selected?
+                 ::r/handler ::r/topic ::r/params {::r/slug slug}}
+        title))))
 
 (def topic-side-bar-link (om/factory TopicSideBarLink))
 
@@ -220,13 +222,13 @@
           slug (om/get-computed this :ui/topic-slug)]
       (dom/div nil
         (dom/h6 nil "Course:")
-        (dom/ul #js {:className "nav nav-list bs-docs-sidenav activetopic" :style #js {:marginTop 10}}
+        (nav-list {:className "activetopic" :style #js {:marginTop 10}}
           (dom/li #js {:className "dc-bg-yellow active activetopiclink"}
             (dom/a #js {:className "activetopiclink" :href "#"}
               title)))
         (dom/div nil
           (dom/h6 nil "Topics:")
-          (dom/ul #js {:className "nav nav-list bs-docs-sidenav"}
+          (nav-list {}
             (map (comp topic-side-bar-link #(om/computed % {:ui/topic-slug slug}))
                  topics)))))))
 

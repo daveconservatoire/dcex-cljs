@@ -122,7 +122,7 @@
           (dom/div #js {:className "services"}
             (dom/div #js {:className "auth-services row"}
               (dom/div #js {:style #js {:height 100}, :className "span4 suggested-action google_oauth"}
-                (dom/a #js {:className "auth-link google_oauth", :href "/login?service=google"}
+                (dom/a #js {:className "auth-link google_oauth", :href "/google-login"}
                   (dom/span #js {:className "auth-title"}
                     "Login with Google")
                   (dom/span #js {:className "auth-icon google_oauth"}

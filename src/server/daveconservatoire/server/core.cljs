@@ -10,7 +10,7 @@
             [common.async :refer-macros [<? go-catch]]
             [daveconservatoire.server.data :as d]
             [daveconservatoire.server.parser :as parser]
-            [daveconservatoire.server.facebook :as fb]
+            [nodejs.passport :as passport]
             [express.core :as ex]
             [goog.object :as gobj]
             [knex.core :as knex]
@@ -25,6 +25,7 @@
 
 (def settings (read-string (slurp "./server.edn")))
 (def facebook (get settings :facebook))
+(def google (get settings :google))
 
 (defonce express (nodejs/require "express"))
 (defonce http (nodejs/require "http"))
@@ -53,11 +54,13 @@
 
 (ex/use app (compression))
 (ex/use app (.static express "resources/public"))
-(ex/use app (session #js {:secret                 "Ksa28zi*PdbzLm?qLb]b"
-                               :store             (RedisStore. #js {})
-                               :resave            true
-                               :saveUninitialized false
-                               :cookie            #js {:maxAge 600000}}))
+(ex/use app (session #js {:secret            (get settings :session-secret)
+                          :store             (RedisStore. #js {})
+                          :resave            true
+                          :saveUninitialized false
+                          :cookie            #js {:maxAge 600000}}))
+(ex/use app (.initialize passport/passport))
+(ex/use app (.session passport/passport))
 
 (defn read-input [s] (ct/read (t/reader) s))
 (defn spit-out [s] (ct/write (t/writer) s))
@@ -72,18 +75,17 @@
   :args (s/cat :s string?)
   :ret any?)
 
-(defn current-user [req]
-  (or (gobj/getValueByKeys req "session" "user") nil))
+(defn current-user [req] (gobj/get req "user"))
 
 (ex/post app "/api"
-         (fn [req res]
+  (fn [req res]
     (go
       (try
         (let [{:keys [read write]} (req-io req)
               tx (-> (read-stream req) <!
                      read)
-              out (<! (parser/parse {:db connection
-                                     :http-request req
+              out (<! (parser/parse {:db              connection
+                                     :http-request    req
                                      :current-user-id (current-user req)}
                                     tx))]
           (js/console.log "in")
@@ -95,62 +97,52 @@
           (.send res (str "Error: " e)))))))
 
 (ex/post app "/api-pretty"
-         (fn [req res]
+  (fn [req res]
     (go
       (try
         (let [tx (-> (read-stream req) <!
                      (read-string))]
           (.send res (with-out-str
-                       (cljs.pprint/pprint (<! (parser/parse {:db connection
-                                                              :http-request req
+                       (cljs.pprint/pprint (<! (parser/parse {:db              connection
+                                                              :http-request    req
                                                               :current-user-id (current-user req)} tx))))))
         (catch :default e
           (.send res (str "Error: " e)))))))
 
+(defonce GoogleStrategy (.-OAuth2Strategy (nodejs/require "passport-google-oauth")))
+(defonce FacebookStrategy (.-Strategy (nodejs/require "passport-facebook")))
+
+(defonce passport-setup
+  (do
+    (passport/setup-serialize-simple)
+
+    (passport/use
+      (GoogleStrategy.
+        (clj->js google)
+        (d/passport-sign-callback connection)))
+
+    (passport/use
+      (FacebookStrategy.
+        (clj->js facebook)
+        (d/passport-sign-callback connection)))))
+
+(def auth-redirects {:successRedirect "/profile"
+                     :failureRedirect "/login"})
+
+(ex/get app "/google-login"
+  (passport/authenticate "google" {:scope ["openid profile email"]}))
+
+(.get app "/google-return"
+  (passport/authenticate "google" auth-redirects))
+
 (ex/get app "/facebook-login"
-        (fn [req res]
-    (.redirect res (fb/login-url (assoc facebook ::fb/scope [:public-profile :email])))))
-
-(defn to-facebook-keys [query]
-  (st/transform [st/ALL st/FIRST]
-    #(keyword "daveconservatoire.server.facebook"
-              (.replace % (js/RegExp. "_" "g") "-"))
-    query))
-
-(defn process-facebook-return [query]
-  (go-catch
-    (let [conformed (s/conform ::fb/auth-response query)]
-      (cond
-        (= conformed ::s/invalid) "Invalid input"
-
-        (= :success (first conformed))
-        (let [access-token (<? (fb/exchange-token (merge facebook (second conformed))))]
-          (->> (fb/user-info access-token) <?
-               (d/facebook-sign-in connection) <?))
-
-        (= :error (first conformed))
-        (str "Error: " (-> conformed second ::fb/error-description))))))
-
-(s/def ::db-user (s/map-of keyword? any?))
-
-(s/fdef process-facebook-return
-  :args (s/cat :response ::fb/auth-response)
-  :ret ::db-user)
+  (passport/authenticate "facebook" {:scope ["public_profile" "email"]}))
 
 (ex/get app "/facebook-return"
-        (fn [req res]
-    (go
-      (try
-        (let [query (->> (.. req -query) js->clj
-                         (to-facebook-keys))
-              user (<? (process-facebook-return query))]
-          (ex/session-set! req "user" (:id user))
-          (.redirect res "/profile"))
-        (catch :default e
-          (.send res (str "Error: " e)))))))
+  (passport/authenticate "facebook" auth-redirects))
 
 (ex/get app #".+"
-        (fn [_ res]
+  (fn [_ res]
     (.sendFile res (str (.cwd nodejs/process) "/resources/public/index.html"))))
 
 (defn -main []

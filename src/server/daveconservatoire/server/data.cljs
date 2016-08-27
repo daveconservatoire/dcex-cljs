@@ -12,10 +12,19 @@
                 :email email
                 :biog  "Please tell us about your musical interests and goals. This will help develop the site to better support your learning. It will not be made public."}
           [id] (<? (knex/insert connection "User" user))]
-      (<? (knex/query-first connection "User" [[:where {:id id}]])))))
+      id)))
 
-(defn facebook-sign-in [connection {:keys [name email]}]
+(defn passport-sign-in [connection {:keys [emails displayName] :as profile}]
   (go-catch
-    (if-let [user (<? (user-by-email connection email))]
-      user
-      (create-user connection #:user {:name name :email email}))))
+    (let [email (some-> emails first :value)]
+      (if-let [user (<? (user-by-email connection email))]
+        (:id user)
+        (<? (create-user connection #:user {:name displayName :email email}))))))
+
+(defn passport-sign-callback [connection]
+  (fn [_ _ profile done]
+    (go
+      (try
+        (done nil (<? (passport-sign-in connection (js->clj profile :keywordize-keys true))))
+        (catch :default e
+          (done e))))))

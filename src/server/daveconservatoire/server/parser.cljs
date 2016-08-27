@@ -109,7 +109,7 @@
 
 (defmethod mutate 'app/logout
   [{:keys [http-request]} _ _]
-  {:action (fn [] (ex/session-set! http-request "user" nil))})
+  {:action (fn [] (.logout http-request))})
 
 ;; PARSER
 

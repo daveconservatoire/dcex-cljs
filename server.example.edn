@@ -12,10 +12,10 @@
  :google
  {:nodejs.passport.google/clientID     "CLIENT_ID"
   :nodejs.passport.google/clientSecret "CLIENT_SECRET"
-  :nodejs.passport.google/callbackURL  "http://localhost:3000/google-return"}
+  :nodejs.passport.google/callbackURL  "http://localhost:3000/auth/google/return"}
 
  :facebook
  {:nodejs.passport.facebook/clientID      "CLIENT_ID"
   :nodejs.passport.facebook/clientSecret  "CLIENT_SECRET"
-  :nodejs.passport.facebook/callbackURL   "http://localhost:3000/facebook-return"
+  :nodejs.passport.facebook/callbackURL   "http://localhost:3000/auth/facebook/return"
   :nodejs.passport.facebook/profileFields ["id" "displayName" "name" "email" "picture"]}}

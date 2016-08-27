@@ -129,7 +129,7 @@
                 props)
           title)
         (if open?
-          (l/simple-listener {:on-trigger #(om/set-state! this {:open? false})}))
+          (l/simple-listener {::l/on-trigger #(om/set-state! this {:open? false})}))
         (dom/a #js {:className "btn btn-success dropdown-toggle", :href "#"
                     :onClick #(om/set-state! this {:open? (not open?)})}
           (dom/span #js {:className "caret"}))

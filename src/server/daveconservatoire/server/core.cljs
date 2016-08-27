@@ -1,12 +1,11 @@
 (ns daveconservatoire.server.core
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [cljs.nodejs :as nodejs]
-            [cljs.core.async :as async :refer [chan <! put! promise-chan]]
+            [cljs.core.async :refer [chan <! put! promise-chan]]
             [cljs.reader :refer [read-string]]
             [cljs.pprint]
             [cljs.spec :as s]
             [cognitect.transit :as ct]
-            [com.rpl.specter :as st :include-macros true]
             [common.async :refer-macros [<? go-catch]]
             [daveconservatoire.server.data :as d]
             [daveconservatoire.server.parser :as parser]
@@ -132,7 +131,7 @@
 (ex/get app "/google-login"
   (passport/authenticate "google" {:scope ["openid profile email"]}))
 
-(.get app "/google-return"
+(ex/get app "/google-return"
   (passport/authenticate "google" auth-redirects))
 
 (ex/get app "/facebook-login"

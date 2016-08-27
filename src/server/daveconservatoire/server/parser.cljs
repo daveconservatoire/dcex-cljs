@@ -1,12 +1,8 @@
 (ns daveconservatoire.server.parser
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
   (:require [om.next :as om]
-            [clojure.set :as set]
-            [cljs.core.async :as async :refer [<! >! put! close!]]
+            [cljs.core.async :refer [<! >! put! close!]]
             [cljs.core.async.impl.protocols :refer [Channel]]
-            [cljs.spec :as s]
-            [express.core :as ex]
-            [knex.core :as knex]
             [daveconservatoire.models]
             [daveconservatoire.server.lib :as l]))
 

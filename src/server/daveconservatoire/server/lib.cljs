@@ -4,7 +4,7 @@
             [clojure.set :as set]
             [cljs.core.async :as async :refer [<! >! put! close!]]
             [cljs.core.async.impl.protocols :refer [Channel]]
-            [knex.core :as knex]
+            [nodejs.knex :as knex]
             [cljs.spec :as s]))
 
 ;; SUPPORT FUNCTIONS

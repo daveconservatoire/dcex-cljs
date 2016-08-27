@@ -1,4 +1,4 @@
-(ns knex.core
+(ns nodejs.knex
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:refer-clojure :exclude [count])
   (:require [cljs.nodejs :as nodejs]

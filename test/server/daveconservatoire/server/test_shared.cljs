@@ -1,5 +1,5 @@
 (ns daveconservatoire.server.test-shared
-  (:require [knex.core :as knex]))
+  (:require [nodejs.knex :as knex]))
 
 (defonce connection
   (knex/create-connection

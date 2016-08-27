@@ -2,7 +2,7 @@
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [cljs.test :refer-macros [is are run-tests async testing deftest run-tests]]
             [cljs.core.async :refer [<!]]
-            [knex.core :as knex]
+            [nodejs.knex :as knex]
             [daveconservatoire.server.test-shared :as ts]))
 
 (deftest test-query

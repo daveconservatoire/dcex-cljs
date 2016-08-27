@@ -3,8 +3,7 @@
   (:require [cljs.test :refer-macros [is are run-tests async testing deftest run-tests]]
             [cljs.core.async :refer [<!]]
             [daveconservatoire.server.data :as d]
-            [daveconservatoire.server.test-shared :as ts]
-            [knex.core :as knex]))
+            [daveconservatoire.server.test-shared :as ts]))
 
 (deftest test-user-by-email
   (async done

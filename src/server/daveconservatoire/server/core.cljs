@@ -9,10 +9,10 @@
             [common.async :refer-macros [<? go-catch]]
             [daveconservatoire.server.data :as d]
             [daveconservatoire.server.parser :as parser]
+            [nodejs.express :as ex]
+            [nodejs.knex :as knex]
             [nodejs.passport :as passport]
-            [express.core :as ex]
             [goog.object :as gobj]
-            [knex.core :as knex]
             [om.transit :as t]))
 
 (nodejs/enable-util-print!)

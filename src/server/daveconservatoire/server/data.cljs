@@ -1,6 +1,6 @@
 (ns daveconservatoire.server.data
   (:require-macros [cljs.core.async.macros :refer [go]])
-  (:require [knex.core :as knex]
+  (:require [nodejs.knex :as knex]
             [common.async :refer-macros [go-catch <?]]))
 
 (defn user-by-email [connection email]

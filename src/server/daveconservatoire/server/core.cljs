@@ -128,17 +128,18 @@
 (def auth-redirects {:successRedirect "/profile"
                      :failureRedirect "/login"})
 
-(ex/get app "/google-login"
+(ex/get app "/auth/google"
   (passport/authenticate "google" {:scope ["openid profile email"]}))
 
-(ex/get app "/google-return"
-  (passport/authenticate "google" auth-redirects))
-
-(ex/get app "/facebook-login"
+(ex/get app "/auth/facebook"
   (passport/authenticate "facebook" {:scope ["public_profile" "email"]}))
 
-(ex/get app "/facebook-return"
-  (passport/authenticate "facebook" auth-redirects))
+(ex/get app "/auth/:provider/return"
+  (fn [req res next]
+    (let [strategy (.. req -params -provider)]
+      (if (contains? #{"google" "facebook"} strategy)
+        ((passport/authenticate strategy auth-redirects) req res next)
+        (next (ex-info (str "Invalid strategy `" strategy "`") {:strategy strategy}))))))
 
 (ex/get app #".+"
   (fn [_ res]

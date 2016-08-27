@@ -8,25 +8,20 @@
             [untangled.client.impl.data-fetch :as df]
             [cljs.spec :as s]))
 
-(om/defui ^:once Button
-  Object
-  (render [this]
-    (let [{:keys [::button-color]
-           :or   {::button-color "orange"} :as props} (om/props this)]
-      (dom/a (u/props->html {:href      "#"
-                             :className (str "btn dc-btn-" button-color)}
-                            props)
-        (om/children this)))))
+(defn button [props & children]
+  (let [{:keys [::button-color]
+         :or   {::button-color "orange"} :as props} props]
+    (apply dom/a (u/props->html {:href      "#"
+                                 :className (str "btn dc-btn-" button-color)}
+                                props)
+      children)))
 
-(def button (om/factory Button))
+(s/fdef button
+  :args (s/cat :props (s/keys :opt [::button-color])
+               :children (s/* ::component)))
 
-(om/defui ^:once Link
-  Object
-  (render [this]
-    (dom/a (u/props->html (om/props this))
-      (om/children this))))
-
-(def link (om/factory Link))
+(defn link [props & children]
+  (apply dom/a (u/props->html props) children))
 
 (om/defui ^:once Hero
   Object
@@ -137,11 +132,11 @@
 
 (def button-dropdown (om/factory ButtonDropdown))
 
-(defn button-dropdown-item [& children]
-  (apply dom/li #js {} children))
+(defn button-dropdown-item [props & children]
+  (apply dom/li (u/props->html props) children))
 
-(defn button-dropdown-divider []
-  (dom/li #js {:className "divider"}))
+(defn button-dropdown-divider [props]
+  (dom/li (u/props->html {:className "divider"} props)))
 
 (defn user-menu-status [comp]
   (let [{:user/keys [name]} (om/props comp)]
@@ -153,13 +148,13 @@
                      (dom/span #js {:id "pointstotal"}
                        "XXX")
                      " Points)")}
-      (button-dropdown-item
+      (button-dropdown-item {:key "profile-link"}
         (link {::r/handler ::r/profile}
           (dom/i #js {:className "icon-pencil"}) " My Profile"))
-      (button-dropdown-divider)
-      (button-dropdown-item
+      (button-dropdown-divider {:key "div1"})
+      (button-dropdown-item {:key "logout-link"}
         (dom/a #js {:href "#" :onClick #(om/transact! comp ['(app/logout)])}
-           (dom/i #js {:className "icon-share-alt"}) "Logout")))))
+          (dom/i #js {:className "icon-share-alt"}) "Logout")))))
 
 (om/defui ^:once DesktopMenu
   static om/Ident

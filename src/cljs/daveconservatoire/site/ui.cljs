@@ -27,29 +27,20 @@
       (dom/div #js {:className "inner_content"}
         (dom/h1 #js {:className "title"} title)))))
 
-(om/defui ^:once Button
-  Object
-  (render [this]
-    (let [{:keys [::button-color]
-           :or   {::button-color "orange"} :as props} (om/props this)]
-      (dom/a (u/props->html {:href      "#"
-                             :className (str "btn dc-btn-" button-color)}
-                            props)
-        (om/children this)))))
-
-(def button (om/factory Button))
+(defn button [props & children]
+  (let [{:keys [::button-color]
+         :or   {::button-color "orange"} :as props} props]
+    (apply dom/a (u/props->html {:href      "#"
+                                 :className (str "btn dc-btn-" button-color)}
+                                props)
+      children)))
 
 (s/fdef button
   :args (s/cat :props (s/keys :opt [::button-color])
                :children (s/* ::component)))
 
-(om/defui ^:once Link
-  Object
-  (render [this]
-    (dom/a (u/props->html {} (om/props this))
-      (om/children this))))
-
-(def link (om/factory Link))
+(defn link [props & children]
+  (apply dom/a (u/props->html props) children))
 
 (defn nav-list [props & children]
   (apply dom/div (u/props->html {:className "nav nav-list bs-docs-sidenav"} props)
@@ -61,7 +52,7 @@
               (::selected props) (assoc :className "dc-bg-orange active"))
             (dissoc props ::r/handler))
     (link (select-keys props [::r/handler ::r/params])
-      (dom/i #js {:className "icon-chevron-right"}) content)))
+          (dom/i #js {:className "icon-chevron-right"}) content)))
 
 (om/defui ^:once TopicLink
   static om/IQuery
@@ -638,6 +629,7 @@
   (initial-state [_ _]
     (let [route (r/current-handler)]
       {:app/route  route
+       :ui/react-key (random-uuid)
        :route/data (r/route->initial-state route)
        :app/me     {:ui/fetch-state {}}}))
 
@@ -667,7 +659,7 @@
                            (not= (:app/me o) (:app/me n)))
                      (let [comp (some-> route r/route->component*)
                            auth-req? (if (implements? IRequireAuth comp)
-                                   (auth-required? comp) false)]
+                                       (auth-required? comp) false)]
                        (when (and auth-req? (= (auth-state n) ::guest))
                          (om/transact! this `[(app/set-route ~{::r/handler ::r/login})]))))))))
 

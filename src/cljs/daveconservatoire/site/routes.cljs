@@ -26,7 +26,6 @@
 (def routes
   ["/" {""                 ::home
         "login"            ::login
-        "profile"          ::profile
         "about"            ::about
         "donate"           ::donate
         "tuition"          ::tuition

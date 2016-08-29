@@ -3,10 +3,10 @@
             [daveconservatoire.site.routes :as r]
             [om.next :as om]
             [untangled.client.data-fetch :as df]
-            [daveconservatoire.site.ui-dave :as uid]))
+            [daveconservatoire.site.ui :as ui]))
 
 (defn start-callback [{:keys [reconciler]}]
-  (df/load-data reconciler [{:app/me (om/get-query uid/DesktopMenu)}])
+  (df/load-data reconciler [{:app/me (om/get-query ui/DesktopMenu)}])
   (om/transact! reconciler `[(app/set-route ~(r/current-handler))]))
 
 (defonce app

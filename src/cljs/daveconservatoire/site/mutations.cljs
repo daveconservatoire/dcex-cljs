@@ -2,7 +2,7 @@
   (:require [untangled.client.mutations :as m]
             [untangled.client.data-fetch :as df]
             [daveconservatoire.site.routes :as r]
-            [daveconservatoire.site.ui-dave :as uid]
+            [daveconservatoire.site.ui :as ui]
             [daveconservatoire.site.ui.util :as uiu]
             [om.next :as om]
             [om.util :as omu]))
@@ -26,7 +26,7 @@
          (do
            (swap! state assoc :app/route-swap page-data)
            (df/load-data reconciler [{:route/data data-query}
-                                     {:app/me (om/get-query uid/DesktopMenu)}] :post-mutation 'fetch/complete-set-route))
+                                     {:app/me (om/get-query ui/DesktopMenu)}] :post-mutation 'fetch/complete-set-route))
          (update-page env page-data))))})
 
 (defmethod m/mutate 'fetch/complete-set-route

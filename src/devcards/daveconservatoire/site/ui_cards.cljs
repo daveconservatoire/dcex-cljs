@@ -3,7 +3,6 @@
             [cljs.test :refer-macros [is are run-tests async testing]]
             [daveconservatoire.site.routes :as r]
             [daveconservatoire.site.ui :as ui]
-            [daveconservatoire.site.ui-dave :as uid]
             [untangled.client.core :as uc]))
 
 (defcard button-cards
@@ -12,7 +11,7 @@
 
 (defcard button-dropdown
   (fn [_ _]
-    (uid/button-dropdown {::title "Hello"})))
+    (ui/button-dropdown {::title "Hello"})))
 
 (def lesson
   {:db/table           :lesson,

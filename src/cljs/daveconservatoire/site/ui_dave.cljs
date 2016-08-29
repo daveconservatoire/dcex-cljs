@@ -23,6 +23,12 @@
 (defn link [props & children]
   (apply dom/a (u/props->html props) children))
 
+(defn menu-link [{:keys [::selected?] :as options} child]
+  (dom/li #js {:className (if selected? "dc-bg-orange active" "")}
+    (link options
+      (dom/i #js {:className "icon-chevron-right" :key "i"})
+      child)))
+
 (om/defui ^:once Hero
   Object
   (render [this]
@@ -171,7 +177,7 @@
           (dom/div #js {:className "navbar-inner"}
             (dom/div #js {:className "container"}
               (link {:id "desktopbrand", :className "brand", ::r/handler ::r/home}
-                (dom/img #js {:src "/img/dclogo3.png" :alt "Dave Conservatoire" :key "logo"}))
+                    (dom/img #js {:src "/img/dclogo3.png" :alt "Dave Conservatoire" :key "logo"}))
               (dom/div #js {:className "navbar"}
                 (dom/div #js {:className "navbuttons"}
                   (button {:react-key "btn-0" ::r/handler ::r/about, ::button-color "yellow"}
@@ -223,8 +229,8 @@
     (let [{:keys [topic/title url/slug]} (om/props this)]
       (dom/li #js {:className "span4", :style #js {"marginBottom" 5}}
         (link {:className "btn btn-large btn-block dc-btn-yellow" ::r/handler ::r/topic ::r/params {::r/slug slug} :react-key "link"}
-          (dom/h3 #js {:key "title"}
-            title))))))
+              (dom/h3 #js {:key "title"}
+                title))))))
 
 (def home-course-topic (om/factory HomeCourseTopic {:keyfn :db/id}))
 
@@ -263,4 +269,6 @@
             (dom/h1 #js {:className "intro"} intro)))))))
 
 (def page-banner (om/factory PageBanner))
+
+
 

@@ -31,6 +31,9 @@
         "donate"           ::donate
         "tuition"          ::tuition
         "contact"          ::contact
+        "profile"          ::profile
+        "profile/activity" ::profile-activity
+        "profile/focus"    ::profile-focus
         ["topic/" ::slug]  ::topic
         ["lesson/" ::slug] ::lesson}])
 

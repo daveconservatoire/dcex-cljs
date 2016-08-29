@@ -164,6 +164,17 @@
 
 (defmethod r/route->component ::r/about [_] AboutPage)
 
+(om/defui ^:once DonatePage
+  static uc/InitialAppState
+  (initial-state [_ _] {})
+
+  Object
+  (render [this]
+    (let [{:keys []} (om/props this)]
+      (uid/course-banner {:title "Donate" :intro "Intro"}))))
+
+(defmethod r/route->component ::r/donate [_] DonatePage)
+
 (om/defui ^:once LessonCell
   static om/IQuery
   (query [_] [:lesson/title :youtube/id :lesson/type :url/slug])
@@ -254,6 +265,29 @@
                       (map lesson-cell row))))))))))))
 
 (defmethod r/route->component ::r/topic [_] TopicPage)
+
+(om/defui ^:once ProfilePage
+  static uc/InitialAppState
+  (initial-state [_ _] {})
+
+  Object
+  (render [this]
+    (container
+      (dom/div #js {:className "row"}
+        (dom/div #js {:className "span2"}
+          (dom/ul #js {:className "nav nav-list bs-docs-sidenav"}
+            (dom/li nil
+              (link {::r/handler ::r/profile} "Profile"))
+            (dom/li nil
+              (link {::r/handler ::r/profile-activity} "Activity Log"))
+            (dom/li nil
+              (link {::r/handler ::r/profile-focus} "Focus"))
+            ))
+        (dom/div #js {:className "span10"}
+
+          )))))
+
+(defmethod r/route->component ::r/profile [_] ProfilePage)
 
 (om/defui ^:once LessonTopicMenuItem
   static om/IQuery

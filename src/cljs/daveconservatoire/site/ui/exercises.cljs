@@ -179,9 +179,9 @@
   :args (s/cat)
   :ret #{-1 1})
 
-(defn vary-pitch [{:keys [::pitch ::variation ::direction]
-                   :or   {::direction [-1 1]}}]
-  (let [a (descriptor->value pitch)
+(defn vary-pitch [{:keys [::pitch ::variation ::direction]}]
+  (let [direction (or direction [-1 1])
+        a (descriptor->value pitch)
         b (+ a (* (descriptor->value variation)
                   (descriptor->value direction)))]
     [a b]))

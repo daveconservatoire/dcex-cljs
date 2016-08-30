@@ -1,6 +1,7 @@
 (ns daveconservatoire.server.parser
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
   (:require [om.next :as om]
+            [common.async :refer-macros [<? go-catch]]
             [cljs.core.async :refer [<! >! put! close!]]
             [cljs.core.async.impl.protocols :refer [Channel]]
             [daveconservatoire.models]
@@ -62,6 +63,20 @@
         #(l/has-many % :topic :topic/course-id {:sort ["sortorder"]}))
       (l/row-getter :course/lessons
         #(l/has-many % :lesson :lesson/course-id {:sort ["lessonno"]}))
+      (l/row-getter :course/topics-count
+        (fn [{:keys [row] :as env}]
+          (let [{:keys [id]} row]
+            (go-catch
+              (-> (l/cached-query env "Topic" [[:count "id"]
+                                               [:where {:courseid id}]])
+                  <? first vals first)))))
+      (l/row-getter :course/home-type
+        (fn [{:keys [row] :as env}]
+          (go-catch
+            (if (= (<? (l/row-get env row :course/topics-count))
+                   1)
+              :course.type/single-topic
+              :course.type/multi-topic))))
 
       ; Topic
       (l/row-getter :topic/course
@@ -84,17 +99,20 @@
 
 ;; ROOT READS
 
+(defn ast-sort [env sort]
+  (assoc-in env [:ast :params :sort] sort))
+
 (def root-endpoints
-  {:route/data     #(l/read-chan-values ((:parser %) % (:query (:ast %))))
-   :topic/by-slug  #(l/sql-first-node (assoc % :table :topic)
-                     [[:where {:urltitle (l/ast-key-id (:ast %))}]])
-   :lesson/by-slug #(l/sql-first-node (assoc % :table :lesson ::l/union-selector :lesson/type)
-                     [[:where {:urltitle (l/ast-key-id (:ast %))}]])
-   :app/courses    #(l/sql-table-node (assoc-in % [:ast :params :sort] "homepage_order") :course)
-   :app/topics     #(l/sql-table-node % :topic)
-   :app/me         #(if-let [id (:current-user-id %)]
-                     (l/sql-first-node (assoc % :table :user)
-                      [[:where {:id id}]]))})
+  {:route/data       #(l/read-chan-values ((:parser %) % (:query (:ast %))))
+   :topic/by-slug    #(l/sql-first-node (assoc % :table :topic)
+                       [[:where {:urltitle (l/ast-key-id (:ast %))}]])
+   :lesson/by-slug   #(l/sql-first-node (assoc % :table :lesson ::l/union-selector :lesson/type)
+                       [[:where {:urltitle (l/ast-key-id (:ast %))}]])
+   :app/courses      #(l/sql-table-node (-> (ast-sort % "homepage_order")
+                                            (assoc ::l/union-selector :course/home-type)) :course)
+   :app/me           #(if-let [id (:current-user-id %)]
+                       (l/sql-first-node (assoc % :table :user)
+                         [[:where {:id id}]]))})
 
 (def root-readers
   [root-endpoints l/placeholder-node #(vector :error :not-found)])

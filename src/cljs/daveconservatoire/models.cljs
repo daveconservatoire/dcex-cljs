@@ -61,3 +61,16 @@
 
 (s/def :model/user
   (s/keys :opt [:db/id :user/name :user/email]))
+
+(s/def :user-view/user-id :db/id)
+(s/def :user-view/user :model/user)
+(s/def :user-view/lesson-id :db/id)
+(s/def :user-view/lesson :model/lesson)
+(s/def :user-view/status any?)
+(s/def :user-view/position any?)
+(s/def :user-view/timestamp any?)
+
+(s/def :model/user-view
+  (s/keys :opt [:db/id :user-view/status :user-view/position :user-view/timestamp
+                :user-view/user-id :user-view/user
+                :user-view/lesson-id :user-view/lesson]))

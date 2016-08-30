@@ -24,14 +24,19 @@
              {:app/courses [{:db/id 4 :course/title "Reading Music" :db/table :course}
                             {:db/id 7 :course/title "Music:  A Beginner's Guide" :db/table :course}]}))
 
-      (done))))
+      (is (= (<! (p/parse {:db ts/connection} [{:app/courses [:db/id :course/title]}]))
+             {:app/courses [{:db/id 4 :course/title "Reading Music" :db/table :course}
+                            {:db/id 7 :course/title "Music:  A Beginner's Guide" :db/table :course}]}))
 
-(deftest parser-read-topics
-  (async done
-    (go
-      (is (= (->> (p/parse {:db ts/connection} [{:app/topics [:db/id :topic/title {:topic/course [:db/id]}]}]) <!
-                  (select [:app/topics FIRST]))
-             [{:db/id 2 :db/table :topic :topic/title "Getting Started" :topic/course {:db/id 7 :db/table :course}}]))
+      (is (= (<! (p/parse {:db ts/connection} [{:app/courses [:db/id :course/home-type]}]))
+             {:app/courses [{:db/id 4 :course/home-type :course.type/multi-topic :db/table :course}
+                            {:db/id 7 :course/home-type :course.type/multi-topic :db/table :course}]}))
+
+      (is (= (<! (p/parse {:db ts/connection} [{:app/courses {:course.type/multi-topic [:db/id :course/home-type]
+                                                              :course.type/single-topic [:db/id :course/title]}}]))
+             {:app/courses [{:db/id 4 :course/home-type :course.type/multi-topic :db/table :course}
+                            {:db/id 7 :course/home-type :course.type/multi-topic :db/table :course}]}))
+
       (done))))
 
 (deftest test-parse-read-lesson-by-slug

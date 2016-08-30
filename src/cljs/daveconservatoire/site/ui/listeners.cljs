@@ -1,6 +1,7 @@
 (ns daveconservatoire.site.ui.listeners
   (:require [om.next :as om :include-macros true]
             [goog.events :as gevents]
+            [daveconservatoire.support.specs]
             [cljs.spec :as s]))
 
 (def KEYS
@@ -54,8 +55,6 @@
   (render [_] nil))
 
 (def simple-listener (om/factory SimpleListener))
-
-(s/def :om.next/component any?)
 
 (s/def ::event any?)
 

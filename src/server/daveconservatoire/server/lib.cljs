@@ -2,8 +2,10 @@
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
   (:require [om.next :as om]
             [clojure.set :as set]
+            [common.async :refer-macros [go-catch <?]]
             [cljs.core.async :as async :refer [<! >! put! close!]]
             [cljs.core.async.impl.protocols :refer [Channel]]
+            [daveconservatoire.support.specs :as sp]
             [nodejs.knex :as knex]
             [cljs.spec :as s]))
 
@@ -102,17 +104,25 @@
   (read-from (assoc env :row row :ast {:key attr :dispatch-key attr})
     (::reader-map table)))
 
+(defn ensure-chan [x]
+  (if (chan? x)
+    x
+    (go x)))
+
 (defn parse-row [{:keys [table ast ::union-selector parser] :as env} row]
-  (let [row' {:db/table (:key table) :db/id (row-get env row :db/id)}
-        query (if (union-children? ast)
-                (some-> ast :query (get (row-get env row union-selector)))
-                (:query ast))]
-    (if query
-      (-> (merge
-            row'
-            (parser (assoc env :row row) query))
-          (read-chan-values))
-      row')))
+  (go-catch
+    (let [row' {:db/table (:key table) :db/id (row-get env row :db/id)}
+          query (if (union-children? ast)
+                  (let [union-type (-> (row-get env row union-selector)
+                                       ensure-chan <?)]
+                    (some-> ast :query (get union-type)))
+                  (:query ast))]
+      (if query
+        (-> (merge
+              row'
+              (parser (assoc env :row row) query))
+            (read-chan-values) <!)
+        row'))))
 
 (defn cached-query [{:keys [db query-cache]} name cmds]
   (go
@@ -155,6 +165,17 @@
                    where (conj [:where where])
                    sort (conj (concat [:orderBy] (ensure-list sort))))))
     (throw (str "[Query Table] No specs for table " table))))
+
+(defn save [{:keys [db-specs db]} {:keys [db/table] :as record}]
+  (assert table "Table is required")
+  (let [{:keys [name fields]} (get db-specs table)]
+    (knex/insert db name (-> record
+                             (select-keys (keys fields))
+                             (set/rename-keys fields)))))
+
+(s/fdef save
+  :args (s/cat :env map? :record (s/keys :req [:db/table]))
+  :ret ::sp/chan)
 
 ;; RELATIONAL MAPPING
 

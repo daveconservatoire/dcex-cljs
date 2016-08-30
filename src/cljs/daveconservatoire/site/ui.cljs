@@ -237,63 +237,6 @@
         (dom/h1 #js {:className "title"} title)
         (dom/h1 #js {:className "intro" :dangerouslySetInnerHTML #js {:__html intro}})))))
 
-(om/defui ^:once HomeCourseTopic
-  static om/IQuery
-  (query [_] [:db/id :topic/title :url/slug])
-
-  static om/Ident
-  (ident [_ props] (u/model-ident props))
-
-  Object
-  (render [this]
-    (let [{:keys [topic/title url/slug]} (om/props this)]
-      (dom/li #js {:className "span4", :style #js {"marginBottom" 5}}
-        (link {:className "btn btn-large btn-block dc-btn-yellow" ::r/handler ::r/topic ::r/params {::r/slug slug} :react-key "link"}
-              (dom/h3 #js {:key "title"}
-                title))))))
-
-(def home-course-topic (om/factory HomeCourseTopic {:keyfn :db/id}))
-
-(om/defui ^:once CourseWithTopics
-  static om/IQuery
-  (query [_] [:db/id :course/title :course/description
-              {:course/topics (om/get-query HomeCourseTopic)}])
-
-  static om/Ident
-  (ident [_ props] (u/model-ident props))
-
-  Object
-  (render [this]
-    (let [{:keys [course/title course/topics course/description]} (om/props this)]
-      (dom/div #js {}
-        (course-banner {:title title :intro description})
-        (dom/div #js {:className "pad30"})
-        (dom/div #js {:className "container wrapper"}
-          (dom/div #js {:className "thumbnails tabbable"}
-            (dom/ul #js {:className "courselist"}
-              (map home-course-topic topics))))
-
-        (dom/div #js {:className "pad30"})))))
-
-(def course-with-topics (om/factory CourseWithTopics {:keyfn :db/id}))
-
-(om/defui ^:once HomePage
-  static uc/InitialAppState
-  (initial-state [_ _] {:app/courses []})
-
-  static om/IQuery
-  (query [_] [{:app/courses (om/get-query CourseWithTopics)}])
-
-  Object
-  (render [this]
-    (let [{:keys [app/courses]} (om/props this)]
-      (dom/div nil
-        (hero {:react-key "hero"})
-        (homeboxes {:react-key "homeboxes"})
-        (map course-with-topics courses)))))
-
-(defmethod r/route->component ::r/home [_] HomePage)
-
 (om/defui ^:once LoginPage
   Object
   (render [this]
@@ -792,6 +735,117 @@
           (nav-item {::r/handler ::r/profile} "Activity Log")
           (nav-item {::r/handler ::r/profile} "Focus")))
       child)))
+
+(om/defui ^:once HomeCourseTopic
+  static om/IQuery
+  (query [_] [:db/id :topic/title :url/slug])
+
+  static om/Ident
+  (ident [_ props] (u/model-ident props))
+
+  Object
+  (render [this]
+    (let [{:keys [topic/title url/slug]} (om/props this)]
+      (dom/li #js {:className "span4", :style #js {"marginBottom" 5}}
+        (link {:className "btn btn-large btn-block dc-btn-yellow" ::r/handler ::r/topic ::r/params {::r/slug slug} :react-key "link"}
+              (dom/h3 #js {:key "title"}
+                title))))))
+
+(def home-course-topic (om/factory HomeCourseTopic {:keyfn :db/id}))
+
+(om/defui ^:once CourseWithTopics
+  static om/IQuery
+  (query [_] [:db/id :course/home-type :course/title :course/description
+              {:course/topics (om/get-query HomeCourseTopic)}])
+
+  Object
+  (render [this]
+    (let [{:keys [course/title course/topics course/description]} (om/props this)]
+      (dom/div #js {}
+        (course-banner {:title title :intro description})
+        (dom/div #js {:className "pad30"})
+        (dom/div #js {:className "container wrapper"}
+          (dom/div #js {:className "thumbnails tabbable"}
+            (dom/ul #js {:className "courselist"}
+              (map home-course-topic topics))))
+
+        (dom/div #js {:className "pad30"})))))
+
+(def course-with-topics (om/factory CourseWithTopics {:keyfn :db/id}))
+
+(om/defui ^:once HomeCourseTopicOpen
+  static om/IQuery
+  (query [_] [:db/id {:topic/lessons (om/get-query LessonCell)}])
+
+  static om/Ident
+  (ident [_ props] (u/model-ident props))
+
+  Object
+  (render [this]
+    (let [{:keys [topic/lessons]} (om/props this)
+          lesson-groups (partition 6 6 nil lessons)]
+      (dom/div #js {:className "thumbnails"}
+        (for [lessons lesson-groups]
+          (dom/div #js {:className "row" :style #js {:margin "0 0 20px 0"}}
+            (map lesson-cell lessons)))))))
+
+(def home-course-topic-open (om/factory HomeCourseTopicOpen {:keyfn :db/id}))
+
+(om/defui ^:once CourseWithSingleTopic
+  static om/IQuery
+  (query [_] [:db/id :course/home-type :course/title :course/description
+              {:course/topics (om/get-query HomeCourseTopicOpen)}])
+
+  Object
+  (render [this]
+    (let [{:keys [course/title course/topics course/description]} (om/props this)]
+      (dom/div #js {}
+        (course-banner {:title title :intro description})
+        (dom/div #js {:className "pad30"})
+        (dom/div #js {:className "container wrapper"}
+          (dom/div #js {:className "tab-content"}
+            (dom/div #js {:className "tab-pane active"}
+              (home-course-topic-open (first topics)))))
+
+        (dom/div #js {:className "pad30"})))))
+
+(def course-with-single-topic (om/factory CourseWithSingleTopic {:keyfn :db/id}))
+
+(om/defui ^:once HomeCourse
+  static om/IQuery
+  (query [_]
+    {:course.type/multi-topic  (om/get-query CourseWithTopics)
+     :course.type/single-topic (om/get-query CourseWithSingleTopic)})
+
+  static om/Ident
+  (ident [_ {:keys [course/home-type db/id]}]
+    [(or home-type :unknown) id])
+
+  Object
+  (render [this]
+    (let [{:keys [course/home-type] :as course} (om/props this)]
+      (case home-type
+        :course.type/multi-topic (course-with-topics course)
+        :course.type/single-topic (course-with-single-topic course)))))
+
+(def home-course (om/factory HomeCourse))
+
+(om/defui ^:once HomePage
+  static uc/InitialAppState
+  (initial-state [_ _] {:app/courses []})
+
+  static om/IQuery
+  (query [_] [{:app/courses (om/get-query HomeCourse)}])
+
+  Object
+  (render [this]
+    (let [{:keys [app/courses]} (om/props this)]
+      (dom/div nil
+        (hero {:react-key "hero"})
+        (homeboxes {:react-key "homeboxes"})
+        (map home-course courses)))))
+
+(defmethod r/route->component ::r/home [_] HomePage)
 
 (defn comp-state [c]
   (some-> c om/get-reconciler :config :state))

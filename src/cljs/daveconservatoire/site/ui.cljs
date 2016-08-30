@@ -49,7 +49,7 @@
 (defn nav-item [props content]
   (dom/li (u/props->html
             (cond-> {}
-              (::selected props) (assoc :className "dc-bg-orange active"))
+              (::selected? props) (assoc :className "dc-bg-orange active"))
             (dissoc props ::r/handler))
     (link (select-keys props [::r/handler ::r/params])
           (dom/i #js {:className "icon-chevron-right"}) content)))
@@ -157,7 +157,7 @@
         (if open?
           (l/simple-listener {::l/on-trigger #(om/set-state! this {:open? false})}))
         (dom/a #js {:className "btn btn-success dropdown-toggle", :href "#"
-                    :onClick #(om/set-state! this {:open? (not open?)})}
+                    :onClick   #(om/set-state! this {:open? (not open?)})}
           (dom/span #js {:className "caret"}))
         (apply dom/ul #js {:className "dropdown-menu profilemenudd"} (om/children this))))))
 
@@ -338,7 +338,7 @@
     (let [{:keys [url/slug topic/title]} (om/props this)
           selected? (or (u/current-uri-slug? ::r/topic slug)
                         (= slug (om/get-computed this :ui/topic-slug)))]
-      (nav-item {::selected  selected?
+      (nav-item {::selected? selected?
                  ::r/handler ::r/topic ::r/params {::r/slug slug}}
         title))))
 
@@ -362,11 +362,10 @@
           (dom/li #js {:className "dc-bg-yellow active activetopiclink"}
             (dom/a #js {:className "activetopiclink" :href "#"}
               title)))
-        (dom/div nil
-          (dom/h6 nil "Topics:")
-          (nav-list {}
-            (map (comp topic-side-bar-link #(om/computed % {:ui/topic-slug slug}))
-                 topics)))))))
+        (dom/h6 nil "Topics:")
+        (nav-list {}
+          (map (comp topic-side-bar-link #(om/computed % {:ui/topic-slug slug}))
+               topics))))))
 
 (def course-topics-menu (om/factory CourseTopicsMenu))
 
@@ -434,17 +433,17 @@
   (render [this]
     (let [{:keys [url/slug lesson/title]} (om/props this)
           selected? (u/current-uri-slug? ::r/lesson slug)]
-      (dom/div nil
-        (button {::r/handler ::r/lesson ::r/params {::r/slug slug}
-                 :style      (cond-> {}
-                               selected? (assoc :background "#000"))} title)))))
+      (nav-item {::r/handler ::r/lesson ::r/params {::r/slug slug}
+                 ::selected? selected?}
+        title))))
 
 (def lesson-topic-menu-item (om/factory LessonTopicMenuItem))
 
 (om/defui ^:once LessonTopicMenu
   static om/IQuery
-  (query [_] [:topic/title :url/slug
-              {:topic/course (om/get-query CourseTopicsMenu)}
+  (query [_] [:url/slug
+              {:topic/course [:course/title
+                              {:course/topics (om/get-query TopicSideBarLink)}]}
               {:topic/lessons (om/get-query LessonTopicMenuItem)}])
 
   static om/Ident
@@ -452,9 +451,25 @@
 
   Object
   (render [this]
-    (let [{:keys [topic/course topic/lessons topic/title url/slug]} (om/props this)]
+    (let [{:keys [url/slug]
+           :topic/keys [course lessons]} (om/props this)
+          {:course/keys [topics title]} course]
+
       (dom/div nil
-        (course-topics-menu (om/computed course {:ui/topic-slug slug}))))))
+        (dom/h6 nil "Course:")
+        (nav-list {:className "activetopic" :style #js {:marginTop 10}}
+          (dom/li #js {:className "dc-bg-yellow active activetopiclink"}
+            (dom/a #js {:className "activetopiclink" :href "#"}
+              title)))
+
+        (dom/h6 nil "Lessons in this topic:")
+        (nav-list {}
+          (map lesson-topic-menu-item lessons))
+
+        (dom/h6 nil "Topics:")
+        (nav-list {}
+          (map (comp topic-side-bar-link #(om/computed % {:ui/topic-slug slug}))
+               topics))))))
 
 (def lesson-topic-menu (om/factory LessonTopicMenu))
 
@@ -486,8 +501,7 @@
             (dom/div #js {:className "lesson-content"}
               (dom/div #js {:className "vendor"} (youtube-video props))
               (dom/div #js {:className "well"}
-                description
-                ))))))))
+                description))))))))
 
 (def lesson-video (om/factory LessonVideo))
 
@@ -907,10 +921,10 @@
   static uc/InitialAppState
   (initial-state [_ _]
     (let [route (r/current-handler)]
-      {:app/route  route
+      {:app/route    route
        :ui/react-key (random-uuid)
-       :route/data (r/route->initial-state route)
-       :app/me     {:ui/fetch-state {}}}))
+       :route/data   (r/route->initial-state route)
+       :app/me       {:ui/fetch-state {}}}))
 
   static om/IQueryParams
   (params [this]

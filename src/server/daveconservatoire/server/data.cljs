@@ -28,3 +28,6 @@
         (done nil (<? (passport-sign-in connection (js->clj profile :keywordize-keys true))))
         (catch :default e
           (done e))))))
+
+(defn hit-video-view [connection user-view]
+  )

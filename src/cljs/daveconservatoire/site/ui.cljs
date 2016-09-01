@@ -4,6 +4,7 @@
             [daveconservatoire.site.routes :as r :refer [routes]]
             [daveconservatoire.site.ui.util :as u]
             [daveconservatoire.site.ui.exercises :as ux]
+            [daveconservatoire.site.ui.youtube-player :as ytp]
             [untangled.client.core :as uc]
             [untangled.client.mutations :as um]
             [untangled.client.impl.data-fetch :as df]
@@ -473,18 +474,6 @@
 
 (def lesson-topic-menu (om/factory LessonTopicMenu))
 
-(om/defui ^:once YoutubeVideo
-  Object
-  (render [this]
-    (let [{:keys [:youtube/id]} (om/props this)]
-      (dom/iframe #js {:width           "640"
-                       :height          "360"
-                       :src             (str "https://www.youtube.com/embed/" id "?showinfo=0&rel=0")
-                       :frameBorder     "0"
-                       :allowFullScreen true}))))
-
-(def youtube-video (om/factory YoutubeVideo))
-
 (om/defui ^:once LessonVideo
   static om/IQuery
   (query [_] [:lesson/type :lesson/description :youtube/id
@@ -492,14 +481,16 @@
 
   Object
   (render [this]
-    (let [{:keys [lesson/description lesson/topic] :as props} (om/props this)]
+    (let [{:keys [lesson/description lesson/topic youtube/id] :as props} (om/props this)]
       (container
         (dom/div #js {:className "row"}
           (dom/div #js {:className "span3"}
             (lesson-topic-menu topic))
           (dom/div #js {:className "span9"}
             (dom/div #js {:className "lesson-content"}
-              (dom/div #js {:className "vendor"} (youtube-video props))
+              (dom/div #js {:className "vendor"}
+                (ytp/youtube-player (om/computed {:videoId id}
+                                                 {:on-state-change #(js/console.log "state changed" % %2)})))
               (dom/div #js {:className "well"}
                 description))))))))
 
@@ -516,7 +507,7 @@
   (render [this]
     (let [{:keys [youtube/id playlist-item/title playlist-item/text]} (om/props this)]
       (dom/div nil
-        (dom/div #js {:className "vendor"} (youtube-video {:youtube/id id}))
+        (dom/div #js {:className "vendor"} (ytp/youtube-player {:videoId id}))
         (dom/div #js {:className "well"}
           (dom/div nil title)
           (dom/div nil text))))))

@@ -3,7 +3,7 @@
             [daveconservatoire.server.parser-tests]
             [daveconservatoire.server.lib-test]
             [daveconservatoire.server.data-test]
-            [knex.core-test]
+            [nodejs.knex-test]
             [cljs.nodejs :as nodejs]))
 
 (nodejs/enable-util-print!)
@@ -12,4 +12,4 @@
   'daveconservatoire.server.parser-tests
   'daveconservatoire.server.lib-test
   'daveconservatoire.server.data-test
-  'knex.core-test)
+  'nodejs.knex-test)

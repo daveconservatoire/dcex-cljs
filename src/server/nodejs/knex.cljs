@@ -3,7 +3,7 @@
   (:refer-clojure :exclude [count])
   (:require [cljs.nodejs :as nodejs]
             [cljs.core.async :refer [chan <! put! promise-chan]]
-            [common.async :as ca :refer-macros [<?]]
+            [common.async :as ca :refer-macros [<? go-catch]]
             [goog.object :as gobj]
             [goog.string :as gstr]))
 
@@ -14,7 +14,7 @@
 (defn js-call [obj method args]
   (if-let [f (gobj/get obj method)]
     (.apply f obj (clj->js args))
-    (throw (js/Error (str "Method " method " could not be found in " obj)))))
+    (throw (ex-info (str "Method `" method "` could not be found in " obj) {}))))
 
 (defn call-chain [object methods]
   (reduce (fn [o [cmd & args]] (js-call o (gstr/toCamelCase (name cmd)) args))
@@ -38,6 +38,12 @@
 (defn query-first [connection table cmds]
   (go
     (-> (query connection table cmds) <? first)))
+
+(defn query-count [connection table cmds]
+  (go-catch
+    (some->
+      (query connection table (cons [:count "*"] cmds))
+      <? first vals first)))
 
 (defn raw
   ([connection sql args]

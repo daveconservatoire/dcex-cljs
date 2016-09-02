@@ -24,12 +24,16 @@
     c))
 
 (defn read-chan-values [m]
-  (if (first (filter chan? (vals m)))
+  (if (first (filter #(or (chan? %)
+                          (chan? (:result %))) (vals m)))
     (let [c (async/promise-chan)
           in (async/to-chan m)]
       (go-loop [out {}]
         (if-let [[k v] (<! in)]
-          (recur (assoc out k (if (chan? v) (<! v) v)))
+          (recur (assoc out k (cond
+                                (chan? v) (<! v)
+                                (chan? (:result v)) (assoc v :result (<! (:result v)))
+                                :else v)))
           (>! c out)))
       c)
     (resolved-chan m)))
@@ -124,7 +128,7 @@
             (read-chan-values) <!)
         row'))))
 
-(defn cached-query [{:keys [db query-cache]} name cmds]
+(defn cached-query [{:keys [::db ::query-cache]} name cmds]
   (go
     (let [cache-key [name cmds]]
       (if (contains? @query-cache cache-key)
@@ -133,7 +137,7 @@
           (swap! query-cache assoc cache-key res)
           res)))))
 
-(defn sql-node [{:keys [table db-specs] :as env} cmds]
+(defn sql-node [{:keys [table ::db-specs] :as env} cmds]
   (if-let [{:keys [name fields ::reader-map] :as table-spec} (get db-specs table)]
     (go
       (let [cmds (map (fn [[type v :as cmd]]
@@ -156,7 +160,7 @@
   (if (sequential? x) x [x]))
 
 (defn sql-table-node
-  [{:keys [ast db-specs] :as env} table]
+  [{:keys [ast ::db-specs] :as env} table]
   (if (get db-specs table)
     (let [{:keys [limit where sort]} (:params ast)
           limit (or limit 50)]
@@ -166,7 +170,7 @@
                    sort (conj (concat [:orderBy] (ensure-list sort))))))
     (throw (str "[Query Table] No specs for table " table))))
 
-(defn save [{:keys [db-specs db]} {:keys [db/table] :as record}]
+(defn save [{:keys [::db-specs ::db]} {:keys [db/table] :as record}]
   (assert table "Table is required")
   (let [{:keys [name fields]} (get db-specs table)]
     (knex/insert db name (-> record

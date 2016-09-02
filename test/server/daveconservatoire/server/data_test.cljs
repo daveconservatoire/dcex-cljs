@@ -2,7 +2,10 @@
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [cljs.test :refer-macros [is are run-tests async testing deftest run-tests]]
             [cljs.core.async :refer [<!]]
+            [common.async :refer [<?]]
+            [nodejs.knex :as knex]
             [daveconservatoire.server.data :as d]
+            [daveconservatoire.server.lib :as l]
             [daveconservatoire.server.test-shared :as ts]))
 
 (deftest test-user-by-email
@@ -13,9 +16,25 @@
              "ZruMczeEIffrGMBDjlXo"))
       (done))))
 
-(def user
-  {:id      "10154316352107936",
-   :name    "Wilker Lucio",
-   :email   "wilkerlucio@gmail.com",
-   :picture {:data {:is_silhouette false,
-                    :url           "https://fbcdn-profile-a.akamaihd.net/hprofile-ak-xpf1/v/t1.0-1/p50x50/12553021_10153747425957936_5110097774267897266_n.jpg?oh=3b7ca7e856b5b0ee3e6bf920e1af560d&oe=585CF1F9&__gda__=1482329375_f13b0f80ba2c0f5fe51c77eeed911443"}}})
+(deftest test-hit-video-view
+  (async done
+    (go
+      (try
+        (testing "creates hit for empty record"
+          (<? (d/hit-video-view ts/env #:user-view {:user-id 10 :lesson-id 5}))
+          (is (= (<? (knex/query-count ts/connection "UserVideoView" []))
+                 1)))
+        (testing "don't create new entry when last lesson is the same"
+          (<? (d/hit-video-view ts/env #:user-view {:user-id 10 :lesson-id 5}))
+          (is (= (<? (knex/query-count ts/connection "UserVideoView" []))
+                 1)))
+        (testing "create new entry when lesson is different"
+          (<? (d/hit-video-view ts/env #:user-view {:user-id 10 :lesson-id 6}))
+          (is (= (<? (knex/query-count ts/connection "UserVideoView" []))
+                 2)))
+        (done)
+        (catch :default e
+          (js/console.log "Error" (.-stack e))
+          (done))
+        (finally
+          (<! (knex/raw ts/connection "delete from UserVideoView" [])))))))

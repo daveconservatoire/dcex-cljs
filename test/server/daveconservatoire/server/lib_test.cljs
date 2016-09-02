@@ -10,19 +10,19 @@
 (deftest test-sql-first-node
   (async done
     (go
-      (is (= (<! (l/sql-first-node {:db          ts/connection
+      (is (= (<! (l/sql-first-node {::l/db          ts/connection
                                     :parser      l/parser
-                                    :db-specs    p/db-specs
-                                    :query-cache (atom {})
+                                    ::l/db-specs p/db-specs
+                                    ::l/query-cache (atom {})
                                     :table       :course
                                     :ast         {:query [:course/title]}}
                    [[:where {:url/slug "reading-music"}]]))
              {:db/id 4 :course/title "Reading Music" :db/table :course}))
 
-      (is (= (<! (l/sql-first-node {:db          ts/connection
+      (is (= (<! (l/sql-first-node {::l/db          ts/connection
                                     :parser      l/parser
-                                    :db-specs    p/db-specs
-                                    :query-cache (atom {})
+                                    ::l/db-specs p/db-specs
+                                    ::l/query-cache (atom {})
                                     :table       :course
                                     :ast         {:query [(list
                                                             {:course/topics [:db/id :topic/title]}

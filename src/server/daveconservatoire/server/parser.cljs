@@ -5,7 +5,8 @@
             [cljs.core.async :refer [<! >! put! close!]]
             [cljs.core.async.impl.protocols :refer [Channel]]
             [daveconservatoire.models]
-            [daveconservatoire.server.lib :as l]))
+            [daveconservatoire.server.lib :as l]
+            [daveconservatoire.server.data :as d]))
 
 (def db-specs
   (-> (l/prepare-schema
@@ -56,7 +57,16 @@
           :fields {:db/id      "id"
                    :user/name  "name"
                    :user/email "email"
-                   :user/about "biog"}}])
+                   :user/about "biog"}}
+
+         {:key    :user-view
+          :name   "UserVideoView"
+          :fields (assoc #:user-view {:user-id   "userId"
+                                      :lesson-id "lessonId"
+                                      :status    "status"
+                                      :position  "position"
+                                      :timestamp "timestamp"}
+                                     :db/id "id")}])
 
       ; Course
       (l/row-getter :course/topics
@@ -103,16 +113,16 @@
   (assoc-in env [:ast :params :sort] sort))
 
 (def root-endpoints
-  {:route/data       #(l/read-chan-values ((:parser %) % (:query (:ast %))))
-   :topic/by-slug    #(l/sql-first-node (assoc % :table :topic)
-                       [[:where {:urltitle (l/ast-key-id (:ast %))}]])
-   :lesson/by-slug   #(l/sql-first-node (assoc % :table :lesson ::l/union-selector :lesson/type)
-                       [[:where {:urltitle (l/ast-key-id (:ast %))}]])
-   :app/courses      #(l/sql-table-node (-> (ast-sort % "homepage_order")
-                                            (assoc ::l/union-selector :course/home-type)) :course)
-   :app/me           #(if-let [id (:current-user-id %)]
-                       (l/sql-first-node (assoc % :table :user)
-                         [[:where {:id id}]]))})
+  {:route/data     #(l/read-chan-values ((:parser %) % (:query (:ast %))))
+   :topic/by-slug  #(l/sql-first-node (assoc % :table :topic)
+                     [[:where {:urltitle (l/ast-key-id (:ast %))}]])
+   :lesson/by-slug #(l/sql-first-node (assoc % :table :lesson ::l/union-selector :lesson/type)
+                     [[:where {:urltitle (l/ast-key-id (:ast %))}]])
+   :app/courses    #(l/sql-table-node (-> (ast-sort % "homepage_order")
+                                          (assoc ::l/union-selector :course/home-type)) :course)
+   :app/me         #(if-let [id (:current-user-id %)]
+                     (l/sql-first-node (assoc % :table :user)
+                       [[:where {:id id}]]))})
 
 (def root-readers
   [root-endpoints l/placeholder-node #(vector :error :not-found)])
@@ -125,6 +135,18 @@
   [{:keys [http-request]} _ _]
   {:action (fn [] (.logout http-request))})
 
+(defmethod mutate 'lesson/save-view
+  [{:keys [current-user-id] :as env} _ {:keys [db/id]}]
+  {:action
+   (fn []
+     (go
+       (when current-user-id
+         (js/console.log "hitting view" (pr-str #:user-view {:user-id   current-user-id
+                                                             :lesson-id id}))
+         (<? (d/hit-video-view env #:user-view {:user-id   current-user-id
+                                             :lesson-id id}))
+         nil)))})
+
 ;; PARSER
 
 (def parser (om/parser {:read l/read :mutate mutate}))
@@ -133,6 +155,6 @@
   (-> (parser
         (assoc env
           ::l/readers root-readers
-          :query-cache (atom {})
-          :db-specs db-specs) tx)
+          ::l/query-cache (atom {})
+          ::l/db-specs db-specs) tx)
       (l/read-chan-values)))

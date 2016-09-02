@@ -474,12 +474,23 @@
 
 (def lesson-topic-menu (om/factory LessonTopicMenu))
 
+(defn report-video-play [c]
+  (let [reported? (om/get-state c :reported?)
+        {:keys [db/id]} (om/props c)]
+    (when-not reported?
+      (om/set-state! c {:reported? true})
+      (om/transact! (om/get-reconciler c) `[(lesson/save-view {:db/id ~id})]))))
+
 (om/defui ^:once LessonVideo
   static om/IQuery
-  (query [_] [:lesson/type :lesson/description :youtube/id
+  (query [_] [:db/id :lesson/type :lesson/description :youtube/id
               {:lesson/topic (om/get-query LessonTopicMenu)}])
 
   Object
+  (initLocalState [this] {:reported? false})
+
+  (componentWillReceiveProps [this next-props] (om/set-state! this {:reported? false}))
+
   (render [this]
     (let [{:keys [lesson/description lesson/topic youtube/id] :as props} (om/props this)]
       (container
@@ -490,7 +501,7 @@
             (dom/div #js {:className "lesson-content"}
               (dom/div #js {:className "vendor"}
                 (ytp/youtube-player (om/computed {:videoId id}
-                                                 {:on-state-change #(js/console.log "state changed" % %2)})))
+                                                 {:on-state-change #(if %2 (report-video-play this))})))
               (dom/div #js {:className "well"}
                 description))))))))
 

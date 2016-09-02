@@ -45,3 +45,8 @@
   [{:keys [state]} _ _]
   {:action #(swap! state dissoc :app/me)
    :remote true})
+
+(defmethod m/mutate 'lesson/save-view
+  [_ _ _]
+  {:action (fn [])
+   :remote true})

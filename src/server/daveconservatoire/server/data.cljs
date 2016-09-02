@@ -1,7 +1,9 @@
 (ns daveconservatoire.server.data
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [nodejs.knex :as knex]
-            [common.async :refer-macros [go-catch <?]]))
+            [daveconservatoire.server.lib :as l]
+            [clojure.set :refer [rename-keys]]
+            [common.async :refer [go-catch <?]]))
 
 (defn user-by-email [connection email]
   (knex/query-first connection "User" [[:where {:email email}]]))
@@ -29,5 +31,18 @@
         (catch :default e
           (done e))))))
 
-(defn hit-video-view [connection user-view]
-  )
+(defn current-timestamp []
+  (js/Math.round (/ (.getTime (js/Date.)) 1000)))
+
+(defn hit-video-view [{:keys [::l/db ::l/db-specs]} {:user-view/keys [user-id lesson-id] :as view}]
+  (go-catch
+    (let [{:keys [name fields fields']} (get db-specs :user-view)
+          last-view (some-> (knex/query-first db name
+                                              [[:where {"userId" user-id}]
+                                               [:orderBy "timestamp" "desc"]
+                                               [:limit 1]])
+                            <? (rename-keys fields'))]
+      (if (not= lesson-id (:user-view/lesson-id last-view))
+        (let [new-view (-> (merge view #:user-view {:timestamp (current-timestamp)})
+                           (rename-keys fields))]
+          (<? (knex/insert db name new-view)))))))

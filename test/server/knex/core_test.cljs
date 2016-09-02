@@ -20,3 +20,10 @@
                   :title)
              "Reading Music"))
       (done))))
+
+(deftest test-query-count
+  (async done
+    (go
+      (is (= (->> (knex/query-count ts/connection "Course" []) <!)
+             2))
+      (done))))

@@ -8,6 +8,7 @@
             [cognitect.transit :as ct]
             [common.async :refer-macros [<? go-catch]]
             [daveconservatoire.server.data :as d]
+            [daveconservatoire.server.lib :as l]
             [daveconservatoire.server.parser :as parser]
             [nodejs.express :as ex]
             [nodejs.knex :as knex]
@@ -83,7 +84,7 @@
         (let [{:keys [read write]} (req-io req)
               tx (-> (read-stream req) <!
                      read)
-              out (<! (parser/parse {:db              connection
+              out (<! (parser/parse {::l/db              connection
                                      :http-request    req
                                      :current-user-id (current-user req)}
                                     tx))]
@@ -102,7 +103,7 @@
         (let [tx (-> (read-stream req) <!
                      (read-string))]
           (.send res (with-out-str
-                       (cljs.pprint/pprint (<! (parser/parse {:db              connection
+                       (cljs.pprint/pprint (<! (parser/parse {::l/db              connection
                                                               :http-request    req
                                                               :current-user-id (current-user req)} tx))))))
         (catch :default e

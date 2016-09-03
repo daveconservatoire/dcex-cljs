@@ -58,6 +58,7 @@
 (s/def :user/name string?)
 (s/def :user/email string?)
 (s/def :user/about string?)
+(s/def :user/points nat-int?)
 (s/def :user/user-views (s/every :model/user-view))
 
 (s/def :model/user

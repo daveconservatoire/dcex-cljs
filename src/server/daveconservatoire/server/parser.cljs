@@ -35,10 +35,10 @@
          {:key    :course,
           :name   "Course",
           :fields {:db/id              "id"
+                   :url/slug           "urltitle"
                    :course/title       "title"
                    :course/description "description"
                    :course/author      "author"
-                   :url/slug           "urltitle"
                    :ordering/position  "homepage_order"}},
 
          {:key    :lesson,
@@ -54,10 +54,13 @@
 
          {:key    :user
           :name   "User"
-          :fields {:db/id      "id"
-                   :user/name  "name"
-                   :user/email "email"
-                   :user/about "biog"}}
+          :fields {:db/id              "id"
+                   :user/name          "name"
+                   :user/email         "email"
+                   :user/about         "biog"
+                   :user/created-at    "joinDate"
+                   :user/points        "points"
+                   :user/last-activity "lastActivity"}}
 
          {:key    :user-view
           :name   "UserVideoView"
@@ -152,7 +155,7 @@
      (go
        (when current-user-id
          (<? (d/hit-video-view env #:user-view {:user-id   current-user-id
-                                             :lesson-id id}))
+                                                :lesson-id id}))
          nil)))})
 
 ;; PARSER

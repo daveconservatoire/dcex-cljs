@@ -171,15 +171,13 @@
   (dom/li (u/props->html {:className "divider"} props)))
 
 (defn user-menu-status [comp]
-  (let [{:user/keys [name]} (om/props comp)]
+  (let [{:user/keys [name points]} (om/props comp)]
     (button-dropdown
       {::r/handler ::r/profile
        :react-key  "user-menu-status"
        ::title     (dom/div nil
                      (dom/i #js {:className "icon-user icon-white"}) " " name " ("
-                     (dom/span #js {:id "pointstotal"}
-                       "XXX")
-                     " Points)")}
+                     (dom/span #js {:id "pointstotal"} points) " Points)")}
       (button-dropdown-item {:key "profile-link"}
                             (link {::r/handler ::r/profile}
                                   (dom/i #js {:className "icon-pencil"}) " My Profile"))
@@ -193,7 +191,7 @@
   (ident [_ props] (u/model-ident props))
 
   static om/IQuery
-  (query [_] [:user/name :user/score])
+  (query [_] [:user/name :user/score :user/points])
 
   Object
   (render [this]

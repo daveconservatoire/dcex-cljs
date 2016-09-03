@@ -5,6 +5,9 @@
             [clojure.set :refer [rename-keys]]
             [common.async :refer [go-catch <?]]))
 
+(defn current-timestamp []
+  (js/Math.round (/ (.getTime (js/Date.)) 1000)))
+
 (defn user-by-email [connection email]
   (knex/query-first connection "User" [[:where {:email email}]]))
 
@@ -12,6 +15,9 @@
   (go-catch
     (let [user {:name  name
                 :email email
+                :points 0
+                :joinDate (current-timestamp)
+                :lastActivity (current-timestamp)
                 :biog  "Please tell us about your musical interests and goals. This will help develop the site to better support your learning. It will not be made public."}
           [id] (<? (knex/insert connection "User" user))]
       id)))
@@ -30,9 +36,6 @@
         (done nil (<? (passport-sign-in connection (js->clj profile :keywordize-keys true))))
         (catch :default e
           (done e))))))
-
-(defn current-timestamp []
-  (js/Math.round (/ (.getTime (js/Date.)) 1000)))
 
 (defn hit-video-view [{:keys [::l/db ::l/db-specs]} {:user-view/keys [user-id lesson-id] :as view}]
   (go-catch

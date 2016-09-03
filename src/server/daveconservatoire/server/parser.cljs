@@ -61,12 +61,12 @@
 
          {:key    :user-view
           :name   "UserVideoView"
-          :fields (assoc #:user-view {:user-id   "userId"
-                                      :lesson-id "lessonId"
-                                      :status    "status"
-                                      :position  "position"
-                                      :timestamp "timestamp"}
-                                     :db/id "id")}])
+          :fields {:db/id               "id"
+                   :user-view/user-id   "userId"
+                   :user-view/lesson-id "lessonId"
+                   :user-view/status    "status"
+                   :user-view/position  "position"
+                   :user-view/timestamp "timestamp"}}])
 
       ; Course
       (l/row-getter :course/topics
@@ -105,7 +105,17 @@
           "e" :lesson.type/exercise
           "p" :lesson.type/playlist))
       (l/row-getter :lesson/playlist-items
-        #(l/has-many % :playlist-item :playlist-item/lesson-id {:sort "sort"}))))
+        #(l/has-many % :playlist-item :playlist-item/lesson-id {:sort "sort"}))
+
+      ; User
+      (l/row-getter :user/user-views
+        #(l/has-many % :user-view :user-view/user-id))
+
+      ; User View
+      (l/row-getter :user-view/user
+        #(l/has-one % :user :user-view/user-id))
+      (l/row-getter :user-view/lesson
+        #(l/has-one % :lesson :user-view/lesson-id))))
 
 ;; ROOT READS
 

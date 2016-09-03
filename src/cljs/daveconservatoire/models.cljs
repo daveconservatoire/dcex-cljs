@@ -37,7 +37,7 @@
 (s/def :lesson/topic :model/topic)
 (s/def :lesson/course-id :db/id)
 (s/def :lesson/course :model/course)
-(s/def :lesson/playlist-items (s/coll-of :model/playlist-item))
+(s/def :lesson/playlist-items (s/every :model/playlist-item))
 
 (s/def :model/lesson
   (s/keys :opt [:db/id :url/slug :youtube/id
@@ -58,6 +58,7 @@
 (s/def :user/name string?)
 (s/def :user/email string?)
 (s/def :user/about string?)
+(s/def :user/user-views (s/every :model/user-view))
 
 (s/def :model/user
   (s/keys :opt [:db/id :user/name :user/email]))

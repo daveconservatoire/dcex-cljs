@@ -618,6 +618,27 @@
 
 (defmethod r/route->component ::r/lesson [_] LessonPage)
 
+(om/defui ^:once ProfileRecentActivity
+  static om/IQuery
+  (query [_] [:db/id {:user-view/lesson [:lesson/title :url/slug]}])
+
+  static om/Ident
+  (ident [_ props] (u/model-ident props))
+
+  Object
+  (render [this]
+    (let [{:keys [user-view/lesson]} (om/props this)
+          {:keys [lesson/title url/slug]} lesson]
+      (dom/tr nil
+        (dom/td nil
+          (dom/i #js {:className "icon-facetime-video"}))
+        (dom/td nil
+          (dom/strong #js {} "Watched: ")
+          (link {::r/handler ::r/lesson ::r/params {::r/slug slug}}
+            title))))))
+
+(def profile-recent-activity (om/factory ProfileRecentActivity {:keyfn :db/id}))
+
 (om/defui ^:once ProfileDashboard
   static om/Ident
   (ident [_ props]
@@ -625,11 +646,12 @@
 
   static om/IQuery
   (query [_]
-    [:db/id :user/name :user/about])
+    [:db/id :user/name :user/about
+     {:user/user-views (om/get-query ProfileRecentActivity)}])
 
   Object
   (render [this]
-    (let [{:user/keys [name about]} (om/props this)]
+    (let [{:user/keys [name about user-views]} (om/props this)]
       (dom/div #js {:className "span10"}
         (dom/div #js {:className "row"}
           (dom/div #js {:className "profile-topbar"}
@@ -638,106 +660,40 @@
                 (dom/a #js {:href "#myModal", :role "button", :className "btn dc-btn-red pull-right", :data-toggle "modal"}
                   "Update your info")
                 (dom/h1 #js {:style #js {:margin 0}} name)
-                (dom/h3 #js {} "About me")
-                (dom/p #js {} about)))
+                (dom/h3 nil "About me")
+                (dom/p nil about)))
             (dom/div #js {:className "span5 whiteback"}
               (dom/div #js {:className "padding"}
                 (dom/i #js {:className "icon-star intro-icon-large dc-text-orange pull-right"})
                 (dom/h1 #js {:style #js {:margin 0}} "My Subscription")
-                (dom/h1 #js {} "$9.00 per month")
-                (dom/p #js {} "Thank you so much for your subscription. Your support is vital in helping us serve music students around the world.")))))
+                (dom/h1 nil "$9.00 per month")
+                (dom/p nil "Thank you so much for your subscription. Your support is vital in helping us serve music students around the world.")))))
         (dom/div #js {:className "pad30"})
         (dom/div #js {:className "row"}
           (dom/div #js {:className "span5 whiteback"}
             (dom/div #js {:className "padding"}
-              (dom/h3 #js {}
+              (dom/h3 nil
                 "Statistics")
               (dom/table #js {:style #js {:margin 0 :width "100%"}}
-                (dom/tbody #js {}
-                  (dom/tr #js {}
-                    (dom/td #js {} "Groove Score:")
+                (dom/tbody nil
+                  (dom/tr nil
+                    (dom/td nil "Groove Score:")
                     (dom/td #js {:className "pull-right"} "5830"))
-                  (dom/tr #js {}
-                    (dom/td #js {} "Lessons Viewed:")
+                  (dom/tr nil
+                    (dom/td nil "Lessons Viewed:")
                     (dom/td #js {:className "pull-right"} "324"))
-                  (dom/tr #js {}
-                    (dom/td #js {} "Exercises Answered:")
+                  (dom/tr nil
+                    (dom/td nil "Exercises Answered:")
                     (dom/td #js {:className "pull-right"} "1854"))
-                  (dom/tr #js {}
-                    (dom/td #js {} "Member Since:")
+                  (dom/tr nil
+                    (dom/td nil "Member Since:")
                     (dom/td #js {:className "pull-right"} "July 25th 2015"))))))
           (dom/div #js {:className "span5 whiteback"}
             (dom/div #js {:className "padding"}
-              (dom/h3 #js {} "Recent Activity")
-              (dom/table #js {:className "table "}
-                (dom/tbody #js {}
-                  (dom/tr #js {}
-                    (dom/td #js {}
-                      (dom/i #js {:className "icon-facetime-video"}))
-                    (dom/td #js {}
-                      (dom/strong #js {} "Watched:")
-                      (dom/a #js {:href "/lesson/bassclef"} "The Bass Clef")))
-                  (dom/tr #js {}
-                    (dom/td #js {}
-                      (dom/i #js {:className "icon-list-alt"}))
-                    (dom/td #js {}
-                      (dom/strong #js {} "Practiced:")
-                      (dom/a #js {:href "/lesson/treble-clef-reading"} "Exercise: Reading the Treble Clef")))
-                  (dom/tr #js {}
-                    (dom/td #js {}
-                      (dom/i #js {:className "icon-star-empty"}))
-                    (dom/td #js {}
-                      (dom/strong #js {}
-                        "Mastered:")
-                      (dom/a #js {:href "/lesson/treble-clef-reading"}
-                        "Exercise: Reading the Treble Clef")))
-                  (dom/tr #js {}
-                    (dom/td #js {}
-                      (dom/i #js {:className "icon-list-alt"}))
-                    (dom/td #js {}
-                      (dom/strong #js {}
-                        "Practiced:")
-                      (dom/a #js {:href "/lesson/treble-clef-reading"}
-                        "Exercise: Reading the Treble Clef")))
-                  (dom/tr #js {})
-                  (dom/tr #js {})
-                  (dom/tr #js {})
-                  (dom/tr #js {}
-                    (dom/td #js {}
-                      (dom/i #js {:className "icon-facetime-video"}))
-                    (dom/td #js {}
-                      (dom/strong #js {}
-                        "Watched:")
-                      (dom/a #js {:href "/lesson/introducing-key"}
-                        "What is a key?")))
-                  (dom/tr #js {})
-                  (dom/tr #js {}
-                    (dom/td #js {}
-                      (dom/i #js {:className "icon-facetime-video"}))
-                    (dom/td #js {}
-                      (dom/strong #js {}
-                        "Watched:")
-                      (dom/a #js {:href "/lesson/pitch-and-octaves"}
-                        "Pitch and Octaves")))
-                  (dom/tr #js {})
-                  (dom/tr #js {}
-                    (dom/td #js {}
-                      (dom/i #js {:className "icon-star-empty"}))
-                    (dom/td #js {}
-                      (dom/strong #js {}
-                        "Mastered:")
-                      (dom/a #js {:href "/lesson/intervals-12"}
-                        "Exercise: Major 7th")))
-                  (dom/tr #js {})
-                  (dom/tr #js {})
-                  (dom/tr #js {}
-                    (dom/td #js {}
-                      (dom/i #js {:className "icon-star-empty"}))
-                    (dom/td #js {}
-                      (dom/strong #js {}
-                        "Mastered:")
-                      (dom/a #js {:href "/lesson/intervals-11"}
-                        "Exercise: Major 2nd"))))))))))))
+              (dom/h3 nil "Recent Activity")
+              (dom/table #js {:className "table" :style #js {:margin 0}}
+                (dom/tbody nil
+                  (map profile-recent-activity user-views))))))))))
 
 (def profile-dashboard (om/factory ProfileDashboard))
 

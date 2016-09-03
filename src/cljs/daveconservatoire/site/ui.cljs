@@ -310,7 +310,7 @@
 
 (om/defui ^:once LessonCell
   static om/IQuery
-  (query [_] [:lesson/title :youtube/id :lesson/type :url/slug])
+  (query [_] [:db/id :lesson/title :youtube/id :lesson/type :url/slug])
 
   static om/Ident
   (ident [_ props] (u/model-ident props))
@@ -323,7 +323,7 @@
               (dom/img #js {:src (u/lesson-thumbnail-url lesson) :key "img"})
               (dom/p #js {:key "p"} title))))))
 
-(def lesson-cell (om/factory LessonCell))
+(def lesson-cell (om/factory LessonCell {:keyfn :db/id}))
 
 (om/defui ^:once TopicSideBarLink
   static om/IQuery
@@ -755,8 +755,9 @@
     (let [{:keys [topic/lessons]} (om/props this)
           lesson-groups (partition 6 6 nil lessons)]
       (dom/div #js {:className "thumbnails"}
-        (for [lessons lesson-groups]
-          (dom/div #js {:className "row" :style #js {:margin "0 0 20px 0"}}
+        (for [[i lessons] (map vector (range) lesson-groups)]
+          (dom/div #js {:className "row" :style #js {:margin "0 0 20px 0"}
+                        :key i}
             (map lesson-cell lessons)))))))
 
 (def home-course-topic-open (om/factory HomeCourseTopicOpen {:keyfn :db/id}))

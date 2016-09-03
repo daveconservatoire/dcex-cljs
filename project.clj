@@ -11,9 +11,9 @@
 
   :dependencies [[org.clojure/clojure "1.9.0-alpha11" :scope "provided"]
                  [org.clojure/clojurescript "1.9.225" :scope "provided"]
-                 [cljsjs/react-with-addons "15.2.0-0"]
-                 [cljsjs/react-dom "15.2.0-0" :exclusions [cljsjs/react]]
-                 [org.omcljs/om "1.0.0-alpha41" :exclusions [cljsjs/react-dom  cljsjs/react]]
+                 [cljsjs/react-with-addons "15.2.1-0"]
+                 [cljsjs/react-dom "15.2.1-0" :exclusions [cljsjs/react]]
+                 [org.omcljs/om "1.0.0-alpha42" :exclusions [cljsjs/react-dom  cljsjs/react]]
                  [figwheel-sidecar "0.5.4-4" :exclusions [clj-time joda-time org.clojure/tools.reader] :scope "test"]
                  [bidi "2.0.9"]
                  [kibu/pushy "0.3.6"]

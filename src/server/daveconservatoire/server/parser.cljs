@@ -141,8 +141,6 @@
    (fn []
      (go
        (when current-user-id
-         (js/console.log "hitting view" (pr-str #:user-view {:user-id   current-user-id
-                                                             :lesson-id id}))
          (<? (d/hit-video-view env #:user-view {:user-id   current-user-id
                                              :lesson-id id}))
          nil)))})

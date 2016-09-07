@@ -58,7 +58,7 @@
                           :store             (RedisStore. #js {})
                           :resave            true
                           :saveUninitialized false
-                          :cookie            #js {:maxAge 600000}}))
+                          :cookie            #js {}}))
 (ex/use app (.initialize passport/passport))
 (ex/use app (.session passport/passport))
 

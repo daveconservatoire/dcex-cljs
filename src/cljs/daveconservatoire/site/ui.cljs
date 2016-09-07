@@ -5,6 +5,7 @@
             [daveconservatoire.site.ui.util :as u]
             [daveconservatoire.site.ui.exercises :as ux]
             [daveconservatoire.site.ui.youtube-player :as ytp]
+            [daveconservatoire.site.ui.portal :refer [portal]]
             [untangled.client.core :as uc]
             [untangled.client.mutations :as um]
             [untangled.client.impl.data-fetch :as df]
@@ -53,7 +54,7 @@
               (::selected? props) (assoc :className "dc-bg-orange active"))
             (dissoc props ::r/handler))
     (link (select-keys props [::r/handler ::r/params])
-          (dom/i #js {:className "icon-chevron-right"}) content)))
+      (dom/i #js {:className "icon-chevron-right"}) content)))
 
 (om/defui ^:once Hero
   Object
@@ -154,7 +155,7 @@
                 {:className "btn btn-success"
                  :style     {:marginRight 0}}
                 props)
-              title)
+          title)
         (if open?
           (l/simple-listener {::l/on-trigger #(om/set-state! this {:open? false})}))
         (dom/a #js {:className "btn btn-success dropdown-toggle", :href "#"
@@ -180,7 +181,7 @@
                      (dom/span #js {:id "pointstotal"} points) " Points)")}
       (button-dropdown-item {:key "profile-link"}
                             (link {::r/handler ::r/profile}
-                                  (dom/i #js {:className "icon-pencil"}) " My Profile"))
+                              (dom/i #js {:className "icon-pencil"}) " My Profile"))
       (button-dropdown-divider {:key "div1"})
       (button-dropdown-item {:key "logout-link"}
                             (dom/a #js {:href "#" :onClick #(om/transact! comp ['(app/logout)])}
@@ -201,7 +202,7 @@
           (dom/div #js {:className "navbar-inner"}
             (dom/div #js {:className "container"}
               (link {:id "desktopbrand", :className "brand", ::r/handler ::r/home}
-                    (dom/img #js {:src "/img/dclogo3.png" :alt "Dave Conservatoire" :key "logo"}))
+                (dom/img #js {:src "/img/dclogo3.png" :alt "Dave Conservatoire" :key "logo"}))
               (dom/div #js {:className "navbar"}
                 (dom/div #js {:className "navbuttons"}
                   (button {:react-key "btn-0" ::r/handler ::r/about, ::button-color "yellow"}
@@ -320,8 +321,8 @@
     (let [{:keys [lesson/title url/slug] :as lesson} (om/props this)]
       (dom/div #js {:className "span2"}
         (link {::r/handler ::r/lesson ::r/params {::r/slug slug} :className "thumbnail vertical-shadow suggested-action"}
-              (dom/img #js {:src (u/lesson-thumbnail-url lesson) :key "img"})
-              (dom/p #js {:key "p"} title))))))
+          (dom/img #js {:src (u/lesson-thumbnail-url lesson) :key "img"})
+          (dom/p #js {:key "p"} title))))))
 
 (def lesson-cell (om/factory LessonCell {:keyfn :db/id}))
 
@@ -450,7 +451,7 @@
 
   Object
   (render [this]
-    (let [{:keys [url/slug]
+    (let [{:keys       [url/slug]
            :topic/keys [course lessons]} (om/props this)
           {:course/keys [topics title]} course]
 
@@ -637,6 +638,54 @@
 
 (def profile-recent-activity (om/factory ProfileRecentActivity {:keyfn :db/id}))
 
+(defn modal [{:ui.modal/keys [title onClose onSave]} & children]
+  (portal {:append-to "body"}
+    (dom/div #js {:style #js {:position   "absolute"
+                              :left       0
+                              :top        0
+                              :background "rgba(0, 0, 0, 0.5)"
+                              :width      "100vw"
+                              :height     "100vh"}}
+      (dom/div #js {:id "myModal" :className "modal hide fade in" :tabIndex "-1" :role "dialog" :style #js {:display "block"}}
+        (dom/div #js {:className "modal-header"}
+          (dom/button #js {:type "button" :className "close" :onClick #(if onClose (onClose))}
+            "×")
+          (dom/h3 #js {:id "myModalLabel"}
+            title))
+        (dom/div #js {:className "modal-body"}
+          (apply dom/div nil children)
+          (dom/div #js {:className "row buttons"})
+          (dom/div #js {:className "modal-footer"}
+            (dom/button #js {:className "btn" :onClick #(if onClose (onClose))}
+              "Close")
+            (dom/button #js {:className "btn" :type "submit" :onClick #(if onSave (onSave))} "Save")))))))
+
+(defn user-info-modal [this]
+  (let [{:keys [user/about ui/tmp-about]} (om/props this)]
+    (modal #:ui.modal {:title   "Update your Profile"
+                       :onClose #(um/set-value! this :ui/editing-info? false)}
+      (dom/form #js {:id "user-form" :action "profile/update" :method "post"}
+        (dom/div #js {:id "user-form_es_" :className "errorSummary" :style #js {:display "none"}}
+          (dom/p nil
+            "Please fix the following input errors:")
+          (dom/ul nil
+            (dom/li nil
+              "dummy")))
+        (dom/label #js {:htmlFor "User_biog"}
+          (dom/h3 nil
+            "About you") "Who are you? What are your musical goals? What instruments do you play? "
+          (dom/br nil)
+          "(max. 160 characters)"
+          (dom/br nil)
+          (dom/br nil))
+        (dom/textarea #js {:size      "60"
+                           :maxLength "160"
+                           :id        "User_biog"
+                           :value     (or tmp-about about)
+                           :onChange  #(um/set-string! this :ui/tmp-about :event %)
+                           :style     #js {:zIndex "auto" :position "relative" :lineHeight "20px" :fontSize 14 :transition "none" :background "none 0% 0% / auto repeat scroll padding-box border-box rgb(255 255 255)"}})
+        (dom/div #js {:className "errorMessage" :id "User_biog_em_" :style #js {:display "none"}})))))
+
 (om/defui ^:once ProfileDashboard
   static om/Ident
   (ident [_ props]
@@ -644,18 +693,25 @@
 
   static om/IQuery
   (query [_]
-    [:db/id :user/name :user/about
+    [:db/id :db/table :user/name :user/about :ui/editing-info? :ui/tmp-about
      {:user/user-views (om/get-query ProfileRecentActivity)}])
 
   Object
   (render [this]
-    (let [{:user/keys [name about user-views]} (om/props this)]
+    (let [{:user/keys [name about user-views]
+           :ui/keys   [editing-info?]} (om/props this)]
       (dom/div #js {:className "span10"}
         (dom/div #js {:className "row"}
           (dom/div #js {:className "profile-topbar"}
             (dom/div #js {:className "span5 whiteback"}
               (dom/div #js {:className "padding"}
-                (dom/a #js {:href "#myModal", :role "button", :className "btn dc-btn-red pull-right", :data-toggle "modal"}
+                (if editing-info?
+                  (user-info-modal this))
+                (dom/a #js {:href        "#myModal"
+                            :role        "button"
+                            :onClick     #(um/set-value! this :ui/editing-info? true)
+                            :className   "btn dc-btn-red pull-right"
+                            :data-toggle "modal"}
                   "Update your info")
                 (dom/h1 #js {:style #js {:margin 0}} name)
                 (dom/h3 nil "About me")
@@ -718,8 +774,8 @@
     (let [{:keys [topic/title url/slug]} (om/props this)]
       (dom/li #js {:className "span4", :style #js {"marginBottom" 5}}
         (link {:className "btn btn-large btn-block dc-btn-yellow" ::r/handler ::r/topic ::r/params {::r/slug slug} :react-key "link"}
-              (dom/h3 #js {:key "title"}
-                title))))))
+          (dom/h3 #js {:key "title"}
+            title))))))
 
 (def home-course-topic (om/factory HomeCourseTopic {:keyfn :db/id}))
 
@@ -757,7 +813,7 @@
       (dom/div #js {:className "thumbnails"}
         (for [[i lessons] (map vector (range) lesson-groups)]
           (dom/div #js {:className "row" :style #js {:margin "0 0 20px 0"}
-                        :key i}
+                        :key       i}
             (map lesson-cell lessons)))))))
 
 (def home-course-topic-open (om/factory HomeCourseTopicOpen {:keyfn :db/id}))

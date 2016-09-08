@@ -50,3 +50,11 @@
   [_ _ _]
   {:action (fn [])
    :remote true})
+
+(defn update-ref [{:keys [state ref]} data]
+  (swap! state update-in ref merge data))
+
+(defmethod m/mutate 'user/update
+  [env _ data]
+  {:action #(update-ref env data)
+   :remote true})

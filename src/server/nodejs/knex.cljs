@@ -30,19 +30,19 @@
     (.then promise #(put! c (js->clj % :keywordize-keys true)) #(put! c %))
     c))
 
-(defn query
-  ([connection table] (query connection table []))
+(defn run
+  ([connection table] (run connection table []))
   ([connection table cmds]
    (promise->chan (call-chain (connection table) cmds))))
 
 (defn query-first [connection table cmds]
   (go
-    (-> (query connection table cmds) <? first)))
+    (-> (run connection table cmds) <? first)))
 
 (defn query-count [connection table cmds]
   (go-catch
     (some->
-      (query connection table (cons [:count "*"] cmds))
+      (run connection table (cons [:count "*"] cmds))
       <? first vals first)))
 
 (defn raw

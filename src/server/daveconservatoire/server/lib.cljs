@@ -133,7 +133,7 @@
     (let [cache-key [name cmds]]
       (if (contains? @query-cache cache-key)
         (get @query-cache cache-key)
-        (let [res (<! (knex/query db name cmds))]
+        (let [res (<! (knex/run db name cmds))]
           (swap! query-cache assoc cache-key res)
           res)))))
 

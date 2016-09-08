@@ -1,6 +1,6 @@
 (ns daveconservatoire.server.data-test
   (:require-macros [cljs.core.async.macros :refer [go]])
-  (:require [cljs.test :refer-macros [is are run-tests async testing deftest run-tests]]
+  (:require [cljs.test :refer [do-report is are run-tests async testing deftest run-tests]]
             [cljs.core.async :refer [<!]]
             [common.async :refer [<?]]
             [nodejs.knex :as knex]
@@ -20,6 +20,7 @@
   (async done
     (go
       (try
+        (<? (knex/raw ts/connection "delete from UserVideoView" []))
         (testing "creates hit for empty record"
           (<? (d/hit-video-view ts/env #:user-view {:user-id 10 :lesson-id 5}))
           (is (= (<? (knex/query-count ts/connection "UserVideoView" []))
@@ -32,9 +33,24 @@
           (<? (d/hit-video-view ts/env #:user-view {:user-id 10 :lesson-id 6}))
           (is (= (<? (knex/query-count ts/connection "UserVideoView" []))
                  2)))
-        (done)
         (catch :default e
-          (js/console.log "Error" (.-stack e))
-          (done))
-        (finally
-          (<! (knex/raw ts/connection "delete from UserVideoView" [])))))))
+          (do-report
+            {:type :error, :message (.-message e) :actual e})))
+      (done))))
+
+(deftest test-update-current-user
+  (async done
+    (go
+      (try
+        (<? (knex/raw ts/connection "update User set biog='' where id = 720" []))
+        (testing "creates hit for empty record"
+          (<? (d/update-current-user (assoc ts/env
+                                       :current-user-id 720)
+                                     {:user/about "New Description"}))
+          (is (= (-> (knex/query-first ts/connection "User" [[:where {:id 720}]])
+                     <? :biog)
+                 "New Description")))
+        (catch :default e
+          (do-report
+            {:type :error, :message (.-message e) :actual e})))
+      (done))))

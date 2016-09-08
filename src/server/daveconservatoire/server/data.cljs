@@ -22,6 +22,18 @@
           [id] (<? (knex/insert connection "User" user))]
       id)))
 
+(defn update-current-user [{::l/keys [db db-specs]
+                            :keys [current-user-id]}
+                           data]
+  (if current-user-id
+    (let [{:keys [fields]} (get db-specs :user)
+          enabled-keys #{:user/about}]
+      (knex/run db "User" [[:where {"id" current-user-id}]
+                           [:update (-> (select-keys data enabled-keys)
+                                        (rename-keys fields)
+                                        clj->js)]]))
+    (go nil)))
+
 (defn passport-sign-in [connection {:keys [emails displayName] :as profile}]
   (go-catch
     (let [email (some-> emails first :value)]
@@ -37,7 +49,7 @@
         (catch :default e
           (done e))))))
 
-(defn hit-video-view [{:keys [::l/db ::l/db-specs]} {:user-view/keys [user-id lesson-id] :as view}]
+(defn hit-video-view [{::l/keys [db db-specs]} {:user-view/keys [user-id lesson-id] :as view}]
   (go-catch
     (let [{:keys [name fields fields']} (get db-specs :user-view)
           last-view (some-> (knex/query-first db name

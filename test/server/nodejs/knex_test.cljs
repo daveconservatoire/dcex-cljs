@@ -5,10 +5,10 @@
             [nodejs.knex :as knex]
             [daveconservatoire.server.test-shared :as ts]))
 
-(deftest test-query
+(deftest test-run
   (async done
     (go
-      (is (= (->> (knex/query ts/connection "Course") <!
+      (is (= (->> (knex/run ts/connection "Course") <!
                   first :title)
              "Reading Music"))
       (done))))

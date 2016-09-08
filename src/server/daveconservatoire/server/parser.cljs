@@ -158,6 +158,10 @@
                                                 :lesson-id id}))
          nil)))})
 
+(defmethod mutate 'user/update
+  [env _ data]
+  {:action #(d/update-current-user env data)})
+
 ;; PARSER
 
 (def parser (om/parser {:read l/read :mutate mutate}))

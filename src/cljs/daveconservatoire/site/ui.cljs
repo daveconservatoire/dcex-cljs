@@ -656,14 +656,22 @@
           (apply dom/div nil children)
           (dom/div #js {:className "row buttons"})
           (dom/div #js {:className "modal-footer"}
-            (dom/button #js {:className "btn" :onClick #(if onClose (onClose))}
+            (dom/button #js {:className "btn"
+                             :onClick #(if onClose (onClose))}
               "Close")
-            (dom/button #js {:className "btn" :type "submit" :onClick #(if onSave (onSave))} "Save")))))))
+            (dom/button #js {:className "btn btn-primary"
+                             :onClick #(if onSave (onSave))}
+              "Save")))))))
 
 (defn user-info-modal [this]
   (let [{:keys [user/about ui/tmp-about]} (om/props this)]
     (modal #:ui.modal {:title   "Update your Profile"
-                       :onClose #(um/set-value! this :ui/editing-info? false)}
+                       :onClose #(do
+                                  (um/set-value! this :ui/editing-info? false)
+                                  (um/set-value! this :ui/tmp-about about))
+                       :onSave  #(do
+                                  (om/transact! this `[(user/update {:user/about ~tmp-about})])
+                                  (um/set-value! this :ui/editing-info? false))}
       (dom/form #js {:id "user-form" :action "profile/update" :method "post"}
         (dom/div #js {:id "user-form_es_" :className "errorSummary" :style #js {:display "none"}}
           (dom/p nil

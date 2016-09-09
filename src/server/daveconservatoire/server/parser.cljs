@@ -5,7 +5,7 @@
             [cljs.core.async :refer [<! >! put! close!]]
             [cljs.core.async.impl.protocols :refer [Channel]]
             [daveconservatoire.models]
-            [daveconservatoire.server.lib :as l]
+            [utgn.lib :as l]
             [daveconservatoire.server.data :as d]))
 
 (def db-specs

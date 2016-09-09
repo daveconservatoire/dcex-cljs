@@ -2,7 +2,7 @@
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [cljs.test :refer-macros [is are run-tests async testing deftest run-tests]]
             [cljs.core.async :refer [<!]]
-            [daveconservatoire.server.lib :as l]
+            [utgn.lib :as l]
             [daveconservatoire.server.parser :as p]
             [daveconservatoire.server.test-shared :as ts]
             [com.rpl.specter :as sk :refer [setval select selected? view transform ALL FIRST LAST END filterer comp-paths keypath]]

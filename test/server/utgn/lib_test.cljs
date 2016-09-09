@@ -1,9 +1,9 @@
-(ns daveconservatoire.server.lib-test
+(ns utgn.lib-test
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [cljs.test :refer-macros [is are run-tests async testing deftest run-tests]]
             [cljs.core.async :refer [<!]]
             [daveconservatoire.server.parser :as p]
-            [daveconservatoire.server.lib :as l]
+            [utgn.lib :as l]
             [daveconservatoire.server.test-shared :as ts]
             [om.next :as om]))
 

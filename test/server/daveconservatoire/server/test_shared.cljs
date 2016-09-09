@@ -1,7 +1,7 @@
 (ns daveconservatoire.server.test-shared
   (:require [nodejs.knex :as knex]
             [daveconservatoire.server.parser :as p]
-            [daveconservatoire.server.lib :as l]))
+            [utgn.lib :as l]))
 
 (defonce connection
   (knex/create-connection

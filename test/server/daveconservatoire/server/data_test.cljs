@@ -5,7 +5,7 @@
             [common.async :refer [<?]]
             [nodejs.knex :as knex]
             [daveconservatoire.server.data :as d]
-            [daveconservatoire.server.lib :as l]
+            [utgn.lib :as l]
             [daveconservatoire.server.test-shared :as ts]))
 
 (deftest test-user-by-email

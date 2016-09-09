@@ -1,13 +1,12 @@
-(ns daveconservatoire.server.lib
+(ns utgn.lib
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
   (:require [om.next :as om]
-            [clojure.set :as set]
             [common.async :refer-macros [go-catch <?]]
+            [clojure.set :as set]
             [cljs.core.async :as async :refer [<! >! put! close!]]
             [cljs.core.async.impl.protocols :refer [Channel]]
-            [daveconservatoire.support.specs :as sp]
-            [nodejs.knex :as knex]
-            [cljs.spec :as s]))
+            [cljs.spec :as s]
+            [nodejs.knex :as knex]))
 
 ;; SUPPORT FUNCTIONS
 
@@ -166,8 +165,8 @@
           limit (or limit 50)]
       (sql-node (assoc env :table table)
                 (cond-> [[:limit limit]]
-                   where (conj [:where where])
-                   sort (conj (concat [:orderBy] (ensure-list sort))))))
+                  where (conj [:where where])
+                  sort (conj (concat [:orderBy] (ensure-list sort))))))
     (throw (str "[Query Table] No specs for table " table))))
 
 (defn save [{:keys [::db-specs ::db]} {:keys [db/table] :as record}]
@@ -176,10 +175,6 @@
     (knex/insert db name (-> record
                              (select-keys (keys fields))
                              (set/rename-keys fields)))))
-
-(s/fdef save
-  :args (s/cat :env map? :record (s/keys :req [:db/table]))
-  :ret ::sp/chan)
 
 ;; RELATIONAL MAPPING
 

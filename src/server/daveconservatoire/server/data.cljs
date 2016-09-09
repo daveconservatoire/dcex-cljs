@@ -1,7 +1,7 @@
 (ns daveconservatoire.server.data
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [nodejs.knex :as knex]
-            [daveconservatoire.server.lib :as l]
+            [utgn.lib :as l]
             [clojure.set :refer [rename-keys]]
             [common.async :refer [go-catch <?]]))
 

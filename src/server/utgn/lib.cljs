@@ -6,6 +6,7 @@
             [cljs.core.async :as async :refer [<! >! put! close!]]
             [cljs.core.async.impl.protocols :refer [Channel]]
             [cljs.spec :as s]
+            [goog.object :as gobj]
             [nodejs.knex :as knex]))
 
 ;; SUPPORT FUNCTIONS
@@ -105,7 +106,7 @@
 
 (defn row-get [{:keys [table] :as env} row attr]
   (read-from (assoc env :row row :ast {:key attr :dispatch-key attr})
-    (::reader-map table)))
+             (::reader-map table)))
 
 (defn ensure-chan [x]
   (if (chan? x)
@@ -169,12 +170,36 @@
                   sort (conj (concat [:orderBy] (ensure-list sort))))))
     (throw (str "[Query Table] No specs for table " table))))
 
-(defn save [{:keys [::db-specs ::db]} {:keys [db/table] :as record}]
+(defn record->map [record fields]
+  (reduce (fn [m [k v]]
+            (assoc m k (gobj/get record v)))
+          {}
+          fields))
+
+(defn find-by [{::keys [db-specs db]} {:keys [db/table] :as search}]
   (assert table "Table is required")
-  (let [{:keys [name fields]} (get db-specs table)]
-    (knex/insert db name (-> record
-                             (select-keys (keys fields))
-                             (set/rename-keys fields)))))
+  (go-catch
+    (let [{:keys [fields fields' name]} (get db-specs table)
+          search (-> (dissoc search :db/table)
+                     (set/rename-keys fields))]
+      (-> (knex/run-first db name [[:where search]]) <?
+          (record->map fields)))))
+
+(defn save [{::keys [db-specs db]} {:keys [db/table db/id] :as record}]
+  (assert table "Table is required")
+  (go-catch
+    (let [{:keys [name fields]} (get db-specs table)
+          js-record (-> record
+                        (select-keys (keys fields))
+                        (set/rename-keys fields)
+                        (dissoc :db/id)
+                        clj->js)]
+      (if id
+        (do
+          (<? (knex/run db name [[:update js-record]]))
+          record)
+        (let [id (<? (knex/run-first db name [[:insert js-record (:db/id fields)]]))]
+          (assoc record :db/id id))))))
 
 ;; RELATIONAL MAPPING
 

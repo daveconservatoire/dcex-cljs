@@ -9,7 +9,7 @@
   (js/Math.round (/ (.getTime (js/Date.)) 1000)))
 
 (defn user-by-email [connection email]
-  (knex/query-first connection "User" [[:where {:email email}]]))
+  (knex/run-first connection "User" [[:where {:email email}]]))
 
 (defn create-user [connection {:user/keys [name email]}]
   (go-catch
@@ -52,8 +52,8 @@
 (defn hit-video-view [{::l/keys [db db-specs]} {:user-view/keys [user-id lesson-id] :as view}]
   (go-catch
     (let [{:keys [name fields fields']} (get db-specs :user-view)
-          last-view (some-> (knex/query-first db name
-                                              [[:where {"userId" user-id}]
+          last-view (some-> (knex/run-first db name
+                                            [[:where {"userId" user-id}]
                                                [:orderBy "timestamp" "desc"]
                                                [:limit 1]])
                             <? (rename-keys fields'))]
@@ -61,3 +61,7 @@
         (let [new-view (-> (merge view #:user-view {:timestamp (current-timestamp)})
                            (rename-keys fields))]
           (<? (knex/insert db name new-view)))))))
+
+(defn compute-ex-answer [{::l/keys [db db-specs] :as env} {:keys [url/slug]}]
+  (go-catch
+    #_ (let [lesson (<? (l/find-by env :lesson {:url/slug slug}))])))

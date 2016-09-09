@@ -16,6 +16,7 @@
              "ZruMczeEIffrGMBDjlXo"))
       (done))))
 
+
 (deftest test-hit-video-view
   (async done
     (go
@@ -47,7 +48,7 @@
           (<? (d/update-current-user (assoc ts/env
                                        :current-user-id 720)
                                      {:user/about "New Description"}))
-          (is (= (-> (knex/query-first ts/connection "User" [[:where {:id 720}]])
+          (is (= (-> (knex/run-first ts/connection "User" [[:where {:id 720}]])
                      <? :biog)
                  "New Description")))
         (catch :default e

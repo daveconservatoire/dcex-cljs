@@ -31,35 +31,38 @@
     c))
 
 (defn run
-  ([connection table] (run connection table []))
-  ([connection table cmds]
-   (promise->chan (call-chain (connection table) cmds))))
+  ([db table] (run db table []))
+  ([db table cmds]
+   (promise->chan (call-chain (db table) cmds))))
 
-(defn query-first [connection table cmds]
+(defn run-first [db table cmds]
   (go
-    (-> (run connection table cmds) <? first)))
+    (-> (run db table cmds) <? first)))
 
-(defn query-count [connection table cmds]
+(defn query-count [db table cmds]
   (go-catch
     (some->
-      (run connection table (cons [:count "*"] cmds))
+      (run db table (cons [:count "*"] cmds))
       <? first vals first)))
 
 (defn raw
-  ([connection sql args]
-   (go
-     (let [res (<! (promise->chan (.raw connection sql (clj->js args))))]
-       (->> (first res)
+  ([db sql args]
+   (go-catch
+     (let [res (<? (promise->chan (.raw db sql (clj->js args))))]
+       (->> (if (sequential? res) (first res) res)
             (map convert-object))))))
 
-(defn insert [connection table data]
-  (-> (connection table)
+(defn insert [db table data]
+  (-> (db table)
       (.insert (clj->js data))
       (promise->chan)))
 
-(defn count [connection table field]
+(defn count [db table field]
   (go
-    (-> (connection table)
+    (-> (db table)
         (.count field)
         (promise->chan) <!
         ffirst second)))
+
+(defn clear-table [db table]
+  (raw db "delete from ??" [table]))

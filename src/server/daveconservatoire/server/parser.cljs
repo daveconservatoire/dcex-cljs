@@ -69,7 +69,12 @@
                    :user-view/lesson-id "lessonId"
                    :user-view/status    "status"
                    :user-view/position  "position"
-                   :user-view/timestamp "timestamp"}}])
+                   :user-view/timestamp "timestamp"}}
+
+         {:keys   :ex-answer
+          :name   "UserExerciseAnswer"
+          :fields {:db/id     "id"
+                   :lesson-id "exerciseId"}}])
 
       ; Course
       (l/row-getter :course/topics
@@ -128,14 +133,14 @@
 (def root-endpoints
   {:route/data     #(l/read-chan-values ((:parser %) % (:query (:ast %))))
    :topic/by-slug  #(l/sql-first-node (assoc % :table :topic)
-                     [[:where {:urltitle (l/ast-key-id (:ast %))}]])
+                                      [[:where {:urltitle (l/ast-key-id (:ast %))}]])
    :lesson/by-slug #(l/sql-first-node (assoc % :table :lesson ::l/union-selector :lesson/type)
-                     [[:where {:urltitle (l/ast-key-id (:ast %))}]])
+                                      [[:where {:urltitle (l/ast-key-id (:ast %))}]])
    :app/courses    #(l/sql-table-node (-> (ast-sort % "homepage_order")
                                           (assoc ::l/union-selector :course/home-type)) :course)
    :app/me         #(if-let [id (:current-user-id %)]
                      (l/sql-first-node (assoc % :table :user)
-                       [[:where {:id id}]]))})
+                                       [[:where {:id id}]]))})
 
 (def root-readers
   [root-endpoints l/placeholder-node #(vector :error :not-found)])

@@ -16,7 +16,7 @@
 (deftest test-query-first
   (async done
     (go
-      (is (= (->> (knex/query-first ts/connection "Course" []) <!
+      (is (= (->> (knex/run-first ts/connection "Course" []) <!
                   :title)
              "Reading Music"))
       (done))))

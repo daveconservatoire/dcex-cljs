@@ -68,5 +68,5 @@
          (first res)
          res)))))
 
-(defn clear-table [db table]
+(defn truncate [db table]
   (raw db "truncate table ??" [table]))

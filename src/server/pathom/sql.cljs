@@ -29,6 +29,9 @@
 
 (s/def ::row (s/map-of string? string?))
 
+(s/def ::union-selector keyword?)
+(s/def ::query-cache (partial satisfies? IAtom))
+
 (defn prepare-schema [schema]
   (zipmap (map ::table schema)
           (map #(let [m (::fields %)]
@@ -76,13 +79,15 @@
         row'))))
 
 (defn cached-query [{:keys [::db ::query-cache]} name cmds]
-  (go-catch
-    (let [cache-key [name cmds]]
-      (if (contains? @query-cache cache-key)
-        (get @query-cache cache-key)
-        (let [res (<? (knex/query db name cmds))]
-          (swap! query-cache assoc cache-key res)
-          res)))))
+  (if query-cache
+    (go-catch
+      (let [cache-key [name cmds]]
+        (if (contains? @query-cache cache-key)
+          (get @query-cache cache-key)
+          (let [res (<? (knex/query db name cmds))]
+            (swap! query-cache assoc cache-key res)
+            res))))
+    (knex/query db name cmds)))
 
 (defn sql-node [{:keys [::table ::schema] :as env} cmds]
   (if-let [{:keys [::table-name ::fields ::reader-map] :as table-spec} (get schema table)]
@@ -123,13 +128,13 @@
           {}
           fields))
 
-(defn find-by [{:keys [::schema ::db]} {:keys [db/table] :as search}]
+(defn find-by [{:keys [::schema] :as env} {:keys [db/table] :as search}]
   (assert table "Table is required")
   (go-catch
     (let [{::keys [table-name fields]} (get schema table)
           search (-> (dissoc search :db/table)
                      (set/rename-keys fields))]
-      (-> (knex/query-first db table-name [[:where search]]) <?
+      (-> (cached-query env table-name [[:where search]]) <? first
           (record->map fields)))))
 
 (defn save [{:keys [::schema ::db]} {:keys [db/table db/id] :as record}]

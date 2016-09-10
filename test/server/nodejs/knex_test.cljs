@@ -13,7 +13,7 @@
                (go
                  (try
                    (doseq [[_ db] dbs]
-                     (<? (knex/clear-table db "galera")))
+                     (<? (knex/truncate db "galera")))
                    (catch :default e
                      (do-report
                        {:type :error, :message (.-message e) :actual e})))

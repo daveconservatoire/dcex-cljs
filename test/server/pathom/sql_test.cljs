@@ -41,8 +41,8 @@
                (go
                  (try
                    (doseq [[_ db] dbs]
-                     (<? (knex/clear-table db "galera"))
-                     (<? (knex/clear-table db "grupos")))
+                     (<? (knex/truncate db "galera"))
+                     (<? (knex/truncate db "grupos")))
                    (catch :default e
                      (do-report
                        {:type :error, :message (.-message e) :actual e})))

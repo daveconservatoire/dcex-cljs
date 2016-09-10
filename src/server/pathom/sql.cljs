@@ -1,12 +1,13 @@
 (ns pathom.sql
+  (:refer-clojure :exclude [count])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
   (:require [common.async :refer-macros [go-catch <?]]
             [clojure.set :as set]
-            [cljs.core.async :as async :refer [<! >! put! close!]]
+            [clojure.walk :as walk]
+            [cljs.core.async :refer [<! >! put! close!]]
             [cljs.core.async.impl.protocols :refer [Channel]]
             [cljs.spec :as s]
             [pathom.core :as p]
-            [goog.object :as gobj]
             [nodejs.knex :as knex]))
 
 (s/def ::db any?)
@@ -127,14 +128,28 @@
           {}
           fields))
 
-(defn find-by [{:keys [::schema] :as env} {:keys [db/table] :as search}]
+(defn cmd-rename-fields [cmds fields]
+  (walk/postwalk (fn [x] (if (contains? fields x)
+                           (get fields x)
+                           x))
+                 cmds))
+
+(defn find-by [{:keys [::schema] :as env} {:keys [db/table ::query] :as search}]
   (assert table "Table is required")
   (go-catch
-    (let [{::keys [table-name fields]} (get schema table)
-          search (-> (dissoc search :db/table)
+    (let [{:keys [::table-name ::fields]} (get schema table)
+          search (-> (dissoc search :db/table ::query)
                      (set/rename-keys fields))]
-      (-> (cached-query env table-name [[:where search]]) <? first
-          (record->map fields)))))
+      (-> (cached-query env table-name
+                        (cond-> [[:where search]
+                                 [:limit 1]]
+                          query (concat (cmd-rename-fields query fields))))
+          <? first (record->map fields) (assoc :db/table table)))))
+
+(defn count [{:keys [::db ::schema] :as env} table]
+  (assert (get schema table) (str "No specs for table " table))
+  (let [{:keys [::table-name]} (get schema table)]
+    (knex/query-count db table-name [])))
 
 (defn save [{:keys [::schema ::db]} {:keys [db/table db/id] :as record}]
   (assert table "Table is required")

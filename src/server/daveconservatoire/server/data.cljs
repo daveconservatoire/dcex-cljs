@@ -56,7 +56,7 @@
                            :user/email         "email"
                            :user/about         "biog"
                            :user/created-at    "joinDate"
-                           :user/points        "points"
+                           :user/score         "points"
                            :user/last-activity "lastActivity"}}
 
          {::ps/table      :user-view
@@ -71,7 +71,8 @@
          {::ps/table      :ex-answer
           ::ps/table-name "UserExerciseAnswer"
           ::ps/fields     {:db/id     "id"
-                           :lesson-id "exerciseId"}}])
+                           :ex-answer/user-id "userId"
+                           :ex-answer/lesson-id "exerciseId"}}])
 
       ; Course
       (ps/row-getter :course/topics
@@ -126,15 +127,16 @@
 (defn current-timestamp []
   (js/Math.round (/ (.getTime (js/Date.)) 1000)))
 
-(defn create-user [connection {:user/keys [name email]}]
+(defn create-user [env {:keys [user/name user/email]}]
   (go-catch
-    (let [user {:name         name
-                :email        email
-                :points       0
-                :joinDate     (current-timestamp)
-                :lastActivity (current-timestamp)
-                :biog         "Please tell us about your musical interests and goals. This will help develop the site to better support your learning. It will not be made public."}
-          [id] (<? (knex/insert connection "User" user))]
+    (let [user {:db/table           :user
+                :user/name          name
+                :user/email         email
+                :user/score         0
+                :user/created-at    (current-timestamp)
+                :user/last-activity (current-timestamp)
+                :user/about         "Please tell us about your musical interests and goals. This will help develop the site to better support your learning. It will not be made public."}
+          {:keys [db/id]} (<? (ps/save env user))]
       id)))
 
 (defn update-current-user [{:keys [current-user-id] :as env} data]
@@ -145,12 +147,12 @@
                               :db/table :user))))
     (go nil)))
 
-(defn passport-sign-in [{:keys [::ps/db] :as env} {:keys [emails displayName] :as profile}]
+(defn passport-sign-in [env {:keys [emails displayName]}]
   (go-catch
     (let [email (some-> emails first :value)]
       (if-let [user (<? (ps/find-by env {:db/table :user :user/email email}))]
         (:id user)
-        (<? (create-user db {:user/name displayName :user/email email}))))))
+        (<? (create-user env {:user/name displayName :user/email email}))))))
 
 (defn passport-sign-callback [connection]
   (fn [_ _ profile done]
@@ -161,19 +163,25 @@
         (catch :default e
           (done e))))))
 
-(defn hit-video-view [{:keys [::ps/db ::ps/schema] :as env} {:keys [:user-view/user-id :user-view/lesson-id] :as view}]
+(defn hit-video-view [env {:keys [:user-view/user-id :user-view/lesson-id] :as view}]
   (go-catch
-    (let [{:keys [::ps/table-name ::ps/fields ::ps/fields']} (get schema :user-view)
-          last-view (some-> (knex/query-first db table-name
-                                              [[:where {"userId" user-id}]
-                                               [:orderBy "timestamp" "desc"]
-                                               [:limit 1]])
-                            <? (rename-keys fields'))]
+    (let [last-view (<? (ps/find-by env {:db/table          :user-view
+                                         :user-view/user-id user-id
+                                         ::ps/query         [[:orderBy :user-view/timestamp "desc"]]}))]
       (if (not= lesson-id (:user-view/lesson-id last-view))
         (<? (ps/save env (assoc view :db/table :user-view
                                      :user-view/timestamp (current-timestamp))))))))
 
-(defn compute-ex-answer [{::ps/keys [db db-specs] :as env} {:keys [url/slug]}]
-  (go-catch
-    (let [lesson (<? (ps/find-by env {:db/table :lesson
-                                      :url/slug slug}))])))
+(defn compute-ex-answer [{:keys [current-user-id] :as env}
+                         {:keys [url/slug]}]
+  (if current-user-id
+    (go-catch
+      (let [user (<? (ps/find-by env {:db/table :user :db/id current-user-id}))
+            lesson (<? (ps/find-by env {:db/table :lesson
+                                        :url/slug slug}))]
+        (ps/save env (update user :user/score inc))
+        (ps/save env {:db/table :ex-answer
+                      :ex-answer/user-id current-user-id
+                      :ex-answer/lesson-id (:db/id lesson)})
+        true))
+    (go nil)))

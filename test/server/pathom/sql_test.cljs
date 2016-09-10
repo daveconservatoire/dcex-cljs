@@ -136,7 +136,16 @@
             person-found (<? (ps/find-by env {:db/table    :person
                                               :person/name "Wilker"}))]
         (is (= (:db/id person)
-               (:db/id person-found)))))))
+               (:db/id person-found)))
+
+        (<? (ps/save env {:db/table :person :person/name "Agata"}))
+
+        (is (= (-> (<? (ps/find-by env {:db/table  :person
+                                                  ::ps/query [[:orderBy :person/name]]}))
+                   (dissoc :db/id))
+               {:db/table :person
+                :person/group-id nil
+                :person/name "Agata"}))))))
 
 (deftest test-save
   (db-test [db dbs]

@@ -172,13 +172,13 @@
   (dom/li (u/props->html {:className "divider"} props)))
 
 (defn user-menu-status [comp]
-  (let [{:user/keys [name points]} (om/props comp)]
+  (let [{:keys [user/name user/score]} (om/props comp)]
     (button-dropdown
       {::r/handler ::r/profile
        :react-key  "user-menu-status"
        ::title     (dom/div nil
                      (dom/i #js {:className "icon-user icon-white"}) " " name " ("
-                     (dom/span #js {:id "pointstotal"} points) " Points)")}
+                     (dom/span #js {:id "pointstotal"} score) " Points)")}
       (button-dropdown-item {:key "profile-link"}
                             (link {::r/handler ::r/profile}
                               (dom/i #js {:className "icon-pencil"}) " My Profile"))
@@ -192,7 +192,7 @@
   (ident [_ props] (u/model-ident props))
 
   static om/IQuery
-  (query [_] [:user/name :user/score :user/points])
+  (query [_] [:user/name :user/score])
 
   Object
   (render [this]
@@ -567,7 +567,8 @@
     (let [{:keys [url/slug lesson/type db/id]} (om/props this)
           {:keys [::ux/class ::ux/props] :as info} (ux/slug->exercise slug)]
       (if info
-        (let [state (uc/initial-state class props)
+        (let [state (-> (uc/initial-state class props)
+                        (merge info))
               ident (om/ident class state)]
           (om/transact! (om/get-reconciler this) ident
                         [`(ui/set-props ~state)])

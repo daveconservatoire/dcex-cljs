@@ -51,6 +51,10 @@
   [env _ data]
   {:action #(d/update-current-user env data)})
 
+(defmethod mutate 'exercise/score
+  [env _ data]
+  {:action #(d/compute-ex-answer env data)})
+
 ;; PARSER
 
 (def parser (om/parser {:read p/read :mutate mutate}))

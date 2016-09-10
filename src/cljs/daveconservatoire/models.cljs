@@ -58,7 +58,7 @@
 (s/def :user/name string?)
 (s/def :user/email string?)
 (s/def :user/about string?)
-(s/def :user/points nat-int?)
+(s/def :user/score nat-int?)
 (s/def :user/user-views (s/every :model/user-view))
 
 (s/def :model/user
@@ -76,3 +76,6 @@
   (s/keys :opt [:db/id :user-view/status :user-view/position :user-view/timestamp
                 :user-view/user-id :user-view/user
                 :user-view/lesson-id :user-view/lesson]))
+
+(s/def :model/ex-answer
+  (s/keys :opt []))

@@ -44,7 +44,7 @@
 (om/defui ^:once ProgressBar
   Object
   (render [this]
-    (let [{:keys [::progress-value ::progress-total] :as props} (om/props this)
+    (let [{::keys [progress-value progress-total] :as props} (om/props this)
           pct (-> (/ progress-value progress-total) (* 100))]
       (dom/div (u/props->html {:className "progress progress-striped active success" :style {:margin 20}}
                               props)
@@ -65,21 +65,26 @@
 
 (defn play-sound [c] (play-notes (-> (om/props c) ::notes)))
 
-(defn check-answer [c]
-  (let [{:keys [::ex-answer ::correct-answer ::streak-count ::parent] :as props} (om/props c)]
-    (if (= ex-answer correct-answer)
-      (let [next-streak (inc streak-count)
-            new-props (new-round parent
-                        (merge props
-                               {::streak-count next-streak
-                                ::ex-answer    nil}))]
-        (om/transact! c `[(ui/set-props ~new-props) (dcex/play-round-sound)]))
-      (um/set-value! c ::streak-count 0))))
-
-(defmethod um/mutate 'dcex/play-round-sound [{:keys [state ref]} _ _]
+(defmethod um/mutate 'dcex/check-answer
+  [{:keys [state ref]} _ _]
   {:action
    (fn []
-     (play-notes (::notes (get-in @state ref))))})
+     (let [{::keys [ex-answer correct-answer streak-count class] :as props} (get-in @state ref)]
+       (if (= ex-answer correct-answer)
+         (let [next-streak (inc streak-count)
+               new-props (new-round class
+                           (merge props
+                             {::streak-count next-streak
+                              ::ex-answer    nil}))]
+           (swap! state assoc-in ref new-props)
+           (play-notes (::notes new-props)))
+         (swap! state update-in ref assoc ::streak-count 0))))
+
+   :remote
+   (let [{::keys [name streak-count]} (get-in @state ref)]
+     (when (> streak-count 0)
+       (-> (om/query->ast `[(exercise/score {:url/slug ~name})])
+           :children first)))})
 
 (defn int-in [min max] (+ min (rand-int (- max min))))
 
@@ -140,7 +145,7 @@
                         (dom/div #js {:id "answer_area_wrap"}
                           (dom/div #js {:id "answer_area"}
                             (dom/form #js {:id "answerform" :name "answerform" :onSubmit #(do
-                                                                                           (check-answer this)
+                                                                                           (om/transact! this `[(dcex/check-answer)])
                                                                                            (.preventDefault %))}
                               (dom/div #js {:className "info-box" :id "answercontent"}
                                 (dom/span #js {:className "info-box-header"}
@@ -165,7 +170,7 @@
                                 (dom/div #js {:className "answer-buttons"}
                                   (dom/div #js {:className "check-answer-wrapper"}
                                     (dom/input #js {:className "simple-button green" :type "button" :value "Check Answer"
-                                                    :onClick   #(check-answer this)}))
+                                                    :onClick   #(om/transact! this `[(dcex/check-answer)])}))
                                   (dom/input #js {:className "simple-button green" :id "next-question-button" :name "correctnextbutton" :style #js {:display "none"} :type "button" :value "Correct! Next Question..."})
                                   (dom/div #js {:id "positive-reinforcement" :style #js {:display "none"}}
                                     (dom/img #js {:src "/images/face-smiley.png"})))))))
@@ -199,8 +204,7 @@
         {::name      "pitch-detection"
          ::options   [["lower" "Lower"] ["higher" "Higher"]]
          ::pitch     ["C3" ".." "B5"]
-         ::variation 24
-         ::parent    this}
+         ::variation 24}
         props)))
 
   static om/Ident
@@ -230,8 +234,7 @@
         {::name      "identify-octaves"
          ::options   [["yes" "Yes"] ["no" "No"]]
          ::pitch     ["C3" ".." "B5"]
-         ::variation [3 5 6 7 8 9 12 15 16]
-         ::parent    this}
+         ::variation [3 5 6 7 8 9 12 15 16]}
         props)))
 
   static om/Ident
@@ -261,8 +264,7 @@
       (merge
         (uc/initial-state Exercise nil)
         {::name    "reading-music"
-         ::options ::option-type-text
-         ::parent  this}
+         ::options ::option-type-text}
         props)))
 
   static om/Ident
@@ -310,8 +312,7 @@
           {::name      "intervals"
            ::options   (mapv #(vector (str %) (INTERVAL-NAMES %)) intervals)
            ::pitch     ["C3" ".." "B5"]
-           ::variation intervals
-           ::parent    this}
+           ::variation intervals}
           props))))
 
   static om/Ident

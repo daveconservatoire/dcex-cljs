@@ -90,7 +90,8 @@
     (knex/query db name cmds)))
 
 (defn sql-node [{:keys [::table ::schema] :as env} cmds]
-  (if-let [{:keys [::table-name ::fields ::reader-map] :as table-spec} (get schema table)]
+  (assert (get schema table) (str "[Query SQL] No specs for table " table))
+  (let [{:keys [::table-name ::fields ::reader-map] :as table-spec} (get schema table)]
     (go-catch
       (let [cmds (map (fn [[type v :as cmd]]
                         (if (= type :where)
@@ -99,8 +100,7 @@
             rows (<? (cached-query env table-name cmds))
             env (assoc env ::table-spec table-spec
                            ::p/reader [reader-map p/placeholder-node])]
-        (<? (p/read-chan-seq #(parse-row env %) rows))))
-    (throw (ex-info (str "[Query SQL] No specs for table " table) {:table table}))))
+        (<? (p/read-chan-seq #(parse-row env %) rows))))))
 
 (defn sql-first-node [env cmds]
   (go-catch
@@ -113,14 +113,13 @@
 
 (defn sql-table-node
   [{:keys [ast ::schema] :as env} table]
-  (if (get schema table)
-    (let [{:keys [limit where sort]} (:params ast)
-          limit (or limit 50)]
-      (sql-node (assoc env ::table table)
-                (cond-> [[:limit limit]]
-                  where (conj [:where where])
-                  sort (conj (concat [:orderBy] (ensure-list sort))))))
-    (throw (ex-info (str "[Query Table] No specs for table " table) {:table table}))))
+  (assert (get schema table) (str "[Query Table] No specs for table " table))
+  (let [{:keys [limit where sort]} (:params ast)
+        limit (or limit 50)]
+    (sql-node (assoc env ::table table)
+              (cond-> [[:limit limit]]
+                where (conj [:where where])
+                sort (conj (concat [:orderBy] (ensure-list sort)))))))
 
 (defn record->map [record fields]
   (reduce (fn [m [k v]]
@@ -144,11 +143,11 @@
           js-record (-> record
                         (select-keys (keys fields))
                         (dissoc :db/id)
-                        (set/rename-keys fields)
-                        clj->js)]
+                        (set/rename-keys fields))]
       (if id
         (do
-          (<? (knex/run db table-name [[:update js-record]]))
+          (<? (knex/run db table-name [[:where {(get fields :db/id) id}]
+                                       [:update js-record]]))
           record)
         (let [id (<? (knex/insert db table-name js-record (:db/id fields)))]
           (assoc record :db/id id))))))

@@ -1,7 +1,7 @@
 (ns daveconservatoire.server.test-shared
   (:require [nodejs.knex :as knex]
-            [daveconservatoire.server.parser :as p]
-            [pathom.core :as l]))
+            [daveconservatoire.server.data :as d]
+            [pathom.sql :as ps]))
 
 (defonce connection
   (knex/create-connection
@@ -13,5 +13,5 @@
                   :port     8889}}))
 
 (def env
-  {::l/db       connection
-   ::l/db-specs p/schema})
+  {::ps/db     connection
+   ::ps/schema d/schema})

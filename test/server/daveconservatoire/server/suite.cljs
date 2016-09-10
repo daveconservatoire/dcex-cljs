@@ -11,7 +11,7 @@
 
 (doo-tests
   'daveconservatoire.server.parser-tests
-  #_ 'daveconservatoire.server.data-test
+  'daveconservatoire.server.data-test
   'pathom.core-test
   'pathom.sql-test
   'nodejs.knex-test)

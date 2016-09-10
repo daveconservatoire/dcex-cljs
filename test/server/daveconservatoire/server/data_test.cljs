@@ -8,33 +8,28 @@
             [pathom.core :as l]
             [daveconservatoire.server.test-shared :as ts]))
 
-(deftest test-user-by-email
-  (async done
-    (go
-      (is (= (-> (d/user-by-email ts/connection "noemailyet@tempuser.com") <!
-                 :username)
-             "ZruMczeEIffrGMBDjlXo"))
-      (done))))
-
-
 (deftest test-hit-video-view
   (async done
     (go
       (try
         (<? (knex/raw ts/connection "delete from UserVideoView" []))
         (testing "creates hit for empty record"
-          (<? (d/hit-video-view ts/env #:user-view {:user-id 10 :lesson-id 5}))
+          (<? (d/hit-video-view ts/env {:user-view/user-id 10
+                                        :user-view/lesson-id 5}))
           (is (= (<? (knex/query-count ts/connection "UserVideoView" []))
                  1)))
         (testing "don't create new entry when last lesson is the same"
-          (<? (d/hit-video-view ts/env #:user-view {:user-id 10 :lesson-id 5}))
+          (<? (d/hit-video-view ts/env {:user-view/user-id 10
+                                        :user-view/lesson-id 5}))
           (is (= (<? (knex/query-count ts/connection "UserVideoView" []))
                  1)))
         (testing "create new entry when lesson is different"
-          (<? (d/hit-video-view ts/env #:user-view {:user-id 10 :lesson-id 6}))
+          (<? (d/hit-video-view ts/env {:user-view/user-id 10
+                                        :user-view/lesson-id 6}))
           (is (= (<? (knex/query-count ts/connection "UserVideoView" []))
                  2)))
         (catch :default e
+          (js/console.log (.-stack e))
           (do-report
             {:type :error, :message (.-message e) :actual e})))
       (done))))
@@ -48,8 +43,8 @@
           (<? (d/update-current-user (assoc ts/env
                                        :current-user-id 720)
                                      {:user/about "New Description"}))
-          (is (= (-> (knex/query-first ts/connection "User" [[:where {:id 720}]])
-                     <? :biog)
+          (is (= (-> (knex/query-first ts/connection "User" [[:where {"id" 720}]])
+                     <? (get "biog"))
                  "New Description")))
         (catch :default e
           (do-report

@@ -23,7 +23,7 @@
 (s/def ::table-spec' (s/keys :req [::table ::table-name ::fields]))
 (s/def ::table-spec (s/merge ::table-spec' (s/keys :req [::fields' ::reader-map])))
 
-(s/def ::schema' (s/map-of ::table ::table-spec'))
+(s/def ::schema' (s/coll-of ::table-spec'))
 (s/def ::schema (s/map-of ::table ::table-spec))
 
 (s/def ::row (s/map-of string? string?))

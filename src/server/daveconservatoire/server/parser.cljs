@@ -144,7 +144,7 @@
                      (ps/sql-first-node (assoc % ::ps/table :user)
                                         [[:where {:id id}]]))})
 
-(def root-readers
+(def root-reader
   [root-endpoints p/placeholder-node #(vector :error :not-found)])
 
 ;; MUTATIONS
@@ -176,7 +176,7 @@
 (defn parse [env tx]
   (-> (parser
         (assoc env
-          ::p/readers root-readers
+          ::p/reader root-reader
           ::ps/query-cache (atom {})
           ::ps/schema schema) tx)
       (p/read-chan-values)))

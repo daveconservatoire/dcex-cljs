@@ -18,8 +18,7 @@
 (s/def ::fields (s/map-of ::field string?))
 (s/def ::fields' (s/map-of keyword? ::field))
 
-(s/def ::reader-map (s/map-of ::field (s/fspec :args (s/cat :env map?)
-                                               :ret any?)))
+(s/def ::reader-map ::p/reader-map)
 
 (s/def ::table-spec' (s/keys :req [::table ::table-name ::fields]))
 (s/def ::table-spec (s/merge ::table-spec' (s/keys :req [::fields' ::reader-map])))
@@ -30,7 +29,7 @@
 (s/def ::row (s/map-of string? string?))
 
 (s/def ::union-selector keyword?)
-(s/def ::query-cache (partial satisfies? IAtom))
+(s/def ::query-cache (partial instance? IAtom))
 
 (defn prepare-schema [schema]
   (zipmap (map ::table schema)
@@ -63,7 +62,7 @@
     x
     (go x)))
 
-(defn parse-row [{:keys [::table ast ::union-selector parser] :as env} row]
+(defn parse-row [{:keys [::table ast ::union-selector parser path] :as env} row]
   (go-catch
     (let [row' {:db/table table :db/id (row-get env row :db/id)}
           query (if (p/union-children? ast)
@@ -74,7 +73,8 @@
       (if query
         (-> (merge
               row'
-              (parser (assoc env ::row row) query))
+              (parser (assoc env ::row row
+                                 :path (conj path (:dispatch-key ast))) query))
             (p/read-chan-values) <?)
         row'))))
 
@@ -98,7 +98,7 @@
                           cmd)) cmds)
             rows (<? (cached-query env table-name cmds))
             env (assoc env ::table-spec table-spec
-                           ::p/readers [reader-map p/placeholder-node])]
+                           ::p/reader [reader-map p/placeholder-node])]
         (<? (p/read-chan-seq #(parse-row env %) rows))))
     (throw (ex-info (str "[Query SQL] No specs for table " table) {:table table}))))
 

@@ -6,6 +6,16 @@
             [cljs.core.async.impl.protocols :refer [Channel]]
             [cljs.spec :as s]))
 
+(s/def ::reader-map (s/map-of keyword? ::reader))
+(s/def ::reader-seq (s/coll-of ::reader :kind vector?))
+(s/def ::reader-fn (s/fspec :args (s/cat :env any?)
+                            :ret any?))
+
+(s/def ::reader
+  (s/or :fn ::reader-fn
+        :map ::reader-map
+        :list ::reader-seq))
+
 ;; SUPPORT FUNCTIONS
 
 (defn union-children? [ast]
@@ -27,10 +37,11 @@
           in (async/to-chan m)]
       (go-loop [out {}]
         (if-let [[k v] (<! in)]
-          (recur (assoc out k (cond
-                                (chan? v) (<! v)
-                                (chan? (:result v)) (assoc v :result (<! (:result v)))
-                                :else v)))
+          (let [value (cond
+                        (chan? v) (<! v)
+                        (chan? (:result v)) (assoc v :result (<! (:result v)))
+                        :else v)]
+            (recur (assoc out k value)))
           (>! c out)))
       c)
     (resolved-chan m)))
@@ -48,12 +59,6 @@
                             (async/to-chan s))
       (<! (async/into [] out)))))
 
-(s/def ::reader (s/or :fn (s/and fn?
-                                 (s/fspec :args (s/cat :env any?)
-                                          :ret any?))
-                      :map (s/map-of keyword? ::reader)
-                      :list (s/coll-of ::reader)))
-
 (defn read-from* [{:keys [ast] :as env} reader]
   (let [k (:dispatch-key ast)]
     (cond
@@ -70,18 +75,21 @@
                            ::continue)))))
 
 (defn read-from [env reader]
-  (let [res (read-from* env reader)]
-    (if (= res ::continue) nil res)))
+  (try
+    (let [res (read-from* env reader)]
+      (if (= res ::continue) nil res))
+    (catch :default e
+      e)))
 
 ;; NODE HELPERS
 
 (defn placeholder-node [{:keys [ast parser] :as env}]
   (if (= "ph" (namespace (:dispatch-key ast)))
-    (read-chan-values (parser env (:query ast)))
+    (read-chan-values (parser (update env :path conj (:dispatch-key ast)) (:query ast)))
     ::continue))
 
 ;; PARSER READER
 
-(defn read [{:keys [::readers] :as env} _ _]
+(defn read [{:keys [::reader] :as env} _ _]
   {:value
-   (read-from env readers)})
+   (read-from env reader)})

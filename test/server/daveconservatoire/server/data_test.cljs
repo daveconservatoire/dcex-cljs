@@ -5,7 +5,7 @@
             [common.async :refer [<?]]
             [nodejs.knex :as knex]
             [daveconservatoire.server.data :as d]
-            [utgn.lib :as l]
+            [pathom.core :as l]
             [daveconservatoire.server.test-shared :as ts]))
 
 (deftest test-user-by-email
@@ -48,7 +48,7 @@
           (<? (d/update-current-user (assoc ts/env
                                        :current-user-id 720)
                                      {:user/about "New Description"}))
-          (is (= (-> (knex/run-first ts/connection "User" [[:where {:id 720}]])
+          (is (= (-> (knex/query-first ts/connection "User" [[:where {:id 720}]])
                      <? :biog)
                  "New Description")))
         (catch :default e

@@ -21,6 +21,7 @@
     "passport": "^0.3.2",
     "passport-facebook": "^2.1.1",
     "passport-google-oauth": "^1.0.0",
+    "pg": "^6.1.0",
     "superagent": "^2.2.0"
   },
   "devDependencies": {

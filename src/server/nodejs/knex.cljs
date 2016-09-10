@@ -3,13 +3,15 @@
   (:refer-clojure :exclude [count])
   (:require [cljs.nodejs :as nodejs]
             [cljs.core.async :refer [chan <! put! promise-chan]]
-            [common.async :as ca :refer-macros [<? go-catch]]
+            [common.async :refer [<? go-catch]]
             [goog.object :as gobj]
             [goog.string :as gstr]))
 
 (defn convert-object [obj]
-  (let [keys (array-seq (gobj/getKeys obj))]
-    (reduce #(assoc % (keyword %2) (gobj/get obj %2)) {} keys)))
+  (if (map? obj)
+    obj
+    (let [keys (array-seq (gobj/getKeys obj))]
+      (reduce #(assoc % %2 (gobj/get obj %2)) {} keys))))
 
 (defn js-call [obj method args]
   (if-let [f (gobj/get obj method)]
@@ -27,7 +29,7 @@
 
 (defn promise->chan [promise]
   (let [c (promise-chan)]
-    (.then promise #(put! c (js->clj % :keywordize-keys true)) #(put! c %))
+    (.then promise #(put! c (js->clj %)) #(put! c %))
     c))
 
 (defn run
@@ -35,15 +37,20 @@
   ([db table cmds]
    (promise->chan (call-chain (db table) cmds))))
 
-(defn run-first [db table cmds]
-  (go
-    (-> (run db table cmds) <? first)))
+(defn query [db table cmds]
+  (go-catch
+    (->> (run db table cmds) <?
+         (map convert-object))))
+
+(defn query-first [db table cmds]
+  (go-catch
+    (-> (query db table cmds) <? first)))
 
 (defn query-count [db table cmds]
   (go-catch
     (some->
-      (run db table (cons [:count "*"] cmds))
-      <? first vals first)))
+      (query db table (cons [:count "*"] cmds))
+      <? first vals first js/parseInt)))
 
 (defn raw
   ([db sql args]
@@ -52,17 +59,14 @@
        (->> (if (sequential? res) (first res) res)
             (map convert-object))))))
 
-(defn insert [db table data]
-  (-> (db table)
-      (.insert (clj->js data))
-      (promise->chan)))
-
-(defn count [db table field]
-  (go
-    (-> (db table)
-        (.count field)
-        (promise->chan) <!
-        ffirst second)))
+(defn insert
+  ([db table data] (insert db table data nil))
+  ([db table data returning]
+   (go-catch
+     (let [res (<? (run db table [[:insert data returning]]))]
+       (if (sequential? res)
+         (first res)
+         res)))))
 
 (defn clear-table [db table]
-  (raw db "delete from ??" [table]))
+  (raw db "truncate table ??" [table]))

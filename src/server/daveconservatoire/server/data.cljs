@@ -1,7 +1,7 @@
 (ns daveconservatoire.server.data
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [nodejs.knex :as knex]
-            [utgn.lib :as l]
+            [pathom.core :as l]
             [clojure.set :refer [rename-keys]]
             [common.async :refer [go-catch <?]]))
 
@@ -9,7 +9,7 @@
   (js/Math.round (/ (.getTime (js/Date.)) 1000)))
 
 (defn user-by-email [connection email]
-  (knex/run-first connection "User" [[:where {:email email}]]))
+  (knex/query-first connection "User" [[:where {:email email}]]))
 
 (defn create-user [connection {:user/keys [name email]}]
   (go-catch
@@ -22,11 +22,11 @@
           [id] (<? (knex/insert connection "User" user))]
       id)))
 
-(defn update-current-user [{::l/keys [db db-specs]
+(defn update-current-user [{::l/keys [db schema]
                             :keys [current-user-id]}
                            data]
   (if current-user-id
-    (let [{:keys [fields]} (get db-specs :user)
+    (let [{:keys [fields]} (get schema :user)
           enabled-keys #{:user/about}]
       (knex/run db "User" [[:where {"id" current-user-id}]
                            [:update (-> (select-keys data enabled-keys)
@@ -49,11 +49,11 @@
         (catch :default e
           (done e))))))
 
-(defn hit-video-view [{::l/keys [db db-specs]} {:user-view/keys [user-id lesson-id] :as view}]
+(defn hit-video-view [{::l/keys [db schema]} {:user-view/keys [user-id lesson-id] :as view}]
   (go-catch
-    (let [{:keys [name fields fields']} (get db-specs :user-view)
-          last-view (some-> (knex/run-first db name
-                                            [[:where {"userId" user-id}]
+    (let [{:keys [name fields fields']} (get schema :user-view)
+          last-view (some-> (knex/query-first db name
+                                              [[:where {"userId" user-id}]
                                                [:orderBy "timestamp" "desc"]
                                                [:limit 1]])
                             <? (rename-keys fields'))]

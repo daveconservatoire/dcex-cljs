@@ -1,8 +1,9 @@
 (ns daveconservatoire.server.suite
   (:require [doo.runner :refer-macros [doo-tests]]
-            [daveconservatoire.server.parser-tests]
-            [utgn.lib-test]
+            [pathom.core-test]
+            [pathom.sql-test]
             [daveconservatoire.server.data-test]
+            [daveconservatoire.server.parser-tests]
             [nodejs.knex-test]
             [cljs.nodejs :as nodejs]))
 
@@ -10,6 +11,7 @@
 
 (doo-tests
   'daveconservatoire.server.parser-tests
-  'daveconservatoire.server.data-test
-  'utgn.lib-test
+  #_ 'daveconservatoire.server.data-test
+  'pathom.core-test
+  'pathom.sql-test
   'nodejs.knex-test)

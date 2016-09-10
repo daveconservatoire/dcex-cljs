@@ -88,28 +88,45 @@
                           :person/name     "Guy"
                           :person/group-id id})))
 
-      (is (= (-> (ps/sql-first-node {::ps/db          db
-                                     ::ps/schema      schema
-                                     ::ps/query-cache (atom {})
-                                     ::ps/table       :person
-                                     :parser          parser
-                                     :ast             {:query [:person/name]}}
-                                    [[:where {:person/name "Guy"}]])
-                 <! elide-ids)
-             {:person/name "Guy" :db/table :person}))
+      (testing "simple query"
+        (is (= (-> (ps/sql-first-node {::ps/db          db
+                                       ::ps/schema      schema
+                                       ::ps/query-cache (atom {})
+                                       ::ps/table       :person
+                                       :parser          parser
+                                       :ast             {:query [:person/name]}}
+                                      [[:where {:person/name "Guy"}]])
+                   <! elide-ids)
+               {:person/name "Guy" :db/table :person})))
 
-      (is (= (-> (ps/sql-first-node {::ps/db          db
-                                     ::ps/schema      schema
-                                     ::ps/query-cache (atom {})
-                                     ::ps/table       :group
-                                     :parser          parser
-                                     :ast             {:query [{:group/people [:person/name]}
-                                                               :group/name]}}
-                                    [])
-                 <! elide-ids)
-             {:group/people [{:db/table :person :person/name "Guy"}]
-              :group/name   "Company"
-              :db/table     :group})))))
+      (testing "has many relation"
+        (is (= (-> (ps/sql-first-node {::ps/db          db
+                                       ::ps/schema      schema
+                                       ::ps/query-cache (atom {})
+                                       ::ps/table       :group
+                                       :parser          parser
+                                       :ast             {:query [{:group/people [:person/name]}
+                                                                 :group/name]}}
+                                      [])
+                   <! elide-ids)
+               {:group/people [{:db/table :person :person/name "Guy"}]
+                :group/name   "Company"
+                :db/table     :group})))
+
+      (testing "has one relation"
+        (is (= (-> (ps/sql-first-node {::ps/db          db
+                                       ::ps/schema      schema
+                                       ::ps/query-cache (atom {})
+                                       ::ps/table       :person
+                                       :parser          parser
+                                       :ast             {:query [{:person/group [:group/name]}
+                                                                 :person/name]}}
+                                      [])
+                   <! elide-ids)
+               {:db/table     :person
+                :person/name  "Guy"
+                :person/group {:group/name "Company"
+                               :db/table   :group}}))))))
 
 (deftest test-find-by
   (db-test [db dbs]

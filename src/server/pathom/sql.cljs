@@ -152,7 +152,7 @@
 
 (defn has-one [{:keys [::row] :as env} foreign-table local-field]
   (let [foreign-id (row-get env row local-field)]
-    (sql-first-node (assoc env :table foreign-table) [[:where {:db/id foreign-id}]])))
+    (sql-first-node (assoc env ::table foreign-table) [[:where {:db/id foreign-id}]])))
 
 (defn has-many [{:keys [::row] :as env} foreign-table foreign-field & [params]]
   (sql-table-node

@@ -151,7 +151,7 @@
   (go-catch
     (let [email (some-> emails first :value)]
       (if-let [user (<? (ps/find-by env {:db/table :user :user/email email}))]
-        (:id user)
+        (:db/id user)
         (<? (create-user env {:user/name displayName :user/email email}))))))
 
 (defn passport-sign-callback [connection]

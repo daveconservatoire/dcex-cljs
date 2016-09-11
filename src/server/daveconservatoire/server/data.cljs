@@ -72,7 +72,8 @@
           ::ps/table-name "UserExerciseAnswer"
           ::ps/fields     {:db/id     "id"
                            :ex-answer/user-id "userId"
-                           :ex-answer/lesson-id "exerciseId"}}])
+                           :ex-answer/lesson-id "exerciseId"
+                           :ex-answer/timestamp "timestamp"}}])
 
       ; Course
       (ps/row-getter :course/topics
@@ -80,14 +81,14 @@
       (ps/row-getter :course/lessons
         #(ps/has-many % :lesson :lesson/course-id {:sort ["lessonno"]}))
       (ps/row-getter :course/topics-count
-        (fn [{:keys [row] :as env}]
-          (let [{:keys [id]} row]
+        (fn [{:keys [::ps/row] :as env}]
+          (let [id (ps/row-get env row :db/id)]
             (go-catch
               (-> (ps/cached-query env "Topic" [[:count "id"]
                                                 [:where {:courseid id}]])
                   <? first vals first)))))
       (ps/row-getter :course/home-type
-        (fn [{:keys [row] :as env}]
+        (fn [{:keys [::ps/row] :as env}]
           (go-catch
             (if (= (<? (ps/row-get env row :course/topics-count))
                    1)
@@ -181,6 +182,7 @@
                                         :url/slug slug}))]
         (ps/save env (update user :user/score inc))
         (ps/save env {:db/table :ex-answer
+                      :ex-answer/timestamp (current-timestamp)
                       :ex-answer/user-id current-user-id
                       :ex-answer/lesson-id (:db/id lesson)})
         true))

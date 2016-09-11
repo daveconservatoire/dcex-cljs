@@ -27,7 +27,8 @@
 (s/def ::schema' (s/coll-of ::table-spec'))
 (s/def ::schema (s/map-of ::table ::table-spec))
 
-(s/def ::row (s/map-of string? string?))
+(s/def ::row (s/map-of string? (s/or :string string?
+                                     :number number?)))
 
 (s/def ::union-selector keyword?)
 (s/def ::query-cache (partial instance? IAtom))

@@ -9,6 +9,9 @@
  :session-secret
  "YOUR-SECRET"
 
+ :rollbar
+ {:nodejs.rollbar/access-token "ACCESS_TOKEN"}
+
  :google
  {:nodejs.passport.google/clientID     "CLIENT_ID"
   :nodejs.passport.google/clientSecret "CLIENT_SECRET"

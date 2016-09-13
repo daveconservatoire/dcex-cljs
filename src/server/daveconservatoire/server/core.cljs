@@ -14,10 +14,13 @@
             [nodejs.express :as ex]
             [nodejs.knex :as knex]
             [nodejs.passport :as passport]
+            [nodejs.rollbar :as rollbar]
             [goog.object :as gobj]
             [om.transit :as t]))
 
 (nodejs/enable-util-print!)
+
+(defonce source-map-support (.install (nodejs/require "source-map-support")))
 
 (defonce fs (nodejs/require "fs"))
 
@@ -27,12 +30,15 @@
 (def settings (read-string (slurp "./server.edn")))
 (def facebook (get settings :facebook))
 (def google (get settings :google))
+(def rollbar (get settings :rollbar))
 
 (defonce express (nodejs/require "express"))
 (defonce http (nodejs/require "http"))
 (defonce compression (nodejs/require "compression"))
 (defonce session (nodejs/require "express-session"))
 (defonce RedisStore ((nodejs/require "connect-redis") session))
+
+(defonce rollbar-init (rollbar/init (::rollbar/access-token rollbar)))
 
 (defonce connection
   (knex/create-connection
@@ -62,6 +68,7 @@
                           :cookie            #js {}}))
 (ex/use app (.initialize passport/passport))
 (ex/use app (.session passport/passport))
+(ex/use app (rollbar/error-handler (::rollbar/access-token rollbar)))
 
 (defn read-input [s] (ct/read (t/reader) s))
 (defn spit-out [s] (ct/write (t/writer) s))

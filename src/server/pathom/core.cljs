@@ -1,7 +1,7 @@
 (ns pathom.core
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
   (:require [om.next :as om]
-            [common.async :refer-macros [go-catch <?]]
+            [common.async :refer [go-catch <?]]
             [cljs.core.async :as async :refer [<! >! put! close!]]
             [cljs.core.async.impl.protocols :refer [Channel]]
             [cljs.spec :as s]))

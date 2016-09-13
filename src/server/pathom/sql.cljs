@@ -75,8 +75,7 @@
       (if query
         (-> (merge
               row'
-              (parser (assoc env ::row row
-                                 :path (conj path (:dispatch-key ast))) query))
+              (parser (assoc env ::row row) query))
             (p/read-chan-values) <?)
         row'))))
 

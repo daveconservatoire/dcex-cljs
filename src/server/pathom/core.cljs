@@ -75,21 +75,33 @@
                            ::continue)))))
 
 (defn read-from [env reader]
-  (try
-    (let [res (read-from* env reader)]
-      (if (= res ::continue) nil res))
-    (catch :default e
-      e)))
+  (let [res (read-from* env reader)]
+    (if (= res ::continue) nil res)))
 
 ;; NODE HELPERS
 
 (defn placeholder-node [{:keys [ast parser] :as env}]
   (if (= "ph" (namespace (:dispatch-key ast)))
-    (read-chan-values (parser (update env :path conj (:dispatch-key ast)) (:query ast)))
+    (read-chan-values (parser env (:query ast)))
     ::continue))
 
 ;; PARSER READER
 
-(defn read [{:keys [::reader] :as env} _ _]
+(defn parser-error [env err]
+  err
+  (ex-info (str "Parser: " (.-message err)) {:path (pr-str (:path env))}))
+
+(defn read [{:keys [::reader ast] :as env} _ _]
   {:value
-   (read-from env reader)})
+   (let [env (update env :path conj (:key ast))]
+     (try
+       (let [value (read-from env reader)]
+         (if (chan? value)
+           (go
+             (let [v (<! value)]
+               (if (instance? js/Error v)
+                 (parser-error env v)
+                 v)))
+           value))
+       (catch :default e
+         (parser-error env e))))})

@@ -5,6 +5,7 @@
             [cljs.reader :refer [read-string]]
             [cljs.pprint]
             [cljs.spec :as s]
+            [clojure.walk :as walk]
             [cognitect.transit :as ct]
             [common.async :refer-macros [<? go-catch]]
             [daveconservatoire.server.data :as d]
@@ -85,6 +86,18 @@
 
 (defn current-user [req] (gobj/get req "user"))
 
+(defn process-errors! [out {:keys [req tx]}]
+  (walk/postwalk
+    (fn [x]
+      (if (instance? js/Error x)
+        (let [data (.-data x)]
+          (if data (set! (.-data x) (assoc data :tx (pr-str tx))))
+          (if-let [user-id (current-user req)] (set! (.-rollbar_person req) #js {:id user-id}))
+          (rollbar/handle-error x req)
+          nil)
+        x))
+    out))
+
 (ex/post app "/api"
   (fn [req res]
     (go
@@ -92,10 +105,12 @@
         (let [{:keys [read write]} (req-io req)
               tx (-> (read-stream req) <!
                      read)
-              out (<! (parser/parse {::ps/db          connection
+              out (-> (parser/parse {::ps/db          connection
                                      :http-request    req
                                      :current-user-id (current-user req)}
-                                    tx))]
+                                    tx)
+                      <! (process-errors! {:req req
+                                           :tx  tx}))]
           (js/console.log "in")
           (cljs.pprint/pprint tx)
           (js/console.log "out")

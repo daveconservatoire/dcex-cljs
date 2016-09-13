@@ -20,6 +20,8 @@
    (if (.-data e)
      (.handleErrorWithPayloadData rollbar e (clj->js (.-data e)))
      (.handleError rollbar e)))
-  ([e request] (.handleError rollbar e request))
-  ([e request callback] (.handleError rollbar e request callback))
-  ([e options request callback] (.handleError rollbar e (clj->js options) request callback)))
+  ([e request]
+   (if (.-data e)
+     (.handleErrorWithPayloadData rollbar e (clj->js (.-data e)) request)
+     (.handleError rollbar e request)))
+  ([e options request] (.handleErrorWithPayloadData rollbar e options request)))

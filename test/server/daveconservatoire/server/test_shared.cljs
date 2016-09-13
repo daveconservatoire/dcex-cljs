@@ -1,6 +1,6 @@
 (ns daveconservatoire.server.test-shared
   (:require [nodejs.knex :as knex]
-            [daveconservatoire.server.data :as d]
+            [daveconservatoire.server.parser :as p]
             [pathom.sql :as ps]))
 
 (defonce connection
@@ -14,4 +14,4 @@
 
 (def env
   {::ps/db     connection
-   ::ps/schema d/schema})
+   ::ps/schema p/schema})

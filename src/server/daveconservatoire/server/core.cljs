@@ -8,10 +8,8 @@
             [clojure.walk :as walk]
             [cognitect.transit :as ct]
             [common.async :refer-macros [<? go-catch]]
-            [daveconservatoire.server.data :as d]
-            [pathom.core :as l]
+            [daveconservatoire.server.parser :as p]
             [pathom.sql :as ps]
-            [daveconservatoire.server.parser :as parser]
             [nodejs.express :as ex]
             [nodejs.knex :as knex]
             [nodejs.passport :as passport]
@@ -105,10 +103,10 @@
         (let [{:keys [read write]} (req-io req)
               tx (-> (read-stream req) <!
                      read)
-              out (-> (parser/parse {::ps/db          connection
+              out (-> (p/parse {::ps/db               connection
                                      :http-request    req
                                      :current-user-id (current-user req)}
-                                    tx)
+                               tx)
                       <! (process-errors! {:req req
                                            :tx  tx}))]
           (js/console.log "in")
@@ -126,7 +124,7 @@
         (let [tx (-> (read-stream req) <!
                      (read-string))]
           (.send res (with-out-str
-                       (cljs.pprint/pprint (<! (parser/parse {::ps/db          connection
+                       (cljs.pprint/pprint (<! (p/parse {::ps/db               connection
                                                               :http-request    req
                                                               :current-user-id (current-user req)} tx))))))
         (catch :default e
@@ -142,12 +140,12 @@
     (passport/use
       (GoogleStrategy.
         (clj->js google)
-        (d/passport-sign-callback connection)))
+        (p/passport-sign-callback connection)))
 
     (passport/use
       (FacebookStrategy.
         (clj->js facebook)
-        (d/passport-sign-callback connection)))))
+        (p/passport-sign-callback connection)))))
 
 (def auth-redirects {:successRedirect "/profile"
                      :failureRedirect "/login"})

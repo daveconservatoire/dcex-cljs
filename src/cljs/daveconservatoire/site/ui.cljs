@@ -10,8 +10,12 @@
             [untangled.client.mutations :as um]
             [untangled.client.impl.data-fetch :as df]
             [cljs.spec :as s]
-            [om.util :as omu]
-            [daveconservatoire.site.ui.listeners :as l]))
+            [daveconservatoire.site.ui.listeners :as l])
+  (:import goog.i18n.DateTimeFormat))
+
+(defn format-time [date format]
+  (-> (DateTimeFormat. format)
+      (.format date)))
 
 (s/def ::component om/component?)
 (s/def ::button-color #{"yellow" "orange" "redorange" "red"})
@@ -703,12 +707,12 @@
   static om/IQuery
   (query [_]
     [:db/id :db/table :user/name :user/about :user/score :ui/editing-info?
-     :user/lessons-viewed-count :ui/tmp-about
+     :user/lessons-viewed-count :user/created-at :ui/tmp-about
      {:user/user-views (om/get-query ProfileRecentActivity)}])
 
   Object
   (render [this]
-    (let [{:user/keys [name about user-views score lessons-viewed-count]
+    (let [{:user/keys [name about user-views score lessons-viewed-count created-at]
            :ui/keys   [editing-info?]} (om/props this)]
       (dom/div #js {:className "span10"}
         (dom/div #js {:className "row"}
@@ -748,10 +752,10 @@
                     (dom/td #js {:className "pull-right"} lessons-viewed-count))
                   (dom/tr nil
                     (dom/td nil "Exercises Answered:")
-                    (dom/td #js {:className "pull-right"} "1854"))
+                    (dom/td #js {:className "pull-right"} "XXX"))
                   (dom/tr nil
                     (dom/td nil "Member Since:")
-                    (dom/td #js {:className "pull-right"} "July 25th 2015"))))))
+                    (dom/td #js {:className "pull-right"} (format-time (js/Date. (* 1000 created-at)) "MMMM dd yyyy")))))))
           (dom/div #js {:className "span5 whiteback"}
             (dom/div #js {:className "padding"}
               (dom/h3 nil "Recent Activity")

@@ -124,6 +124,10 @@
       ; User
       (ps/row-getter :user/user-views
         #(ps/has-many % :user-view :user-view/user-id))
+      (ps/row-getter :user/lessons-viewed-count
+        (fn [{:keys [::ps/row] :as env}]
+          (let [id (ps/row-get env row :db/id)]
+            (ps/count env :user-view [[:where {:user-view/user-id id}]]))))
 
       ; User View
       (ps/row-getter :user-view/user

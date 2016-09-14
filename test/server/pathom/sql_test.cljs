@@ -141,11 +141,11 @@
         (<? (ps/save env {:db/table :person :person/name "Agata"}))
 
         (is (= (-> (<? (ps/find-by env {:db/table  :person
-                                                  ::ps/query [[:orderBy :person/name]]}))
+                                        ::ps/query [[:orderBy :person/name]]}))
                    (dissoc :db/id))
-               {:db/table :person
+               {:db/table        :person
                 :person/group-id nil
-                :person/name "Agata"}))))))
+                :person/name     "Agata"}))))))
 
 (deftest test-save
   (db-test [db dbs]
@@ -158,3 +158,17 @@
               person (<? (ps/save env person))]
           (is (= (:db/id person)
                  id)))))))
+
+(deftest test-count
+  (db-test [db dbs]
+    (let [env (assoc env ::ps/db db)]
+      (<? (ps/save env {:db/table    :person
+                        :person/name "Wilker"}))
+      (is (= (<? (ps/count env :person))
+             1))
+
+      (is (= (<? (ps/count env :person [[:where {:person/name "Wilker"}]]))
+             1))
+
+      (is (= (<? (ps/count env :person [[:where {:person/name "Other"}]]))
+             0)))))

@@ -702,12 +702,13 @@
 
   static om/IQuery
   (query [_]
-    [:db/id :db/table :user/name :user/about :ui/editing-info? :ui/tmp-about
+    [:db/id :db/table :user/name :user/about :user/score :ui/editing-info?
+     :user/lessons-viewed-count :ui/tmp-about
      {:user/user-views (om/get-query ProfileRecentActivity)}])
 
   Object
   (render [this]
-    (let [{:user/keys [name about user-views]
+    (let [{:user/keys [name about user-views score lessons-viewed-count]
            :ui/keys   [editing-info?]} (om/props this)]
       (dom/div #js {:className "span10"}
         (dom/div #js {:className "row"}
@@ -741,10 +742,10 @@
                 (dom/tbody nil
                   (dom/tr nil
                     (dom/td nil "Groove Score:")
-                    (dom/td #js {:className "pull-right"} "5830"))
+                    (dom/td #js {:className "pull-right"} score))
                   (dom/tr nil
                     (dom/td nil "Lessons Viewed:")
-                    (dom/td #js {:className "pull-right"} "324"))
+                    (dom/td #js {:className "pull-right"} lessons-viewed-count))
                   (dom/tr nil
                     (dom/td nil "Exercises Answered:")
                     (dom/td #js {:className "pull-right"} "1854"))

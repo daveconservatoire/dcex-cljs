@@ -146,10 +146,12 @@
                           query (concat (cmd-rename-fields query fields))))
           <? first (record->map fields) (assoc :db/table table)))))
 
-(defn count [{:keys [::db ::schema] :as env} table]
-  (assert (get schema table) (str "No specs for table " table))
-  (let [{:keys [::table-name]} (get schema table)]
-    (knex/query-count db table-name [])))
+(defn count
+  ([env table] (count env table []))
+  ([{:keys [::db ::schema]} table cmds]
+   (assert (get schema table) (str "No specs for table " table))
+   (let [{:keys [::table-name ::fields]} (get schema table)]
+     (knex/query-count db table-name (cmd-rename-fields cmds fields)))))
 
 (defn save [{:keys [::schema ::db]} {:keys [db/table db/id] :as record}]
   (assert table "Table is required")

@@ -13,12 +13,35 @@
             [daveconservatoire.site.ui.listeners :as l])
   (:import goog.i18n.DateTimeFormat))
 
+(defn ordinal-suffix [i]
+  (let [j (mod i 10)
+        k (mod i 100)]
+    (cond
+      (and (= 1 j) (not= 11 k)) (str i "st")
+      (and (= 2 j) (not= 12 k)) (str i "nd")
+      (and (= 3 j) (not= 13 k)) (str i "rd")
+      :else (str i "th"))))
+
 (defn format-time [date format]
-  (-> (DateTimeFormat. format)
-      (.format date)))
+  (let [date (if (int? date) (js/Date. (* 1000 date)) date)]
+    (-> (DateTimeFormat. format)
+        (.format date)
+        (clojure.string/replace #"(\d+)o" #(ordinal-suffix (second %))))))
 
 (s/def ::component om/component?)
 (s/def ::button-color #{"yellow" "orange" "redorange" "red"})
+
+(defn auth-state [state]
+  (let [user (get state :app/me)]
+    (cond
+      (some-> user first (= :user/by-id)) ::authenticated
+      (or (some-> user first (= :unknown))
+          (and (map? user)
+               (contains? user :ui/fetch-state))) ::loading
+      :else ::guest)))
+
+(defprotocol IRequireAuth
+  (auth-required? [_]))
 
 (def transition-group (js/React.createFactory js/React.addons.CSSTransitionGroup))
 
@@ -662,10 +685,10 @@
           (dom/div #js {:className "row buttons"})
           (dom/div #js {:className "modal-footer"}
             (dom/button #js {:className "btn"
-                             :onClick #(if onClose (onClose))}
+                             :onClick   #(if onClose (onClose))}
               "Close")
             (dom/button #js {:className "btn btn-primary"
-                             :onClick #(if onSave (onSave))}
+                             :onClick   #(if onSave (onSave))}
               "Save")))))))
 
 (defn user-info-modal [this]
@@ -755,7 +778,7 @@
                     (dom/td #js {:className "pull-right"} "XXX"))
                   (dom/tr nil
                     (dom/td nil "Member Since:")
-                    (dom/td #js {:className "pull-right"} (format-time (js/Date. (* 1000 created-at)) "MMMM dd yyyy")))))))
+                    (dom/td #js {:className "pull-right"} (format-time (js/Date. (* 1000 created-at)) "MMMM ddo yyyy")))))))
           (dom/div #js {:className "span5 whiteback"}
             (dom/div #js {:className "padding"}
               (dom/h3 nil "Recent Activity")
@@ -772,9 +795,92 @@
       (dom/div #js {:className "span2"}
         (nav-list {}
           (nav-item {::r/handler ::r/profile} "Dashboard")
-          (nav-item {::r/handler ::r/profile} "Activity Log")
-          (nav-item {::r/handler ::r/profile} "Focus")))
+          (nav-item {::r/handler ::r/profile-activity} "Activity Log")
+          (nav-item {::r/handler ::r/profile-focus} "Focus")))
       child)))
+
+(om/defui ^:once ProfilePage
+  static om/IQuery
+  (query [_]
+    [{:app/me (om/get-query ProfileDashboard)}])
+
+  static IRequireAuth
+  (auth-required? [_] true)
+
+  Object
+  (render [this]
+    (let [{:keys [app/me]} (om/props this)]
+      (profile-page (profile-dashboard me)))))
+
+(defmethod r/route->component ::r/profile [_] ProfilePage)
+
+(om/defui ^:once ProfileActivity
+  static om/IQuery
+  (query [_] [:db/id :user-view/timestamp {:user-view/lesson [:lesson/title :url/slug]}])
+
+  static om/Ident
+  (ident [_ props] (u/model-ident props))
+
+  Object
+  (render [this]
+    (let [{:keys [user-view/lesson user-view/timestamp]} (om/props this)
+          {:keys [new-streak?]} (om/get-computed this)
+          {:keys [lesson/title url/slug]} lesson]
+      (dom/tr nil
+        (dom/td nil
+          (if new-streak?
+            (format-time timestamp "EEEE ddo MMMM yyyy")))
+        (dom/td nil
+          (dom/i #js {:className "icon-facetime-video"}))
+        (dom/td nil
+          (dom/strong #js {} "Watched: ")
+          (link {::r/handler ::r/lesson ::r/params {::r/slug slug}}
+            title))))))
+
+(def profile-activity (om/factory ProfileActivity {:keyfn :db/id}))
+
+(defn process-view-consecutive-date [views]
+  (->> (reduce
+         (fn [[acc last] v]
+           (let [time (format-time (:user-view/timestamp v) "ddMMyyyy")]
+             [(conj acc (om/computed v {:new-streak? (not= last time)}))
+              time]))
+         [[]]
+         views)
+       (first)))
+
+(om/defui ^:once ProfileActivityPageInternal
+  static om/Ident
+  (ident [_ props] (u/model-ident props))
+
+  static om/IQuery
+  (query [_] [{:user/user-views (om/get-query ProfileActivity)}])
+
+  Object
+  (render [this]
+    (let [{:keys [user/user-views]} (om/props this)]
+      (dom/div #js {:className "span10"}
+        (dom/h2 nil "Here's what you've been working on:")
+        (dom/br nil)
+        (dom/table #js {:className "table"}
+          (dom/tbody nil
+            (map profile-activity (process-view-consecutive-date user-views))))))))
+
+(def profile-activity-page-internal (om/factory ProfileActivityPageInternal))
+
+(om/defui ^:once ProfileActivityPage
+  static om/IQuery
+  (query [_] [{:app/me (om/get-query ProfileActivityPageInternal)}])
+
+  static IRequireAuth
+  (auth-required? [_] true)
+
+  Object
+  (render [this]
+    (let [{:keys [app/me]} (om/props this)]
+      (profile-page (profile-activity-page-internal me)))))
+
+(defmethod r/route->component ::r/profile-activity [_] ProfileActivityPage)
 
 (om/defui ^:once HomeCourseTopic
   static om/IQuery
@@ -887,36 +993,6 @@
         (map home-course courses)))))
 
 (defmethod r/route->component ::r/home [_] HomePage)
-
-(defn comp-state [c]
-  (some-> c om/get-reconciler :config :state))
-
-(defn auth-state [state]
-  (let [user (get state :app/me)]
-    (cond
-      (some-> user first (= :user/by-id)) ::authenticated
-      (or (some-> user first (= :unknown))
-          (and (map? user)
-               (contains? user :ui/fetch-state))) ::loading
-      :else ::guest)))
-
-(defprotocol IRequireAuth
-  (auth-required? [_]))
-
-(om/defui ^:once ProfilePage
-  static om/IQuery
-  (query [_]
-    [{:app/me (om/get-query ProfileDashboard)}])
-
-  static IRequireAuth
-  (auth-required? [_] true)
-
-  Object
-  (render [this]
-    (let [{:keys [app/me]} (om/props this)]
-      (profile-page (profile-dashboard me)))))
-
-(defmethod r/route->component ::r/profile [_] ProfilePage)
 
 (om/defui ^:once NotFoundPage
   Object

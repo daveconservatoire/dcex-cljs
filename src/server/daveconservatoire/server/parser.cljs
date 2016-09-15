@@ -123,7 +123,7 @@
 
       ; User
       (ps/row-getter :user/user-views
-        #(ps/has-many % :user-view :user-view/user-id))
+        #(ps/has-many % :user-view :user-view/user-id {:sort ["timestamp" "desc"]}))
       (ps/row-getter :user/lessons-viewed-count
         (fn [{:keys [::ps/row] :as env}]
           (let [id (ps/row-get env row :db/id)]

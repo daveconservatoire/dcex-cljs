@@ -2295,3 +2295,12 @@ right: 0px;
 .loading-leave.loading-leave-active .loading-bar {
 	width: 100%;
 }
+
+.ex-complete-enter {
+	opacity: 0;
+}
+
+.ex-complete-enter.ex-complete-enter-active {
+	opacity: 1;
+	transition: all 1s;
+}

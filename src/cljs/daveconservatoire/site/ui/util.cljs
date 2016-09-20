@@ -5,6 +5,8 @@
             [goog.string :as gstr]
             [cljs.spec :as s]))
 
+(def transition-group (js/React.createFactory js/React.addons.CSSTransitionGroup))
+
 (defn html-attr-merge [a b]
   (cond
     (map? a) (merge a b)

@@ -69,7 +69,7 @@
   [{:keys [state ref]} _ _]
   {:action
    (fn []
-     (let [{::keys [ex-answer correct-answer streak-count class] :as props} (get-in @state ref)]
+     (let [{:keys [::ex-answer ::correct-answer ::streak-count ::class ::ex-total-questions] :as props} (get-in @state ref)]
        (if (= ex-answer correct-answer)
          (let [next-streak (inc streak-count)
                new-props (new-round class
@@ -102,6 +102,9 @@
   :args (s/cat :desc ::value-descriptor)
   :ret ::audio/semitone)
 
+(defn completed? [{:keys [::ex-total-questions ::streak-count]}]
+  (>= streak-count ex-total-questions))
+
 (om/defui ^:once Exercise
   static uc/InitialAppState
   (initial-state [_ _] {::ex-answer          nil
@@ -130,8 +133,16 @@
                 (dom/div #js {:className "current-card-container card-type-problem"}
                   (dom/div #js {:className "current-card-container-inner vertical-shadow"}
                     (dom/div #js {:className "current-card-contents"}
-                      (progress-bar {::progress-value streak-count
-                                     ::progress-total ex-total-questions})
+                      (if-not (completed? props)
+                        (progress-bar {::progress-value streak-count
+                                       ::progress-total ex-total-questions}))
+                      (u/transition-group #js {:transitionName "ex-complete"
+                                               :transitionEnterTimeout 200
+                                               :transitionLeaveTimeout 200}
+                        (if (completed? props)
+                          (dom/div #js {:key "done" :className "alert alert-success masterymsg"}
+                            (dom/strong nil "Well done! ")
+                            "You've mastered this skill - time to move on to something new")))
                       (dom/div #js {:id "problem-and-answer" :className "framework-khan-exercises"}
                         (dom/div #js {:id "problemarea"}
                           (dom/div #js {:id "workarea"}

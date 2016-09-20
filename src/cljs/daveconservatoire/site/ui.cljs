@@ -43,8 +43,6 @@
 (defprotocol IRequireAuth
   (auth-required? [_]))
 
-(def transition-group (js/React.createFactory js/React.addons.CSSTransitionGroup))
-
 (defn container [& children]
   (dom/div #js {:className "container wrapper"}
     (apply dom/div #js {:className "inner_content"}
@@ -1066,8 +1064,8 @@
     (let [{:keys [app/route app/me route/data ui/react-key]} (om/props this)]
       (dom/div #js {:key react-key}
         (desktop-menu (assoc me :react-key "desktop-menu"))
-        (transition-group #js {:transitionName "loading" :transitionEnterTimeout 200 :transitionLeaveTimeout 200}
-                          (if (= :loading (get-in data [:ui/fetch-state ::df/type]))
-                            (loading nil)))
+        (u/transition-group #js {:transitionName "loading" :transitionEnterTimeout 200 :transitionLeaveTimeout 200}
+          (if (= :loading (get-in data [:ui/fetch-state ::df/type]))
+            (loading nil)))
         ((u/route->factory route) data)
         (footer {:react-key "footer"})))))

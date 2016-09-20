@@ -120,6 +120,15 @@
           :lesson.type/unknown))
       (ps/row-getter :lesson/playlist-items
         #(ps/has-many % :playlist-item :playlist-item/lesson-id {:sort "sort"}))
+      (ps/row-getter :lesson/viewed?
+        (fn [{:keys [current-user-id ::ps/row] :as env}]
+          (if current-user-id
+            (go-catch
+              (boolean
+                (<? (ps/find-by env {:db/table            :user-view
+                                     :user-view/lesson-id (ps/row-get env row :db/id)
+                                     :user-view/user-id   current-user-id}))))
+            false)))
 
       ; User
       (ps/row-getter :user/user-views
@@ -233,7 +242,7 @@
      (go
        (when current-user-id
          (<? (hit-video-view env {:user-view/user-id   current-user-id
-                                    :user-view/lesson-id id}))
+                                  :user-view/lesson-id id}))
          nil)))})
 
 (defmethod mutate 'user/update

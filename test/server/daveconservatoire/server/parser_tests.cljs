@@ -116,8 +116,8 @@
                {:app/courses [{:db/id 4 :course/home-type :course.type/multi-topic :db/table :course}
                               {:db/id 7 :course/home-type :course.type/multi-topic :db/table :course}]}))
 
-        (is (= (<! (p/parse env [{:app/courses {:course.type/multi-topic [:db/id :course/home-type]
-                                                                :course.type/single-topic [:db/id :course/title]}}]))
+        (is (= (<! (p/parse env [{:app/courses {:course.type/multi-topic  [:db/id :course/home-type]
+                                                :course.type/single-topic [:db/id :course/title]}}]))
                {:app/courses [{:db/id 4 :course/home-type :course.type/multi-topic :db/table :course}
                               {:db/id 7 :course/home-type :course.type/multi-topic :db/table :course}]}))
         (catch :default e
@@ -171,7 +171,7 @@
                              [{[:lesson/by-slug "tempo-markings"]
                                lesson-union}]) <!)
                {[:lesson/by-slug "tempo-markings"]
-                {:db/id 67 :db/table :lesson :lesson/title "Exercise: Tempo Markings Quiz" :lesson/type :lesson.type/exercise
+                {:db/id    67 :db/table :lesson :lesson/title "Exercise: Tempo Markings Quiz" :lesson/type :lesson.type/exercise
                  :url/slug "tempo-markings"}}))
         (done)))))
 
@@ -196,6 +196,39 @@
         (is (= (->> (p/parse (assoc env :current-user-id 720) [{:app/me [:user/lessons-viewed-count]}])
                     <? :app/me)
                {:db/id 720 :db/table :user :user/lessons-viewed-count 2}))
+        (catch :default e
+          (do-report
+            {:type :error, :message (.-message e) :actual e})))
+      (done))))
+
+(deftest test-read-lesson-viewed?
+  (async done
+    (go
+      (try
+        (<? (knex/truncate (::ps/db env) "UserVideoView"))
+        (<? (ps/save env {:db/table            :user-view
+                          :user-view/user-id   720
+                          :user-view/lesson-id 9}))
+        (is (= (->> (p/parse env [{[:lesson/by-slug "percussion"]
+                                   [:lesson/viewed?]}]) <?)
+               {[:lesson/by-slug "percussion"] {:db/table       :lesson
+                                                :db/id          9
+                                                :lesson/viewed? false}}))
+        (is (= (->> (p/parse (assoc env :current-user-id 720)
+                             [{[:lesson/by-slug "tempo-markings"]
+                               [:lesson/viewed?]}]) <?)
+               {[:lesson/by-slug "tempo-markings"] {:db/table       :lesson
+                                                    :db/id          67
+                                                    :lesson/viewed? false}}))
+        (is (= (->> (p/parse (assoc env :current-user-id 720)
+                             [{[:lesson/by-slug "percussion"]
+                               [:lesson/viewed?]}]) <?)
+               {[:lesson/by-slug "percussion"] {:db/table       :lesson
+                                                :db/id          9
+                                                :lesson/viewed? true}}))
+        #_(is (= (->> (p/parse (assoc env :current-user-id 720) [{:app/me [:user/lessons-viewed-count]}])
+                      <? :app/me)
+                 {:db/id 720 :db/table :user :user/lessons-viewed-count 2}))
         (catch :default e
           (do-report
             {:type :error, :message (.-message e) :actual e})))

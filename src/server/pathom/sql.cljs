@@ -140,11 +140,11 @@
     (let [{:keys [::table-name ::fields]} (get schema table)
           search (-> (dissoc search :db/table ::query)
                      (set/rename-keys fields))]
-      (-> (cached-query env table-name
-                        (cond-> [[:where search]
-                                 [:limit 1]]
-                          query (concat (cmd-rename-fields query fields))))
-          <? first (record->map fields) (assoc :db/table table)))))
+      (some-> (cached-query env table-name
+                            (cond-> [[:where search]
+                                     [:limit 1]]
+                              query (concat (cmd-rename-fields query fields))))
+              <? first (record->map fields) (assoc :db/table table)))))
 
 (defn count
   ([env table] (count env table []))

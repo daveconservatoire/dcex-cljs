@@ -145,7 +145,13 @@
                    (dissoc :db/id))
                {:db/table        :person
                 :person/group-id nil
-                :person/name     "Agata"}))))))
+                :person/name     "Agata"}))
+
+        (testing "unavailable result"
+          (is (= (-> (<? (ps/find-by env {:db/table  :person
+                                          :person/name "Invalid"}))
+                     (dissoc :db/id))
+                 nil)))))))
 
 (deftest test-save
   (db-test [db dbs]

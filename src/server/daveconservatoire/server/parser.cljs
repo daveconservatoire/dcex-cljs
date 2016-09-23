@@ -84,9 +84,9 @@
 
       ; Course
       (ps/row-getter :course/topics
-        #(ps/has-many % :topic :topic/course-id {:sort ["sortorder"]}))
+        (ps/has-many :topic :topic/course-id {:sort ["sortorder"]}))
       (ps/row-getter :course/lessons
-        #(ps/has-many % :lesson :lesson/course-id {:sort ["lessonno"]}))
+        (ps/has-many :lesson :lesson/course-id {:sort ["lessonno"]}))
       (ps/row-getter :course/topics-count
         (fn [{:keys [::ps/row] :as env}]
           (let [id (ps/row-get env row :db/id)]
@@ -105,9 +105,9 @@
 
       ; Topic
       (ps/row-getter :topic/course
-        #(ps/has-one % :course :topic/course-id))
+        (ps/has-one :course :topic/course-id))
       (ps/row-getter :topic/lessons
-        #(ps/has-many % :lesson :lesson/topic-id {:sort ["lessonno"]}))
+        (ps/has-many :lesson :lesson/topic-id {:sort ["lessonno"]}))
       (ps/row-getter :topic/started?
         (fn [{:keys [::ps/schema ::ps/row current-user-id] :as env}]
           (if current-user-id
@@ -125,9 +125,9 @@
 
       ; Lesson
       (ps/row-getter :lesson/course
-        #(ps/has-one % :course :lesson/course-id))
+        (ps/has-one :course :lesson/course-id))
       (ps/row-getter :lesson/topic
-        #(ps/has-one % :topic :lesson/topic-id))
+        (ps/has-one :topic :lesson/topic-id))
       (ps/row-getter :lesson/type
         #(case (get-in % [::ps/row "filetype"])
           "l" :lesson.type/video
@@ -135,7 +135,7 @@
           "p" :lesson.type/playlist
           :lesson.type/unknown))
       (ps/row-getter :lesson/playlist-items
-        #(ps/has-many % :playlist-item :playlist-item/lesson-id {:sort "sort"}))
+        (ps/has-many :playlist-item :playlist-item/lesson-id {:sort "sort"}))
       (ps/row-getter :lesson/viewed?
         (fn [{:keys [current-user-id ::ps/row] :as env}]
           (if current-user-id
@@ -148,7 +148,7 @@
 
       ; User
       (ps/row-getter :user/user-views
-        #(ps/has-many % :user-view :user-view/user-id {:sort ["timestamp" "desc"]}))
+        (ps/has-many :user-view :user-view/user-id {:sort ["timestamp" "desc"]}))
       (ps/row-getter :user/lessons-viewed-count
         (fn [{:keys [::ps/row] :as env}]
           (let [id (ps/row-get env row :db/id)]
@@ -156,9 +156,9 @@
 
       ; User View
       (ps/row-getter :user-view/user
-        #(ps/has-one % :user :user-view/user-id))
+        (ps/has-one :user :user-view/user-id))
       (ps/row-getter :user-view/lesson
-        #(ps/has-one % :lesson :user-view/lesson-id))))
+        (ps/has-one :lesson :user-view/lesson-id))))
 
 (defn current-timestamp []
   (js/Math.round (/ (.getTime (js/Date.)) 1000)))

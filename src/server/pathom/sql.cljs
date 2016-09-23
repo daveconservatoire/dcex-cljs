@@ -211,13 +211,19 @@
 
 ;; RELATIONAL MAPPING
 
-(defn has-one [{:keys [::row] :as env} foreign-table local-field]
-  (let [foreign-id (row-get env row local-field)]
-    (sql-first-node (assoc env ::table foreign-table) [[:where {:db/id foreign-id}]])))
+(defn has-one [foreign-table local-field]
+  (with-meta
+    (fn [{:keys [::row] :as env}]
+      (let [foreign-id (row-get env row local-field)]
+        (sql-first-node (assoc env ::table foreign-table) [[:where {:db/id foreign-id}]])))
+    {::join-one true}))
 
-(defn has-many [{:keys [::row] :as env} foreign-table foreign-field & [params]]
-  (sql-table-node
-    (cond-> (update-in env [:ast :params :where]
-                       #(assoc (or % {}) foreign-field (row-get env row :db/id)))
-      (:sort params) (update-in [:ast :params :sort] #(or % (:sort params))))
-    foreign-table))
+(defn has-many [foreign-table foreign-field & [params]]
+  (with-meta
+    (fn [{:keys [::row] :as env}]
+      (sql-table-node
+        (cond-> (update-in env [:ast :params :where]
+                           #(assoc (or % {}) foreign-field (row-get env row :db/id)))
+          (:sort params) (update-in [:ast :params :sort] #(or % (:sort params))))
+        foreign-table))
+    {::join-many true}))

@@ -28,10 +28,10 @@
                            :url/slug   "slug"}}])
 
       (ps/row-getter :person/group
-        #(ps/has-one % :group :person/group-id))
+        (ps/has-one :group :person/group-id))
 
       (ps/row-getter :group/people
-        #(ps/has-many % :person :person/group-id))))
+        (ps/has-many :person :person/group-id))))
 
 (def env
   {::ps/db     (first dbs)

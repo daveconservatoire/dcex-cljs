@@ -77,8 +77,8 @@
                             "slug" :url/slug}}
 
           ::ps/translate-index
-          {:person "galera"
-           :group "grupos"
+          {:person          "galera"
+           :group           "grupos"
 
            :db/id           "uuid"
            :person/name     "name"

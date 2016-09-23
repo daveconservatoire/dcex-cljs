@@ -64,7 +64,7 @@
     x
     (go x)))
 
-(defn parse-row [{:keys [::table ast ::union-selector parser path] :as env} row]
+(defn parse-row [{:keys [::table ast ::union-selector parser] :as env} row]
   (go-catch
     (let [row' {:db/table table :db/id (row-get env row :db/id)}
           query (if (p/union-children? ast)
@@ -79,16 +79,16 @@
             (p/read-chan-values) <?)
         row'))))
 
-(defn cached-query [{:keys [::db ::query-cache]} name cmds]
+(defn cached-query [{:keys [::db ::query-cache]} cmds]
   (if query-cache
     (go-catch
-      (let [cache-key [name cmds]]
+      (let [cache-key cmds]
         (if (contains? @query-cache cache-key)
           (get @query-cache cache-key)
-          (let [res (<? (knex/query db name cmds))]
+          (let [res (<? (knex/query db cmds))]
             (swap! query-cache assoc cache-key res)
             res))))
-    (knex/query db name cmds)))
+    (knex/query db cmds)))
 
 (defn sql-node [{:keys [::table ::schema] :as env} cmds]
   (assert (get schema table) (str "[Query SQL] No specs for table " table))
@@ -98,7 +98,7 @@
                         (if (= type :where)
                           [type (set/rename-keys v fields)]
                           cmd)) cmds)
-            rows (<? (cached-query env table-name cmds))
+            rows (<? (cached-query env (cons [:from table-name] cmds)))
             env (assoc env ::table-spec table-spec
                            ::p/reader [reader-map p/placeholder-node])]
         (<? (p/read-chan-seq #(parse-row env %) rows))))))
@@ -140,8 +140,9 @@
     (let [{:keys [::table-name ::fields]} (get schema table)
           search (-> (dissoc search :db/table ::query)
                      (set/rename-keys fields))]
-      (some-> (cached-query env table-name
-                            (cond-> [[:where search]
+      (some-> (cached-query env
+                            (cond-> [[:from table-name]
+                                     [:where search]
                                      [:limit 1]]
                               query (concat (cmd-rename-fields query fields))))
               <? first (record->map fields) (assoc :db/table table)))))
@@ -151,7 +152,8 @@
   ([{:keys [::db ::schema]} table cmds]
    (assert (get schema table) (str "No specs for table " table))
    (let [{:keys [::table-name ::fields]} (get schema table)]
-     (knex/query-count db table-name (cmd-rename-fields cmds fields)))))
+     (knex/query-count db (-> (cons [:from table-name] cmds)
+                              (cmd-rename-fields fields))))))
 
 (defn save [{:keys [::schema ::db]} {:keys [db/table db/id] :as record}]
   (assert table "Table is required")
@@ -163,8 +165,9 @@
                         (set/rename-keys fields))]
       (if id
         (do
-          (<? (knex/run db table-name [[:where {(get fields :db/id) id}]
-                                       [:update js-record]]))
+          (<? (knex/run db [[:from table-name]
+                            [:where {(get fields :db/id) id}]
+                            [:update js-record]]))
           record)
         (let [id (<? (knex/insert db table-name js-record (:db/id fields)))]
           (assoc record :db/id id))))))

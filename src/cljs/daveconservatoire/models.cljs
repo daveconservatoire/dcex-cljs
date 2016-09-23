@@ -22,6 +22,7 @@
 (s/def :topic/colour string?)
 (s/def :topic/course-id :db/id)
 (s/def :topic/course :model/course)
+(s/def :topic/started? boolean?)
 
 (s/def :model/topic
   (s/keys :opt [:db/id :url/slug :ordering/position
@@ -38,6 +39,7 @@
 (s/def :lesson/course-id :db/id)
 (s/def :lesson/course :model/course)
 (s/def :lesson/playlist-items (s/every :model/playlist-item))
+(s/def :lesson/viewed? boolean?)
 
 (s/def :model/lesson
   (s/keys :opt [:db/id :url/slug :youtube/id
@@ -68,6 +70,8 @@
 (s/def :user-view/user :model/user)
 (s/def :user-view/lesson-id :db/id)
 (s/def :user-view/lesson :model/lesson)
+(s/def :user-view/course-id :db/id)
+(s/def :user-view/course :model/course)
 (s/def :user-view/status any?)
 (s/def :user-view/position any?)
 (s/def :user-view/timestamp any?)

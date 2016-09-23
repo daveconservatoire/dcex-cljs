@@ -1,6 +1,7 @@
 (ns daveconservatoire.server.parser
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
   (:require [om.next :as om]
+            [nodejs.knex :as knex]
             [common.async :refer-macros [<? go-catch]]
             [cljs.core.async :refer [<! >! put! close!]]
             [cljs.core.async.impl.protocols :refer [Channel]]
@@ -90,8 +91,9 @@
         (fn [{:keys [::ps/row] :as env}]
           (let [id (ps/row-get env row :db/id)]
             (go-catch
-              (-> (ps/cached-query env "Topic" [[:count "id"]
-                                                [:where {:courseid id}]])
+              (-> (ps/cached-query env [[:count "id"]
+                                        [:from "Topic"]
+                                        [:where {:courseid id}]])
                   <? first vals first)))))
       (ps/row-getter :course/home-type
         (fn [{:keys [::ps/row] :as env}]
@@ -106,6 +108,23 @@
         #(ps/has-one % :course :topic/course-id))
       (ps/row-getter :topic/lessons
         #(ps/has-many % :lesson :lesson/topic-id {:sort ["lessonno"]}))
+      (ps/row-getter :topic/started?
+        (fn [{:keys [::ps/schema ::ps/row current-user-id] :as env}]
+          (if current-user-id
+            (go-catch
+              (let [user-view (get schema :user-view)
+                    topic (get schema :topic)
+                    lesson (get schema :lesson)
+                    watch-count (-> (ps/cached-query env [[:count (str (::ps/table-name user-view) ".id as count")]
+                                                          [:from (::ps/table-name topic)]
+                                                          [:left-join (::ps/table-name lesson) "Lesson.topicno" "Topic.id"]
+                                                          [:left-join "UserVideoView" [::knex/call-this
+                                                                                       [:on "UserVideoView.lessonId" "=" "Lesson.id"]
+                                                                                       [:on "UserVideoView.userId" "=" current-user-id]]]
+                                                          [:where {"Topic.id" (ps/row-get env row :db/id)}]])
+                                    <? first vals first js/parseInt)]
+                (> watch-count 0)))
+            false)))
 
       ; Lesson
       (ps/row-getter :lesson/course

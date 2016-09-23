@@ -336,16 +336,18 @@
 
 (om/defui ^:once LessonCell
   static om/IQuery
-  (query [_] [:db/id :lesson/title :youtube/id :lesson/type :url/slug])
+  (query [_] [:db/id :lesson/title :youtube/id :lesson/type :lesson/viewed? :url/slug])
 
   static om/Ident
   (ident [_ props] (u/model-ident props))
 
   Object
   (render [this]
-    (let [{:keys [lesson/title url/slug] :as lesson} (om/props this)]
+    (let [{:keys [lesson/title lesson/viewed? url/slug] :as lesson} (om/props this)]
       (dom/div #js {:className "span2"}
-        (link {::r/handler ::r/lesson ::r/params {::r/slug slug} :className "thumbnail vertical-shadow suggested-action"}
+        (link {::r/handler ::r/lesson ::r/params {::r/slug slug}
+               :className  (cond-> "thumbnail vertical-shadow suggested-action"
+                             viewed? (str " ribbon ribbon-viewed"))}
           (dom/img #js {:src (u/lesson-thumbnail-url lesson) :key "img"})
           (dom/p #js {:key "p"} title))))))
 
@@ -882,15 +884,17 @@
 
 (om/defui ^:once HomeCourseTopic
   static om/IQuery
-  (query [_] [:db/id :topic/title :url/slug])
+  (query [_] [:db/id :topic/title :topic/started? :url/slug])
 
   static om/Ident
   (ident [_ props] (u/model-ident props))
 
   Object
   (render [this]
-    (let [{:keys [topic/title url/slug]} (om/props this)]
-      (dom/li #js {:className "span4", :style #js {"marginBottom" 5}}
+    (let [{:keys [topic/title topic/started? url/slug]} (om/props this)]
+      (dom/li #js {:className (cond-> "span4"
+                                started? (str " ribbon ribbon-inprogress"))
+                   :style #js {"marginBottom" 5}}
         (link {:className "btn btn-large btn-block dc-btn-yellow" ::r/handler ::r/topic ::r/params {::r/slug slug} :react-key "link"}
           (dom/h3 #js {:key "title"}
             title))))))

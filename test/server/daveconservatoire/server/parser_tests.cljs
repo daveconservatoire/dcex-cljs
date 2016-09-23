@@ -6,7 +6,8 @@
             [pathom.sql :as ps]
             [daveconservatoire.server.parser :as p]
             [daveconservatoire.server.test-shared :as ts :refer [env]]
-            [nodejs.knex :as knex]))
+            [nodejs.knex :as knex]
+            [om.next :as om]))
 
 (deftest test-create-user
   (async done
@@ -30,17 +31,17 @@
         (testing "creates hit for empty record"
           (<? (p/hit-video-view env {:user-view/user-id   720
                                      :user-view/lesson-id 5}))
-          (is (= (<? (knex/query-count ts/connection "UserVideoView" []))
+          (is (= (<? (knex/query-count ts/connection [[:from "UserVideoView"]]))
                  1)))
         (testing "don't create new entry when last lesson is the same"
           (<? (p/hit-video-view env {:user-view/user-id   720
                                      :user-view/lesson-id 5}))
-          (is (= (<? (knex/query-count ts/connection "UserVideoView" []))
+          (is (= (<? (knex/query-count ts/connection [[:from "UserVideoView"]]))
                  1)))
         (testing "create new entry when lesson is different"
           (<? (p/hit-video-view env {:user-view/user-id   720
                                      :user-view/lesson-id 6}))
-          (is (= (<? (knex/query-count ts/connection "UserVideoView" []))
+          (is (= (<? (knex/query-count ts/connection [[:from "UserVideoView"]]))
                  2)))
         (catch :default e
           (js/console.log (.-stack e))
@@ -57,7 +58,7 @@
           (<? (p/update-current-user (assoc env
                                        :current-user-id 720)
                                      {:user/about "New Description"}))
-          (is (= (-> (knex/query-first ts/connection "User" [[:where {"id" 720}]])
+          (is (= (-> (knex/query-first ts/connection [[:from "User"] [:where {"id" 720}]])
                      <? (get "biog"))
                  "New Description")))
         (catch :default e
@@ -226,9 +227,36 @@
                {[:lesson/by-slug "percussion"] {:db/table       :lesson
                                                 :db/id          9
                                                 :lesson/viewed? true}}))
-        #_(is (= (->> (p/parse (assoc env :current-user-id 720) [{:app/me [:user/lessons-viewed-count]}])
-                      <? :app/me)
-                 {:db/id 720 :db/table :user :user/lessons-viewed-count 2}))
+        (catch :default e
+          (do-report
+            {:type :error, :message (.-message e) :actual e})))
+      (done))))
+
+(deftest test-read-topic-started?
+  (async done
+    (go
+      (try
+        (<? (knex/truncate (::ps/db env) "UserVideoView"))
+        (<? (ps/save env {:db/table            :user-view
+                          :user-view/user-id   720
+                          :user-view/lesson-id 9}))
+        (testing "false when not signed in"
+          (is (= (->> (ps/sql-first-node (assoc env ::ps/table :topic
+                                                    :ast {:query [:topic/started?]})
+                                         [[:where {"urltitle" "instruments"}]]) <?)
+                 {:topic/started? false, :db/table :topic, :db/id 13})))
+        (testing "true when user did watched lessons on that topic"
+          (is (= (->> (ps/sql-first-node (assoc env ::ps/table :topic
+                                                    :current-user-id 720
+                                                    :ast {:query [:topic/started?]})
+                                         [[:where {"urltitle" "instruments"}]]) <?)
+                 {:topic/started? true, :db/table :topic, :db/id 13})))
+        (testing "false when user didn't watched lessons on the topic"
+          (is (= (->> (ps/sql-first-node (assoc env ::ps/table :topic
+                                                    :current-user-id 720
+                                                    :ast {:query [:topic/started?]})
+                                         [[:where {"urltitle" "texture"}]]) <?)
+                 {:topic/started? false, :db/table :topic, :db/id 16})))
         (catch :default e
           (do-report
             {:type :error, :message (.-message e) :actual e})))

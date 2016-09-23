@@ -96,6 +96,8 @@
         x))
     out))
 
+(defn current-time [] (.getTime (js/Date.)))
+
 (ex/post app "/api"
   (fn [req res]
     (go
@@ -103,16 +105,19 @@
         (let [{:keys [read write]} (req-io req)
               tx (-> (read-stream req) <!
                      read)
+              start (current-time)
               out (-> (p/parse {::ps/db               connection
                                      :http-request    req
                                      :current-user-id (current-user req)}
                                tx)
                       <! (process-errors! {:req req
-                                           :tx  tx}))]
+                                           :tx  tx}))
+              finish (current-time)]
           (js/console.log "in")
           (cljs.pprint/pprint tx)
           (js/console.log "out")
           (cljs.pprint/pprint out)
+          (println "Done" (str (- finish start) "ms"))
           (.send res (write out)))
         (catch :default e
           (.send res (str "Error: " e)))))))

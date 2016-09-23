@@ -14,4 +14,5 @@
 
 (def env
   {::ps/db     connection
-   ::ps/schema p/schema})
+   ::ps/schema p/schema
+   :parser     p/parser})

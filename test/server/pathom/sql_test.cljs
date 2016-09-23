@@ -18,12 +18,14 @@
           ::ps/table-name "galera"
           ::ps/fields     {:db/id           "uuid"
                            :person/name     "name"
-                           :person/group-id "group_id"}}
+                           :person/group-id "group_id"
+                           :url/slug        "url"}}
 
          {::ps/table      :group
           ::ps/table-name "grupos"
           ::ps/fields     {:db/id      "uuid"
-                           :group/name "name"}}])
+                           :group/name "name"
+                           :url/slug   "slug"}}])
 
       (ps/row-getter :person/group
         #(ps/has-one % :group :person/group-id))
@@ -57,18 +59,32 @@
            ::ps/table-name "galera"
            ::ps/fields     {:db/id           "uuid"
                             :person/name     "name"
-                            :person/group-id "group_id"}
+                            :person/group-id "group_id"
+                            :url/slug        "url"}
            ::ps/fields'    {"uuid"     :db/id
                             "name"     :person/name
-                            "group_id" :person/group-id}}
+                            "group_id" :person/group-id
+                            "url"      :url/slug}}
 
           :group
           {::ps/table      :group
            ::ps/table-name "grupos"
            ::ps/fields     {:db/id      "uuid"
-                            :group/name "name"}
+                            :group/name "name"
+                            :url/slug   "slug"}
            ::ps/fields'    {"uuid" :db/id
-                            "name" :group/name}}})))
+                            "name" :group/name
+                            "slug" :url/slug}}
+
+          ::ps/translate-index
+          {:person "galera"
+           :group "grupos"
+
+           :db/id           "uuid"
+           :person/name     "name"
+           :person/group-id "group_id"
+           :group/name      "name"
+           :url/slug        ::ps/translate-multiple}})))
 
 (defn elide-ids [x]
   (walk/prewalk
@@ -128,6 +144,25 @@
                 :person/group {:group/name "Company"
                                :db/table   :group}}))))))
 
+(deftest test-translate-args
+  (testing "blank cmd list"
+    (is (= (ps/translate-args env [])
+           [])))
+  (testing "translating table names"
+    (is (= (ps/translate-args env [[:from :person]])
+           [[:from "galera"]])))
+  (testing "translating field names"
+    (is (= (ps/translate-args env [[:where {:person/name "Megan"}]])
+           [[:where {"name" "Megan"}]])))
+  (testing "translating long field names"
+    (is (= (ps/translate-args env [[:where {[::ps/f :person/name] "Megan"}]])
+           [[:where {"galera.name" "Megan"}]]))
+    (is (= (ps/translate-args env [[:where {[::ps/f :person :db/id] "Megan"}]])
+           [[:where {"galera.uuid" "Megan"}]])))
+  (testing "translating field names multiple"
+    (is (thrown-with-msg? js/Error #"Multiple possibilities for key :url/slug"
+                          (ps/translate-args env [[:where {:url/slug "Megan"}]])))))
+
 (deftest test-find-by
   (db-test [db dbs]
     (let [env (assoc env ::ps/db db)]
@@ -144,11 +179,12 @@
                                         ::ps/query [[:orderBy :person/name]]}))
                    (dissoc :db/id))
                {:db/table        :person
+                :url/slug        nil
                 :person/group-id nil
                 :person/name     "Agata"}))
 
         (testing "unavailable result"
-          (is (= (-> (<? (ps/find-by env {:db/table  :person
+          (is (= (-> (<? (ps/find-by env {:db/table    :person
                                           :person/name "Invalid"}))
                      (dissoc :db/id))
                  nil)))))))

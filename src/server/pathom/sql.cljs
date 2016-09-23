@@ -2,6 +2,7 @@
   (:refer-clojure :exclude [count])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
   (:require [common.async :refer-macros [go-catch <?]]
+            [clojure.string :as str]
             [clojure.set :as set]
             [clojure.walk :as walk]
             [cljs.core.async :refer [<! >! put! close!]]
@@ -15,17 +16,23 @@
 (s/def ::table keyword?)
 (s/def ::table-name string?)
 
-(s/def ::field qualified-keyword?)
-(s/def ::fields (s/map-of ::field string?))
-(s/def ::fields' (s/map-of keyword? ::field))
+(s/def ::f qualified-keyword?)
+(s/def ::fields (s/map-of ::f string?))
+(s/def ::fields' (s/map-of keyword? ::f))
 
 (s/def ::reader-map ::p/reader-map)
 
 (s/def ::table-spec' (s/keys :req [::table ::table-name ::fields]))
 (s/def ::table-spec (s/merge ::table-spec' (s/keys :req [::fields' ::reader-map])))
 
+(s/def ::translate-value (s/or :string string?
+                               :multiple #{::translate-multiple}))
+
+(s/def ::translate-index (s/map-of keyword? ::translate-value))
+
 (s/def ::schema' (s/coll-of ::table-spec'))
-(s/def ::schema (s/map-of ::table ::table-spec))
+(s/def ::schema (and (s/keys :req [::translate-index])
+                     (s/map-of ::table ::table-spec)))
 
 (s/def ::row (s/map-of string? (s/or :string string?
                                      :number number?)))
@@ -34,22 +41,56 @@
 (s/def ::query-cache (partial instance? IAtom))
 
 (defn prepare-schema [schema]
-  (zipmap (map ::table schema)
-          (map #(let [m (::fields %)]
-                 (assoc %
-                   ::reader-map
-                   (zipmap (keys m)
-                           (map
-                             (fn [field]
-                               (fn [{:keys [::row]}]
-                                 (get row field)))
-                             (vals m)))
-                   ::fields' (zipmap (vals m) (keys m))))
-               schema)))
+  (assoc (zipmap (map ::table schema)
+                 (map #(let [m (::fields %)]
+                        (assoc %
+                          ::reader-map
+                          (zipmap (keys m)
+                                  (map
+                                    (fn [field]
+                                      (fn [{:keys [::row]}]
+                                        (get row field)))
+                                    (vals m)))
+                          ::fields' (zipmap (vals m) (keys m))))
+                      schema))
+    ::translate-index
+    (apply merge-with (fn [a b]
+                        (if (= a b) a ::translate-multiple))
+      (zipmap (map ::table schema)
+              (map ::table-name schema))
+      (->> (map ::fields schema)))))
 
 (s/fdef prepare-schema
   :args (s/cat :schema ::schema')
   :ret ::schema)
+
+(defn variant? [value name]
+  (and (vector? value)
+       (= (first value) name)))
+
+(defn translate-args [{:keys [::schema] :as env} cmds]
+  (let [{:keys [::translate-index]} schema]
+    (walk/prewalk
+      (fn [x]
+        (cond
+          (keyword? x)
+          (if-let [v (get translate-index x)]
+            (if (= v ::translate-multiple)
+              (throw (ex-info (str "Multiple possibilities for key " x) {}))
+              v)
+            x)
+
+          (variant? x ::f)
+          (let [v (second x)
+                x (if (and (= 2 (cljs.core/count x))
+                           (qualified-keyword? v))
+                    [(first x) (keyword (namespace v)) v]
+                    x)]
+            (str/join "." (translate-args env (rest x))))
+
+          :else
+          x))
+      cmds)))
 
 (defn row-getter [schema k f]
   (let [table (keyword (namespace k))]
@@ -79,16 +120,19 @@
             (p/read-chan-values) <?)
         row'))))
 
-(defn cached-query [{:keys [::db ::query-cache]} cmds]
+(defn query [{:keys [::db] :as env} cmds]
+  (knex/query db (translate-args env cmds)))
+
+(defn cached-query [{:keys [::query-cache] :as env} cmds]
   (if query-cache
     (go-catch
       (let [cache-key cmds]
         (if (contains? @query-cache cache-key)
           (get @query-cache cache-key)
-          (let [res (<? (knex/query db cmds))]
+          (let [res (<? (query env cmds))]
             (swap! query-cache assoc cache-key res)
             res))))
-    (knex/query db cmds)))
+    (query env cmds)))
 
 (defn sql-node [{:keys [::table ::schema] :as env} cmds]
   (assert (get schema table) (str "[Query SQL] No specs for table " table))
@@ -128,12 +172,6 @@
           {}
           fields))
 
-(defn cmd-rename-fields [cmds fields]
-  (walk/postwalk (fn [x] (if (contains? fields x)
-                           (get fields x)
-                           x))
-                 cmds))
-
 (defn find-by [{:keys [::schema] :as env} {:keys [db/table ::query] :as search}]
   (assert table "Table is required")
   (go-catch
@@ -144,16 +182,15 @@
                             (cond-> [[:from table-name]
                                      [:where search]
                                      [:limit 1]]
-                              query (concat (cmd-rename-fields query fields))))
+                              query (concat query)))
               <? first (record->map fields) (assoc :db/table table)))))
 
 (defn count
   ([env table] (count env table []))
-  ([{:keys [::db ::schema]} table cmds]
+  ([{:keys [::db ::schema] :as env} table cmds]
    (assert (get schema table) (str "No specs for table " table))
-   (let [{:keys [::table-name ::fields]} (get schema table)]
-     (knex/query-count db (-> (cons [:from table-name] cmds)
-                              (cmd-rename-fields fields))))))
+   (knex/query-count db (->> (cons [:from table] cmds)
+                             (translate-args env)))))
 
 (defn save [{:keys [::schema ::db]} {:keys [db/table db/id] :as record}]
   (assert table "Table is required")

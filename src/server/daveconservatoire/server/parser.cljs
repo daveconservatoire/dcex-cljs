@@ -112,16 +112,13 @@
         (fn [{:keys [::ps/schema ::ps/row current-user-id] :as env}]
           (if current-user-id
             (go-catch
-              (let [user-view (get schema :user-view)
-                    topic (get schema :topic)
-                    lesson (get schema :lesson)
-                    watch-count (-> (ps/cached-query env [[:count (str (::ps/table-name user-view) ".id as count")]
-                                                          [:from (::ps/table-name topic)]
-                                                          [:left-join (::ps/table-name lesson) "Lesson.topicno" "Topic.id"]
-                                                          [:left-join "UserVideoView" [::knex/call-this
-                                                                                       [:on "UserVideoView.lessonId" "=" "Lesson.id"]
-                                                                                       [:on "UserVideoView.userId" "=" current-user-id]]]
-                                                          [:where {"Topic.id" (ps/row-get env row :db/id)}]])
+              (let [watch-count (-> (ps/cached-query env [[:count [::ps/f :user-view :db/id]]
+                                                          [:from :topic]
+                                                          [:left-join :lesson [::ps/f :lesson :lesson/topic-id] [::ps/f :topic :db/id]]
+                                                          [:left-join :user-view [::knex/call-this
+                                                                                       [:on [::ps/f :user-view/lesson-id] "=" [::ps/f :lesson :db/id]]
+                                                                                       [:on [::ps/f :user-view/user-id] "=" current-user-id]]]
+                                                          [:where {[::ps/f :topic :db/id] (ps/row-get env row :db/id)}]])
                                     <? first vals first js/parseInt)]
                 (> watch-count 0)))
             false)))

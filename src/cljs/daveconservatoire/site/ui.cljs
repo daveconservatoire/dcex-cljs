@@ -79,7 +79,7 @@
               (::selected? props) (assoc :className "dc-bg-orange active"))
             (dissoc props ::r/handler))
     (link (select-keys props [::r/handler ::r/params])
-      (dom/i #js {:className "icon-chevron-right"}) content)))
+      (dom/i #js {:className (or (::icon props) "icon-chevron-right")}) content)))
 
 (om/defui ^:once Hero
   Object
@@ -355,17 +355,17 @@
 
 (om/defui ^:once TopicSideBarLink
   static om/IQuery
-  (query [_] [:topic/title :url/slug])
+  (query [_] [:topic/title :topic/started? :url/slug])
 
   static om/Ident
   (ident [_ props] (u/model-ident props))
 
   Object
   (render [this]
-    (let [{:keys [url/slug topic/title]} (om/props this)
+    (let [{:keys [url/slug topic/title topic/started?]} (om/props this)
           selected? (or (u/current-uri-slug? ::r/topic slug)
                         (= slug (om/get-computed this :ui/topic-slug)))]
-      (nav-item {::selected? selected?
+      (nav-item {::selected? selected? ::icon (if started? "icon-adjust")
                  ::r/handler ::r/topic ::r/params {::r/slug slug}}
         title))))
 

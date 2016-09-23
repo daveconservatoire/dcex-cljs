@@ -237,9 +237,13 @@
     (go
       (try
         (<? (knex/truncate (::ps/db env) "UserVideoView"))
+        (<? (knex/truncate (::ps/db env) "UserExerciseAnswer"))
         (<? (ps/save env {:db/table            :user-view
                           :user-view/user-id   720
                           :user-view/lesson-id 9}))
+        (<? (ps/save env {:db/table            :ex-answer
+                          :ex-answer/user-id   720
+                          :ex-answer/lesson-id 120}))
         (testing "false when not signed in"
           (is (= (->> (ps/sql-first-node (assoc env ::ps/table :topic
                                                     :ast {:query [:topic/started?]})
@@ -251,6 +255,12 @@
                                                     :ast {:query [:topic/started?]})
                                          [[:where {"urltitle" "instruments"}]]) <?)
                  {:topic/started? true, :db/table :topic, :db/id 13})))
+        (testing "true when user did an exercise on that topic"
+          (is (= (->> (ps/sql-first-node (assoc env ::ps/table :topic
+                                                    :current-user-id 720
+                                                    :ast {:query [:topic/started?]})
+                                         [[:where {"urltitle" "pitch"}]]) <?)
+                 {:topic/started? true, :db/table :topic, :db/id 3})))
         (testing "false when user didn't watched lessons on the topic"
           (is (= (->> (ps/sql-first-node (assoc env ::ps/table :topic
                                                     :current-user-id 720

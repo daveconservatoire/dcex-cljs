@@ -12,18 +12,33 @@
 
 ;; DATA
 
-(defn topic-started? [{:keys [::ps/row current-user-id] :as env}]
+(defn topic-watch-count [{:keys [::ps/row current-user-id] :as env}]
+  (go-catch
+    (let [cmds [[:count [::ps/f :user-view :db/id]]
+                [:from :topic]
+                [:left-join :lesson [::ps/f :lesson :lesson/topic-id] [::ps/f :topic :db/id]]
+                [:left-join :user-view [::knex/call-this
+                                        [:on [::ps/f :user-view/lesson-id] "=" [::ps/f :lesson :db/id]]
+                                        [:on [::ps/f :user-view/user-id] "=" current-user-id]]]
+                [:where {[::ps/f :topic :db/id] (ps/row-get env row :db/id)}]]]
+      (-> (ps/cached-query env cmds) <? first vals first js/parseInt))))
+
+(defn topic-ex-answer-count [{:keys [::ps/row current-user-id] :as env}]
+  (go-catch
+    (let [cmds [[:count [::ps/f :ex-answer :db/id]]
+                [:from :topic]
+                [:left-join :lesson [::ps/f :lesson :lesson/topic-id] [::ps/f :topic :db/id]]
+                [:left-join :ex-answer [::knex/call-this
+                                        [:on [::ps/f :ex-answer/lesson-id] "=" [::ps/f :lesson :db/id]]
+                                        [:on [::ps/f :ex-answer/user-id] "=" current-user-id]]]
+                [:where {[::ps/f :topic :db/id] (ps/row-get env row :db/id)}]]]
+      (-> (ps/cached-query env cmds) <? first vals first js/parseInt))))
+
+(defn topic-started? [{:keys [current-user-id] :as env}]
   (if current-user-id
     (go-catch
-      (let [cmds [[:count [::ps/f :user-view :db/id]]
-                  [:from :topic]
-                  [:left-join :lesson [::ps/f :lesson :lesson/topic-id] [::ps/f :topic :db/id]]
-                  [:left-join :user-view [::knex/call-this
-                                          [:on [::ps/f :user-view/lesson-id] "=" [::ps/f :lesson :db/id]]
-                                          [:on [::ps/f :user-view/user-id] "=" current-user-id]]]
-                  [:where {[::ps/f :topic :db/id] (ps/row-get env row :db/id)}]]
-            watch-count (-> (ps/cached-query env cmds) <? first vals first js/parseInt)]
-        (> watch-count 0)))
+      (or (> (<? (topic-watch-count env)) 0)
+          (> (<? (topic-ex-answer-count env)) 0)))
     false))
 
 (def schema
@@ -43,15 +58,17 @@
 
      {::ps/table      :topic,
       ::ps/table-name "Topic",
-      ::ps/fields     {:db/id             "id"
-                       :url/slug          "urltitle"
-                       :ordering/position "sortorder"
-                       :topic/course-id   "courseId"
-                       :topic/title       "title"
-                       :topic/colour      "colour"
-                       :topic/course      (ps/has-one :course :topic/course-id)
-                       :topic/lessons     (ps/has-many :lesson :lesson/topic-id {:sort ["lessonno"]})
-                       :topic/started?    topic-started?}},
+      ::ps/fields     {:db/id                 "id"
+                       :url/slug              "urltitle"
+                       :ordering/position     "sortorder"
+                       :topic/course-id       "courseId"
+                       :topic/title           "title"
+                       :topic/colour          "colour"
+                       :topic/course          (ps/has-one :course :topic/course-id)
+                       :topic/lessons         (ps/has-many :lesson :lesson/topic-id {:sort ["lessonno"]})
+                       :topic/watch-count     topic-watch-count
+                       :topic/ex-answer-count topic-ex-answer-count
+                       :topic/started?        topic-started?}},
 
      {::ps/table      :course,
       ::ps/table-name "Course",

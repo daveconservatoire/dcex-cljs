@@ -12,153 +12,130 @@
 
 ;; DATA
 
+(defn topic-started? [{:keys [::ps/row current-user-id] :as env}]
+  (if current-user-id
+    (go-catch
+      (let [cmds [[:count [::ps/f :user-view :db/id]]
+                  [:from :topic]
+                  [:left-join :lesson [::ps/f :lesson :lesson/topic-id] [::ps/f :topic :db/id]]
+                  [:left-join :user-view [::knex/call-this
+                                          [:on [::ps/f :user-view/lesson-id] "=" [::ps/f :lesson :db/id]]
+                                          [:on [::ps/f :user-view/user-id] "=" current-user-id]]]
+                  [:where {[::ps/f :topic :db/id] (ps/row-get env row :db/id)}]]
+            watch-count (-> (ps/cached-query env cmds) <? first vals first js/parseInt)]
+        (> watch-count 0)))
+    false))
+
 (def schema
-  (-> (ps/prepare-schema
-        [{::ps/table      :playlist-item,
-          ::ps/table-name "PlaylistItem",
-          ::ps/fields     {:db/id                   "id"
-                           :youtube/id              "youtubeid"
-                           :playlist-item/lesson-id "relid"
-                           :playlist-item/title     "title"
-                           :playlist-item/text      "text"
-                           :playlist-item/credit    "credit"}}
+  (ps/prepare-schema
+    [{::ps/table      :playlist-item,
+      ::ps/table-name "PlaylistItem",
+      ::ps/fields     {:db/id                   "id"
+                       :youtube/id              "youtubeid"
+                       :playlist-item/lesson-id "relid"
+                       :playlist-item/title     "title"
+                       :playlist-item/text      "text"
+                       :playlist-item/credit    "credit"}}
 
-         {::ps/table      :search-term
-          ::ps/table-name "SearchTerm"
-          ::ps/fields     {}}
+     {::ps/table      :search-term
+      ::ps/table-name "SearchTerm"
+      ::ps/fields     {}}
 
-         {::ps/table      :topic,
-          ::ps/table-name "Topic",
-          ::ps/fields     {:db/id             "id"
-                           :url/slug          "urltitle"
-                           :ordering/position "sortorder"
-                           :topic/course-id   "courseId"
-                           :topic/title       "title"
-                           :topic/colour      "colour"}},
+     {::ps/table      :topic,
+      ::ps/table-name "Topic",
+      ::ps/fields     {:db/id             "id"
+                       :url/slug          "urltitle"
+                       :ordering/position "sortorder"
+                       :topic/course-id   "courseId"
+                       :topic/title       "title"
+                       :topic/colour      "colour"
+                       :topic/course      (ps/has-one :course :topic/course-id)
+                       :topic/lessons     (ps/has-many :lesson :lesson/topic-id {:sort ["lessonno"]})
+                       :topic/started?    topic-started?}},
 
-         {::ps/table      :course,
-          ::ps/table-name "Course",
-          ::ps/fields     {:db/id              "id"
-                           :url/slug           "urltitle"
-                           :course/title       "title"
-                           :course/description "description"
-                           :course/author      "author"
-                           :ordering/position  "homepage_order"}},
+     {::ps/table      :course,
+      ::ps/table-name "Course",
+      ::ps/fields     {:db/id               "id"
+                       :url/slug            "urltitle"
+                       :course/title        "title"
+                       :course/description  "description"
+                       :course/author       "author"
+                       :course/topics       (ps/has-many :topic :topic/course-id {:sort ["sortorder"]})
+                       :course/lessons      (ps/has-many :lesson :lesson/course-id {:sort ["lessonno"]})
+                       :course/topics-count (fn [{:keys [::ps/row] :as env}]
+                                              (let [id (ps/row-get env row :db/id)]
+                                                (go-catch
+                                                  (-> (ps/cached-query env [[:count "id"]
+                                                                            [:from "Topic"]
+                                                                            [:where {:courseid id}]])
+                                                      <? first vals first))))
+                       :course/home-type    (fn [{:keys [::ps/row] :as env}]
+                                              (go-catch
+                                                (if (= (<? (ps/row-get env row :course/topics-count))
+                                                       1)
+                                                  :course.type/single-topic
+                                                  :course.type/multi-topic)))
 
-         {::ps/table      :lesson,
-          ::ps/table-name "Lesson",
-          ::ps/fields     {:db/id              "id"
-                           :url/slug           "urltitle"
-                           :youtube/id         "youtubeid"
-                           :lesson/topic-id    "topicno"
-                           :lesson/course-id   "seriesno"
-                           :lesson/title       "title"
-                           :lesson/description "description"
-                           :lesson/keywords    "keywords"}}
+                       :ordering/position   "homepage_order"}},
 
-         {::ps/table      :user
-          ::ps/table-name "User"
-          ::ps/fields     {:db/id              "id"
-                           :user/name          "name"
-                           :user/email         "email"
-                           :user/about         "biog"
-                           :user/created-at    "joinDate"
-                           :user/score         "points"
-                           :user/last-activity "lastActivity"}}
+     {::ps/table      :lesson,
+      ::ps/table-name "Lesson",
+      ::ps/fields     {:db/id                 "id"
+                       :url/slug              "urltitle"
+                       :youtube/id            "youtubeid"
+                       :lesson/topic-id       "topicno"
+                       :lesson/course-id      "seriesno"
+                       :lesson/title          "title"
+                       :lesson/description    "description"
+                       :lesson/keywords       "keywords"
+                       :lesson/course         (ps/has-one :course :lesson/course-id)
+                       :lesson/topic          (ps/has-one :topic :lesson/topic-id)
+                       :lesson/type           #(case (get-in % [::ps/row "filetype"])
+                                                "l" :lesson.type/video
+                                                "e" :lesson.type/exercise
+                                                "p" :lesson.type/playlist
+                                                :lesson.type/unknown)
+                       :lesson/playlist-items (ps/has-many :playlist-item :playlist-item/lesson-id {:sort "sort"})
+                       :lesson/viewed?        (fn [{:keys [current-user-id ::ps/row] :as env}]
+                                                (if current-user-id
+                                                  (go-catch
+                                                    (boolean
+                                                      (<? (ps/find-by env {:db/table            :user-view
+                                                                           :user-view/lesson-id (ps/row-get env row :db/id)
+                                                                           :user-view/user-id   current-user-id}))))
+                                                  false))}}
 
-         {::ps/table      :user-view
-          ::ps/table-name "UserVideoView"
-          ::ps/fields     {:db/id               "id"
-                           :user-view/user-id   "userId"
-                           :user-view/lesson-id "lessonId"
-                           :user-view/status    "status"
-                           :user-view/position  "position"
-                           :user-view/timestamp "timestamp"}}
+     {::ps/table      :user
+      ::ps/table-name "User"
+      ::ps/fields     {:db/id                     "id"
+                       :user/name                 "name"
+                       :user/email                "email"
+                       :user/about                "biog"
+                       :user/created-at           "joinDate"
+                       :user/score                "points"
+                       :user/last-activity        "lastActivity"
+                       :user/user-views           (ps/has-many :user-view :user-view/user-id {:sort ["timestamp" "desc"]})
+                       :user/lessons-viewed-count (fn [{:keys [::ps/row] :as env}]
+                                                    (let [id (ps/row-get env row :db/id)]
+                                                      (ps/count env :user-view [[:where {:user-view/user-id id}]])))}}
 
-         {::ps/table      :ex-answer
-          ::ps/table-name "UserExerciseAnswer"
-          ::ps/fields     {:db/id               "id"
-                           :ex-answer/user-id   "userId"
-                           :ex-answer/lesson-id "exerciseId"
-                           :ex-answer/timestamp "timestamp"}}])
+     {::ps/table      :user-view
+      ::ps/table-name "UserVideoView"
+      ::ps/fields     {:db/id               "id"
+                       :user-view/user-id   "userId"
+                       :user-view/lesson-id "lessonId"
+                       :user-view/status    "status"
+                       :user-view/position  "position"
+                       :user-view/timestamp "timestamp"
+                       :user-view/user      (ps/has-one :user :user-view/user-id)
+                       :user-view/lesson    (ps/has-one :lesson :user-view/lesson-id)}}
 
-      ; Course
-      (ps/row-getter :course/topics
-        (ps/has-many :topic :topic/course-id {:sort ["sortorder"]}))
-      (ps/row-getter :course/lessons
-        (ps/has-many :lesson :lesson/course-id {:sort ["lessonno"]}))
-      (ps/row-getter :course/topics-count
-        (fn [{:keys [::ps/row] :as env}]
-          (let [id (ps/row-get env row :db/id)]
-            (go-catch
-              (-> (ps/cached-query env [[:count "id"]
-                                        [:from "Topic"]
-                                        [:where {:courseid id}]])
-                  <? first vals first)))))
-      (ps/row-getter :course/home-type
-        (fn [{:keys [::ps/row] :as env}]
-          (go-catch
-            (if (= (<? (ps/row-get env row :course/topics-count))
-                   1)
-              :course.type/single-topic
-              :course.type/multi-topic))))
-
-      ; Topic
-      (ps/row-getter :topic/course
-        (ps/has-one :course :topic/course-id))
-      (ps/row-getter :topic/lessons
-        (ps/has-many :lesson :lesson/topic-id {:sort ["lessonno"]}))
-      (ps/row-getter :topic/started?
-        (fn [{:keys [::ps/schema ::ps/row current-user-id] :as env}]
-          (if current-user-id
-            (go-catch
-              (let [watch-count (-> (ps/cached-query env [[:count [::ps/f :user-view :db/id]]
-                                                          [:from :topic]
-                                                          [:left-join :lesson [::ps/f :lesson :lesson/topic-id] [::ps/f :topic :db/id]]
-                                                          [:left-join :user-view [::knex/call-this
-                                                                                       [:on [::ps/f :user-view/lesson-id] "=" [::ps/f :lesson :db/id]]
-                                                                                       [:on [::ps/f :user-view/user-id] "=" current-user-id]]]
-                                                          [:where {[::ps/f :topic :db/id] (ps/row-get env row :db/id)}]])
-                                    <? first vals first js/parseInt)]
-                (> watch-count 0)))
-            false)))
-
-      ; Lesson
-      (ps/row-getter :lesson/course
-        (ps/has-one :course :lesson/course-id))
-      (ps/row-getter :lesson/topic
-        (ps/has-one :topic :lesson/topic-id))
-      (ps/row-getter :lesson/type
-        #(case (get-in % [::ps/row "filetype"])
-          "l" :lesson.type/video
-          "e" :lesson.type/exercise
-          "p" :lesson.type/playlist
-          :lesson.type/unknown))
-      (ps/row-getter :lesson/playlist-items
-        (ps/has-many :playlist-item :playlist-item/lesson-id {:sort "sort"}))
-      (ps/row-getter :lesson/viewed?
-        (fn [{:keys [current-user-id ::ps/row] :as env}]
-          (if current-user-id
-            (go-catch
-              (boolean
-                (<? (ps/find-by env {:db/table            :user-view
-                                     :user-view/lesson-id (ps/row-get env row :db/id)
-                                     :user-view/user-id   current-user-id}))))
-            false)))
-
-      ; User
-      (ps/row-getter :user/user-views
-        (ps/has-many :user-view :user-view/user-id {:sort ["timestamp" "desc"]}))
-      (ps/row-getter :user/lessons-viewed-count
-        (fn [{:keys [::ps/row] :as env}]
-          (let [id (ps/row-get env row :db/id)]
-            (ps/count env :user-view [[:where {:user-view/user-id id}]]))))
-
-      ; User View
-      (ps/row-getter :user-view/user
-        (ps/has-one :user :user-view/user-id))
-      (ps/row-getter :user-view/lesson
-        (ps/has-one :lesson :user-view/lesson-id))))
+     {::ps/table      :ex-answer
+      ::ps/table-name "UserExerciseAnswer"
+      ::ps/fields     {:db/id               "id"
+                       :ex-answer/user-id   "userId"
+                       :ex-answer/lesson-id "exerciseId"
+                       :ex-answer/timestamp "timestamp"}}]))
 
 (defn current-timestamp []
   (js/Math.round (/ (.getTime (js/Date.)) 1000)))

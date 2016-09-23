@@ -16,9 +16,11 @@
 (s/def ::table keyword?)
 (s/def ::table-name string?)
 
-(s/def ::f qualified-keyword?)
-(s/def ::fields (s/map-of ::f string?))
-(s/def ::fields' (s/map-of keyword? ::f))
+(s/def ::field qualified-keyword?)
+(s/def ::field-value (s/or :string string?
+                           :fn fn?))
+(s/def ::fields (s/map-of ::field ::field-value))
+(s/def ::fields' (s/map-of keyword? ::field))
 
 (s/def ::reader-map ::p/reader-map)
 
@@ -40,25 +42,32 @@
 (s/def ::union-selector keyword?)
 (s/def ::query-cache (partial instance? IAtom))
 
+(defn local-fields [fields]
+  (into {} (filter (fn [[_ v]] (string? v))) fields))
+
 (defn prepare-schema [schema]
   (assoc (zipmap (map ::table schema)
-                 (map #(let [m (::fields %)]
+                 (map #(let [m (::fields %)
+                             simple-fields (local-fields m)]
                         (assoc %
                           ::reader-map
                           (zipmap (keys m)
                                   (map
                                     (fn [field]
-                                      (fn [{:keys [::row]}]
-                                        (get row field)))
+                                      (if (fn? field)
+                                        field
+                                        (fn [{:keys [::row]}]
+                                          (get row field))))
                                     (vals m)))
-                          ::fields' (zipmap (vals m) (keys m))))
+                          ::fields simple-fields
+                          ::fields' (zipmap (vals simple-fields) (keys simple-fields))))
                       schema))
     ::translate-index
     (apply merge-with (fn [a b]
                         (if (= a b) a ::translate-multiple))
       (zipmap (map ::table schema)
               (map ::table-name schema))
-      (->> (map ::fields schema)))))
+      (->> (map (comp local-fields ::fields) schema)))))
 
 (s/fdef prepare-schema
   :args (s/cat :schema ::schema')
@@ -91,10 +100,6 @@
           :else
           x))
       cmds)))
-
-(defn row-getter [schema k f]
-  (let [table (keyword (namespace k))]
-    (assoc-in schema [table ::reader-map k] f)))
 
 (defn row-get [{:keys [::table-spec] :as env} row attr]
   (p/read-from (assoc env ::row row :ast {:key attr :dispatch-key attr})

@@ -19,19 +19,15 @@
           ::ps/fields     {:db/id           "uuid"
                            :person/name     "name"
                            :person/group-id "group_id"
+                           :person/group    (ps/has-one :group :person/group-id)
                            :url/slug        "url"}}
 
          {::ps/table      :group
           ::ps/table-name "grupos"
-          ::ps/fields     {:db/id      "uuid"
-                           :group/name "name"
-                           :url/slug   "slug"}}])
-
-      (ps/row-getter :person/group
-        (ps/has-one :group :person/group-id))
-
-      (ps/row-getter :group/people
-        (ps/has-many :person :person/group-id))))
+          ::ps/fields     {:db/id        "uuid"
+                           :group/name   "name"
+                           :group/people (ps/has-many :person :person/group-id)
+                           :url/slug     "slug"}}])))
 
 (def env
   {::ps/db     (first dbs)

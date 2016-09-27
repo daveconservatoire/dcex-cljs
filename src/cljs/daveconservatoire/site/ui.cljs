@@ -348,7 +348,8 @@
         (link {::r/handler ::r/lesson ::r/params {::r/slug slug}
                :className  (cond-> "thumbnail vertical-shadow suggested-action"
                              (= view-state :lesson.view-state/viewed) (str " ribbon ribbon-viewed")
-                             (= view-state :lesson.view-state/started) (str " ribbon ribbon-inprogress"))}
+                             (= view-state :lesson.view-state/started) (str " ribbon ribbon-inprogress")
+                             (= view-state :lesson.view-state/mastered) (str " ribbon ribbon-mastered"))}
           (dom/img #js {:src (u/lesson-thumbnail-url lesson) :key "img"})
           (dom/p #js {:key "p"} title))))))
 

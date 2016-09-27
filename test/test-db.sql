@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost:8889
--- Generation Time: Jul 12, 2016 at 04:55 AM
+-- Generation Time: Sep 27, 2016 at 09:22 PM
 -- Server version: 5.5.42
 -- PHP Version: 5.6.10
 
@@ -527,14 +527,15 @@ CREATE TABLE `User` (
   `firstip` varchar(255) NOT NULL,
   `biog` varchar(255) NOT NULL,
   `subamount` int(11) NOT NULL
-) ENGINE=MyISAM AUTO_INCREMENT=721 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=1029 DEFAULT CHARSET=utf8;
 
 --
 -- Dumping data for table `User`
 --
 
 INSERT INTO `User` (`id`, `username`, `name`, `email`, `joinDate`, `lastActivity`, `points`, `l1badgeCount`, `firstip`, `biog`, `subamount`) VALUES
-(720, 'ZruMczeEIffrGMBDjlXo', 'Cookie not set', 'noemailyet@tempuser.com', 0, NULL, 1, NULL, '::1', '', 0);
+(720, 'ZruMczeEIffrGMBDjlXo', 'Cookie not set', 'noemailyet@tempuser.com', 0, NULL, 2, NULL, '::1', 'New Description', 0),
+(1028, '', 'Mary', 'mary@email.com', 1475004127, 1475004127, 0, NULL, '', 'Please tell us about your musical interests and goals. This will help develop the site to better support your learning. It will not be made public.', 0);
 
 -- --------------------------------------------------------
 
@@ -551,7 +552,34 @@ CREATE TABLE `UserExerciseAnswer` (
   `timeTaken` smallint(5) unsigned DEFAULT NULL,
   `attemptNumber` mediumint(8) unsigned DEFAULT NULL,
   `timestamp` int(11) NOT NULL
-) ENGINE=MyISAM AUTO_INCREMENT=20635 DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM AUTO_INCREMENT=2 DEFAULT CHARSET=latin1;
+
+--
+-- Dumping data for table `UserExerciseAnswer`
+--
+
+INSERT INTO `UserExerciseAnswer` (`id`, `userId`, `exerciseId`, `complete`, `countHints`, `timeTaken`, `attemptNumber`, `timestamp`) VALUES
+(1, 720, 120, 0, 0, NULL, NULL, 0);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `UserExSingleMastery`
+--
+
+CREATE TABLE `UserExSingleMastery` (
+  `id` int(11) NOT NULL,
+  `userId` int(11) NOT NULL COMMENT 'CONSTRAINT FOREIGN KEY (userId) REFERENCES User(id)',
+  `exerciseId` int(11) NOT NULL COMMENT 'CONSTRAINT FOREIGN KEY (exericseId) REFERENCES Lesson(id)',
+  `timestamp` int(11) NOT NULL
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1;
+
+--
+-- Dumping data for table `UserExSingleMastery`
+--
+
+INSERT INTO `UserExSingleMastery` (`id`, `userId`, `exerciseId`, `timestamp`) VALUES
+(1, 720, 121, 0);
 
 -- --------------------------------------------------------
 
@@ -566,7 +594,14 @@ CREATE TABLE `UserVideoView` (
   `status` tinyint(4) NOT NULL,
   `position` varchar(100) DEFAULT NULL,
   `timestamp` int(11) NOT NULL
-) ENGINE=MyISAM AUTO_INCREMENT=4184 DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM AUTO_INCREMENT=2 DEFAULT CHARSET=latin1;
+
+--
+-- Dumping data for table `UserVideoView`
+--
+
+INSERT INTO `UserVideoView` (`id`, `userId`, `lessonId`, `status`, `position`, `timestamp`) VALUES
+(1, 720, 9, 0, NULL, 0);
 
 --
 -- Indexes for dumped tables
@@ -616,6 +651,12 @@ ALTER TABLE `UserExerciseAnswer`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `UserExSingleMastery`
+--
+ALTER TABLE `UserExSingleMastery`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `UserVideoView`
 --
 ALTER TABLE `UserVideoView`
@@ -654,17 +695,22 @@ ALTER TABLE `Topic`
 -- AUTO_INCREMENT for table `User`
 --
 ALTER TABLE `User`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=721;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=1029;
 --
 -- AUTO_INCREMENT for table `UserExerciseAnswer`
 --
 ALTER TABLE `UserExerciseAnswer`
-  MODIFY `id` mediumint(8) unsigned NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=20635;
+  MODIFY `id` mediumint(8) unsigned NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=2;
+--
+-- AUTO_INCREMENT for table `UserExSingleMastery`
+--
+ALTER TABLE `UserExSingleMastery`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=2;
 --
 -- AUTO_INCREMENT for table `UserVideoView`
 --
 ALTER TABLE `UserVideoView`
-  MODIFY `id` int(10) unsigned NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=4184;
+  MODIFY `id` int(10) unsigned NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=2;
 --
 -- Constraints for dumped tables
 --
@@ -673,6 +719,12 @@ ALTER TABLE `UserVideoView`
 -- Constraints for table `UserExerciseAnswer`
 --
 ALTER TABLE `UserExerciseAnswer`
+;
+
+--
+-- Constraints for table `UserExSingleMastery`
+--
+ALTER TABLE `UserExSingleMastery`
 ;
 
 --

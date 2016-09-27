@@ -248,6 +248,19 @@
                                                :db/id             120
                                                :lesson/view-state :lesson.view-state/started}})))
 
+        (<? (knex/truncate (::ps/db env) "UserExSingleMastery"))
+        (<? (ps/save env {:db/table            :ex-mastery
+                          :ex-mastery/user-id   720
+                          :ex-mastery/lesson-id 121}))
+
+        (testing "exercise mastered"
+          (is (= (->> (p/parse (assoc env :current-user-id 720)
+                               [{[:lesson/by-slug "pitch-2"]
+                                 [:lesson/view-state]}]) <?)
+                 {[:lesson/by-slug "pitch-2"] {:db/table          :lesson
+                                               :db/id             121
+                                               :lesson/view-state :lesson.view-state/mastered}})))
+
         (catch :default e
           (do-report
             {:type :error, :message (.-message e) :actual e})))

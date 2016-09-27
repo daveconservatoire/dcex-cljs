@@ -126,11 +126,15 @@
 
                                                     :lesson.type/exercise
                                                     (go-catch
-                                                      (if (<? (ps/find-by env {:db/table            :ex-answer
-                                                                               :ex-answer/lesson-id (ps/row-get env :db/id)
-                                                                               :ex-answer/user-id   current-user-id}))
-                                                        :lesson.view-state/started))
-
+                                                      (or
+                                                        (if (<? (ps/find-by env {:db/table             :ex-mastery
+                                                                                 :ex-mastery/lesson-id (ps/row-get env :db/id)
+                                                                                 :ex-mastery/user-id   current-user-id}))
+                                                          :lesson.view-state/mastered)
+                                                        (if (<? (ps/find-by env {:db/table            :ex-answer
+                                                                                 :ex-answer/lesson-id (ps/row-get env :db/id)
+                                                                                 :ex-answer/user-id   current-user-id}))
+                                                          :lesson.view-state/started)))
                                                     nil)
                                                   nil))}}
 
@@ -164,7 +168,14 @@
       ::ps/fields     {:db/id               "id"
                        :ex-answer/user-id   "userId"
                        :ex-answer/lesson-id "exerciseId"
-                       :ex-answer/timestamp "timestamp"}}]))
+                       :ex-answer/timestamp "timestamp"}}
+
+     {::ps/table      :ex-mastery
+      ::ps/table-name "UserExSingleMastery"
+      ::ps/fields     {:db/id                "id"
+                       :ex-mastery/user-id   "userId"
+                       :ex-mastery/lesson-id "exerciseId"
+                       :ex-mastery/timestamp "timestamp"}}]))
 
 (defn current-timestamp []
   (js/Math.round (/ (.getTime (js/Date.)) 1000)))

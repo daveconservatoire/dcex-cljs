@@ -91,6 +91,37 @@
             {:type :error, :message (.-message e) :actual e})))
       (done))))
 
+(deftest test-compute-ex-answer-master
+  (async done
+    (go
+      (try
+        (<? (knex/truncate (::ps/db env) "UserExSingleMastery"))
+        (<? (ps/save env {:db/table   :user
+                          :db/id      720
+                          :user/score 1}))
+
+        (testing "does nothing for unlogged users"
+          (<? (p/compute-ex-answer-master env {:url/slug "bass-clef-reading"}))
+          (is (zero? (<? (ps/count env :ex-mastery)))))
+
+        (testing "compute score for logged user"
+          (<? (p/compute-ex-answer-master (assoc env :current-user-id 720)
+                                          {:url/slug "bass-clef-reading"}))
+          (is (= (<? (ps/count env :ex-mastery))
+                 1))
+          (is (= (-> (ps/find-by env {:db/table :user :db/id 720})
+                     <? :user/score)
+                 101)))
+
+        (testing "can only record mastery once a day for a given exercise"
+          ; TODO
+          )
+
+        (catch :default e
+          (do-report
+            {:type :error, :message (.-message e) :actual e})))
+      (done))))
+
 (deftest parse-read-not-found
   (async done
     (go
@@ -249,7 +280,7 @@
                                                :lesson/view-state :lesson.view-state/started}})))
 
         (<? (knex/truncate (::ps/db env) "UserExSingleMastery"))
-        (<? (ps/save env {:db/table            :ex-mastery
+        (<? (ps/save env {:db/table             :ex-mastery
                           :ex-mastery/user-id   720
                           :ex-mastery/lesson-id 121}))
 

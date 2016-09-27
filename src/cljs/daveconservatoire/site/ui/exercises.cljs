@@ -81,8 +81,13 @@
          (swap! state update-in ref assoc ::streak-count 0))))
 
    :remote
-   (let [{::keys [name streak-count]} (get-in @state ref)]
-     (when (> streak-count 0)
+   (let [{::keys [name streak-count ex-total-questions]} (get-in @state ref)]
+     (cond
+       (= streak-count ex-total-questions)
+       (-> (om/query->ast `[(exercise/score-master {:url/slug ~name})])
+           :children first)
+
+       (> streak-count 0)
        (-> (om/query->ast `[(exercise/score {:url/slug ~name})])
            :children first)))})
 

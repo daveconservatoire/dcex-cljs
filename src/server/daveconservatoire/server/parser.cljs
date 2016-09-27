@@ -240,6 +240,21 @@
         true))
     (go nil)))
 
+(defn compute-ex-answer-master [{:keys [current-user-id] :as env}
+                         {:keys [url/slug]}]
+  (if current-user-id
+    (go-catch
+      (let [user (<? (ps/find-by env {:db/table :user :db/id current-user-id}))
+            lesson (<? (ps/find-by env {:db/table :lesson
+                                        :url/slug slug}))]
+        (ps/save env (update user :user/score (partial + 100)))
+        (ps/save env {:db/table            :ex-mastery
+                      :ex-mastery/timestamp (current-timestamp)
+                      :ex-mastery/user-id   current-user-id
+                      :ex-mastery/lesson-id (:db/id lesson)})
+        true))
+    (go nil)))
+
 ;; ROOT READS
 
 (defn ast-sort [env sort]
@@ -285,6 +300,10 @@
 (defmethod mutate 'exercise/score
   [env _ data]
   {:action #(compute-ex-answer env data)})
+
+(defmethod mutate 'exercise/score-master
+  [env _ data]
+  {:action #(compute-ex-answer-master env data)})
 
 ;; PARSER
 

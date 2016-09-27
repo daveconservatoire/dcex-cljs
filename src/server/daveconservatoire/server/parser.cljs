@@ -12,7 +12,7 @@
 
 ;; DATA
 
-(defn topic-watch-count [{:keys [::ps/row current-user-id] :as env}]
+(defn topic-watch-count [{:keys [current-user-id] :as env}]
   (go-catch
     (let [cmds [[:count [::ps/f :user-view :db/id]]
                 [:from :topic]
@@ -20,10 +20,10 @@
                 [:left-join :user-view [::knex/call-this
                                         [:on [::ps/f :user-view/lesson-id] "=" [::ps/f :lesson :db/id]]
                                         [:on [::ps/f :user-view/user-id] "=" current-user-id]]]
-                [:where {[::ps/f :topic :db/id] (ps/row-get env row :db/id)}]]]
+                [:where {[::ps/f :topic :db/id] (ps/row-get env :db/id)}]]]
       (-> (ps/cached-query env cmds) <? first vals first js/parseInt))))
 
-(defn topic-ex-answer-count [{:keys [::ps/row current-user-id] :as env}]
+(defn topic-ex-answer-count [{:keys [current-user-id] :as env}]
   (go-catch
     (let [cmds [[:count [::ps/f :ex-answer :db/id]]
                 [:from :topic]
@@ -31,7 +31,7 @@
                 [:left-join :ex-answer [::knex/call-this
                                         [:on [::ps/f :ex-answer/lesson-id] "=" [::ps/f :lesson :db/id]]
                                         [:on [::ps/f :ex-answer/user-id] "=" current-user-id]]]
-                [:where {[::ps/f :topic :db/id] (ps/row-get env row :db/id)}]]]
+                [:where {[::ps/f :topic :db/id] (ps/row-get env :db/id)}]]]
       (-> (ps/cached-query env cmds) <? first vals first js/parseInt))))
 
 (defn topic-started? [{:keys [current-user-id] :as env}]
@@ -79,16 +79,16 @@
                        :course/author       "author"
                        :course/topics       (ps/has-many :topic :topic/course-id {:sort ["sortorder"]})
                        :course/lessons      (ps/has-many :lesson :lesson/course-id {:sort ["lessonno"]})
-                       :course/topics-count (fn [{:keys [::ps/row] :as env}]
-                                              (let [id (ps/row-get env row :db/id)]
+                       :course/topics-count (fn [env]
+                                              (let [id (ps/row-get env :db/id)]
                                                 (go-catch
                                                   (-> (ps/cached-query env [[:count "id"]
                                                                             [:from "Topic"]
                                                                             [:where {:courseid id}]])
                                                       <? first vals first))))
-                       :course/home-type    (fn [{:keys [::ps/row] :as env}]
+                       :course/home-type    (fn [env]
                                               (go-catch
-                                                (if (= (<? (ps/row-get env row :course/topics-count))
+                                                (if (= (<? (ps/row-get env :course/topics-count))
                                                        1)
                                                   :course.type/single-topic
                                                   :course.type/multi-topic)))
@@ -107,20 +107,32 @@
                        :lesson/keywords       "keywords"
                        :lesson/course         (ps/has-one :course :lesson/course-id)
                        :lesson/topic          (ps/has-one :topic :lesson/topic-id)
-                       :lesson/type           #(case (get-in % [::ps/row "filetype"])
-                                                "l" :lesson.type/video
-                                                "e" :lesson.type/exercise
-                                                "p" :lesson.type/playlist
-                                                :lesson.type/unknown)
+                       :lesson/type           (fn [{:keys [::ps/row]}]
+                                                (case (get row "filetype")
+                                                  "l" :lesson.type/video
+                                                  "e" :lesson.type/exercise
+                                                  "p" :lesson.type/playlist
+                                                  :lesson.type/unknown))
                        :lesson/playlist-items (ps/has-many :playlist-item :playlist-item/lesson-id {:sort "sort"})
-                       :lesson/viewed?        (fn [{:keys [current-user-id ::ps/row] :as env}]
+                       :lesson/view-state     (fn [{:keys [current-user-id] :as env}]
                                                 (if current-user-id
-                                                  (go-catch
-                                                    (boolean
-                                                      (<? (ps/find-by env {:db/table            :user-view
-                                                                           :user-view/lesson-id (ps/row-get env row :db/id)
-                                                                           :user-view/user-id   current-user-id}))))
-                                                  false))}}
+                                                  (case (ps/row-get env :lesson/type)
+                                                    :lesson.type/video
+                                                    (go-catch
+                                                      (if (<? (ps/find-by env {:db/table            :user-view
+                                                                               :user-view/lesson-id (ps/row-get env :db/id)
+                                                                               :user-view/user-id   current-user-id}))
+                                                        :lesson.view-state/viewed))
+
+                                                    :lesson.type/exercise
+                                                    (go-catch
+                                                      (if (<? (ps/find-by env {:db/table            :ex-answer
+                                                                               :ex-answer/lesson-id (ps/row-get env :db/id)
+                                                                               :ex-answer/user-id   current-user-id}))
+                                                        :lesson.view-state/started))
+
+                                                    nil)
+                                                  nil))}}
 
      {::ps/table      :user
       ::ps/table-name "User"
@@ -132,8 +144,8 @@
                        :user/score                "points"
                        :user/last-activity        "lastActivity"
                        :user/user-views           (ps/has-many :user-view :user-view/user-id {:sort ["timestamp" "desc"]})
-                       :user/lessons-viewed-count (fn [{:keys [::ps/row] :as env}]
-                                                    (let [id (ps/row-get env row :db/id)]
+                       :user/lessons-viewed-count (fn [env]
+                                                    (let [id (ps/row-get env :db/id)]
                                                       (ps/count env :user-view [[:where {:user-view/user-id id}]])))}}
 
      {::ps/table      :user-view

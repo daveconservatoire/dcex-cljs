@@ -336,18 +336,19 @@
 
 (om/defui ^:once LessonCell
   static om/IQuery
-  (query [_] [:db/id :lesson/title :youtube/id :lesson/type :lesson/viewed? :url/slug])
+  (query [_] [:db/id :lesson/title :youtube/id :lesson/type :lesson/view-state :url/slug])
 
   static om/Ident
   (ident [_ props] (u/model-ident props))
 
   Object
   (render [this]
-    (let [{:keys [lesson/title lesson/viewed? url/slug] :as lesson} (om/props this)]
+    (let [{:keys [lesson/title lesson/view-state url/slug] :as lesson} (om/props this)]
       (dom/div #js {:className "span2"}
         (link {::r/handler ::r/lesson ::r/params {::r/slug slug}
                :className  (cond-> "thumbnail vertical-shadow suggested-action"
-                             viewed? (str " ribbon ribbon-viewed"))}
+                             (= view-state :lesson.view-state/viewed) (str " ribbon ribbon-viewed")
+                             (= view-state :lesson.view-state/started) (str " ribbon ribbon-inprogress"))}
           (dom/img #js {:src (u/lesson-thumbnail-url lesson) :key "img"})
           (dom/p #js {:key "p"} title))))))
 

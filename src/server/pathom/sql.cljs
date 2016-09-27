@@ -101,9 +101,13 @@
           x))
       cmds)))
 
-(defn row-get [{:keys [::table-spec] :as env} row attr]
-  (p/read-from (assoc env ::row row :ast {:key attr :dispatch-key attr})
-               (::reader-map table-spec)))
+(defn row-get
+  ([{:keys [::table-spec] :as env} attr]
+   (p/read-from (assoc env :ast {:key attr :dispatch-key attr})
+                (::reader-map table-spec)) )
+  ([{:keys [::table-spec] :as env} row attr]
+   (p/read-from (assoc env ::row row :ast {:key attr :dispatch-key attr})
+                (::reader-map table-spec))))
 
 (defn ensure-chan [x]
   (if (p/chan? x)
@@ -218,17 +222,17 @@
 
 (defn has-one [foreign-table local-field]
   (with-meta
-    (fn [{:keys [::row] :as env}]
-      (let [foreign-id (row-get env row local-field)]
+    (fn [env]
+      (let [foreign-id (row-get env local-field)]
         (sql-first-node (assoc env ::table foreign-table) [[:where {:db/id foreign-id}]])))
     {::join-one true}))
 
 (defn has-many [foreign-table foreign-field & [params]]
   (with-meta
-    (fn [{:keys [::row] :as env}]
+    (fn [env]
       (sql-table-node
         (cond-> (update-in env [:ast :params :where]
-                           #(assoc (or % {}) foreign-field (row-get env row :db/id)))
+                           #(assoc (or % {}) foreign-field (row-get env :db/id)))
           (:sort params) (update-in [:ast :params :sort] #(or % (:sort params))))
         foreign-table))
     {::join-many true}))

@@ -202,7 +202,7 @@
             {:type :error, :message (.-message e) :actual e})))
       (done))))
 
-(deftest test-read-lesson-viewed?
+(deftest test-read-lesson-view-state
   (async done
     (go
       (try
@@ -210,23 +210,44 @@
         (<? (ps/save env {:db/table            :user-view
                           :user-view/user-id   720
                           :user-view/lesson-id 9}))
-        (is (= (->> (p/parse env [{[:lesson/by-slug "percussion"]
-                                   [:lesson/viewed?]}]) <?)
-               {[:lesson/by-slug "percussion"] {:db/table       :lesson
-                                                :db/id          9
-                                                :lesson/viewed? false}}))
-        (is (= (->> (p/parse (assoc env :current-user-id 720)
-                             [{[:lesson/by-slug "tempo-markings"]
-                               [:lesson/viewed?]}]) <?)
-               {[:lesson/by-slug "tempo-markings"] {:db/table       :lesson
-                                                    :db/id          67
-                                                    :lesson/viewed? false}}))
-        (is (= (->> (p/parse (assoc env :current-user-id 720)
-                             [{[:lesson/by-slug "percussion"]
-                               [:lesson/viewed?]}]) <?)
-               {[:lesson/by-slug "percussion"] {:db/table       :lesson
-                                                :db/id          9
-                                                :lesson/viewed? true}}))
+
+        (testing "nil when user is not authenticated"
+          (is (= (->> (p/parse env
+                               [{[:lesson/by-slug "percussion"]
+                                 [:lesson/view-state]}]) <?)
+                 {[:lesson/by-slug "percussion"] {:db/table :lesson
+                                                  :db/id    9}})))
+
+        (testing "video viewed state"
+          (testing "nil when user didn't saw the video"
+            (is (= (->> (p/parse (assoc env :current-user-id 720)
+                                 [{[:lesson/by-slug "tempo-markings"]
+                                   [:lesson/view-state]}]) <?)
+                   {[:lesson/by-slug "tempo-markings"] {:db/table          :lesson
+                                                        :db/id             67
+                                                        :lesson/view-state nil}})))
+
+          (testing "viewed when the video was watched"
+            (is (= (->> (p/parse (assoc env :current-user-id 720)
+                                 [{[:lesson/by-slug "percussion"]
+                                   [:lesson/view-state]}]) <?)
+                   {[:lesson/by-slug "percussion"] {:db/table          :lesson
+                                                    :db/id             9
+                                                    :lesson/view-state :lesson.view-state/viewed}}))))
+
+        (<? (knex/truncate (::ps/db env) "UserExerciseAnswer"))
+        (<? (ps/save env {:db/table            :ex-answer
+                          :ex-answer/user-id   720
+                          :ex-answer/lesson-id 120}))
+
+        (testing "exercise started"
+          (is (= (->> (p/parse (assoc env :current-user-id 720)
+                               [{[:lesson/by-slug "pitch-1"]
+                                 [:lesson/view-state]}]) <?)
+                 {[:lesson/by-slug "pitch-1"] {:db/table          :lesson
+                                               :db/id             120
+                                               :lesson/view-state :lesson.view-state/started}})))
+
         (catch :default e
           (do-report
             {:type :error, :message (.-message e) :actual e})))

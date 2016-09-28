@@ -98,6 +98,11 @@
 
 (defn current-time [] (.getTime (js/Date.)))
 
+(defn api-env [req]
+  {::ps/db          connection
+   :http-request    req
+   :current-user-id (current-user req)})
+
 (ex/post app "/api"
   (fn [req res]
     (go
@@ -106,9 +111,7 @@
               tx (-> (read-stream req) <!
                      read)
               start (current-time)
-              out (-> (p/parse {::ps/db               connection
-                                     :http-request    req
-                                     :current-user-id (current-user req)}
+              out (-> (p/parse (api-env req)
                                tx)
                       <! (process-errors! {:req req
                                            :tx  tx}))
@@ -127,11 +130,10 @@
     (go
       (try
         (let [tx (-> (read-stream req) <!
-                     (read-string))]
+                     (read-string))
+              out (<! (p/parse (api-env req) tx))]
           (.send res (with-out-str
-                       (cljs.pprint/pprint (<! (p/parse {::ps/db               connection
-                                                              :http-request    req
-                                                              :current-user-id (current-user req)} tx))))))
+                       (cljs.pprint/pprint out))))
         (catch :default e
           (.send res (str "Error: " e)))))))
 

@@ -6,6 +6,7 @@
             [pathom.sql :as ps]
             [daveconservatoire.server.parser :as p]
             [daveconservatoire.server.test-shared :as ts :refer [env]]
+            [nodejs.express :as ex]
             [nodejs.knex :as knex]
             [om.next :as om]))
 
@@ -74,9 +75,17 @@
         (<? (ps/save env {:db/table   :user
                           :db/id      720
                           :user/score 1}))
-        (testing "does nothing for unlogged users"
-          (<? (p/compute-ex-answer env {:url/slug "bass-clef-reading"}))
-          (is (zero? (<? (ps/count env :ex-answer)))))
+
+        (let [req (js-obj "session" (js-obj))
+              env (assoc env :http-request req)]
+          (with-redefs [p/current-timestamp (fn [] 123)]
+            (testing "saves score on session for unlogged users"
+              (<? (p/compute-ex-answer env {:url/slug "bass-clef-reading"}))
+              (is (zero? (<? (ps/count env :ex-answer))))
+              (is (= (ex/session-get req :guest-tx)
+                     [{:db/table            :ex-answer
+                       :ex-answer/timestamp 123
+                       :ex-answer/lesson-id 53}])))))
 
         (testing "compute score for logged user"
           (<? (p/compute-ex-answer (assoc env :current-user-id 720)

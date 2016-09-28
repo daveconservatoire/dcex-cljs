@@ -2,6 +2,7 @@
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
   (:require [om.next :as om]
             [nodejs.knex :as knex]
+            [nodejs.express :as ex]
             [common.async :refer-macros [<? go-catch]]
             [cljs.core.async :refer [<! >! put! close!]]
             [cljs.core.async.impl.protocols :refer [Channel]]
@@ -225,30 +226,38 @@
         (<? (ps/save env (assoc view :db/table :user-view
                                      :user-view/timestamp (current-timestamp))))))))
 
-(defn compute-ex-answer [{:keys [current-user-id] :as env}
+(defn conj-vec [v x]
+  (conj (or v []) x))
+
+(defn compute-ex-answer [{:keys [current-user-id http-request] :as env}
                          {:keys [url/slug]}]
-  (if current-user-id
-    (go-catch
-      (let [user (<? (ps/find-by env {:db/table :user :db/id current-user-id}))
-            lesson (<? (ps/find-by env {:db/table :lesson
-                                        :url/slug slug}))]
-        (ps/save env (update user :user/score inc))
-        (ps/save env {:db/table            :ex-answer
-                      :ex-answer/timestamp (current-timestamp)
-                      :ex-answer/user-id   current-user-id
-                      :ex-answer/lesson-id (:db/id lesson)})
-        true))
-    (go nil)))
+  (go-catch
+    (let [lesson (<? (ps/find-by env {:db/table :lesson
+                                      :url/slug slug}))
+          answer {:db/table            :ex-answer
+                  :ex-answer/timestamp (current-timestamp)
+                  :ex-answer/lesson-id (:db/id lesson)}]
+      (if current-user-id
+        (let [user (<? (ps/find-by env {:db/table :user :db/id current-user-id}))]
+          (ps/save env (update user :user/score inc))
+          (ps/save env (assoc answer :ex-answer/user-id current-user-id)))
+
+        ; save for guest
+        (do
+          (js/console.log "updating session")
+          (ex/session-update! http-request :guest-tx
+            #(conj-vec % answer))))
+      true)))
 
 (defn compute-ex-answer-master [{:keys [current-user-id] :as env}
-                         {:keys [url/slug]}]
+                                {:keys [url/slug]}]
   (if current-user-id
     (go-catch
       (let [user (<? (ps/find-by env {:db/table :user :db/id current-user-id}))
             lesson (<? (ps/find-by env {:db/table :lesson
                                         :url/slug slug}))]
         (ps/save env (update user :user/score (partial + 100)))
-        (ps/save env {:db/table            :ex-mastery
+        (ps/save env {:db/table             :ex-mastery
                       :ex-mastery/timestamp (current-timestamp)
                       :ex-mastery/user-id   current-user-id
                       :ex-mastery/lesson-id (:db/id lesson)})

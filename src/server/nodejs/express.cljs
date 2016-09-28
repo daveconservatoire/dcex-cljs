@@ -4,14 +4,14 @@
             [cljs.reader :refer [read-string]]
             [goog.object :as gobj]))
 
-(defn get [app pattern f] (.get app pattern f))
+(defn get [app pattern & f] (apply js-invoke app "get" pattern f))
 (defn post [app pattern f] (.post app pattern f))
 (defn use [app middleware] (.use app middleware))
 
 (defn session-get [req k]
-  (-> (gobj/get (.-session req) (pr-str k))
-      (str)
-      (read-string)))
+  (some-> (gobj/get (.-session req) (pr-str k))
+          (str)
+          (read-string)))
 
 (s/fdef session-get
   :args (s/cat :req any? :key any? :value any?)

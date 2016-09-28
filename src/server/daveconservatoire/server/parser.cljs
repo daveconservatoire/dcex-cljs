@@ -201,6 +201,19 @@
                               :db/table :user))))
     (go nil)))
 
+(defn consume-guest-tx [{:keys [http-request current-user-id] :as env}]
+  (go-catch
+    (let [guest-tx (ex/session-get http-request :guest-tx)
+          score (atom 0)]
+      (doseq [{:keys [guest-tx/increase-score] :as tx} guest-tx
+              :let [tx (assoc tx :ex-answer/user-id current-user-id
+                                 :ex-mastery/user-id current-user-id)]]
+        (swap! score (partial + increase-score))
+        (<! (ps/save env tx)))
+      (let [user (<? (ps/find-by env {:db/table :user :db/id current-user-id}))]
+        (<! (ps/save env (update user :user/score (partial + @score))))))
+    (ex/session-set! http-request :guest-tx [])))
+
 (defn passport-sign-in [env {:keys [emails displayName]}]
   (go-catch
     (let [email (some-> emails first :value)]
@@ -234,9 +247,9 @@
   (go-catch
     (let [lesson (<? (ps/find-by env {:db/table :lesson
                                       :url/slug slug}))
-          answer {:db/table            :ex-answer
-                  :ex-answer/timestamp (current-timestamp)
-                  :ex-answer/lesson-id (:db/id lesson)
+          answer {:db/table                :ex-answer
+                  :ex-answer/timestamp     (current-timestamp)
+                  :ex-answer/lesson-id     (:db/id lesson)
                   :guest-tx/increase-score 1}]
       (if current-user-id
         (let [user (<? (ps/find-by env {:db/table :user :db/id current-user-id}))]
@@ -253,9 +266,9 @@
   (go-catch
     (let [lesson (<? (ps/find-by env {:db/table :lesson
                                       :url/slug slug}))
-          answer {:db/table             :ex-mastery
-                  :ex-mastery/timestamp (current-timestamp)
-                  :ex-mastery/lesson-id (:db/id lesson)
+          answer {:db/table                :ex-mastery
+                  :ex-mastery/timestamp    (current-timestamp)
+                  :ex-mastery/lesson-id    (:db/id lesson)
                   :guest-tx/increase-score 100}]
       (if current-user-id
         (let [user (<? (ps/find-by env {:db/table :user :db/id current-user-id}))]

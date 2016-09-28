@@ -100,6 +100,7 @@
 
 (defn api-env [req]
   {::ps/db          connection
+   ::ps/schema      p/schema
    :http-request    req
    :current-user-id (current-user req)})
 
@@ -167,8 +168,18 @@
   (fn [req res next]
     (let [strategy (.. req -params -provider)]
       (if (contains? #{"google" "facebook"} strategy)
-        ((passport/authenticate strategy auth-redirects) req res next)
-        (next (ex-info (str "Invalid strategy `" strategy "`") {:strategy strategy}))))))
+        ((passport/authenticate strategy {}) req res next)
+        (next (ex-info (str "Invalid strategy `" strategy "`") {:strategy strategy})))))
+  (fn [req res]
+    (if (current-user req)
+      (go
+        (try
+          (<? (p/consume-guest-tx (api-env req)))
+          (.redirect res "/profile")
+          (catch :default e
+            (println "Error" e)
+            (.redirect res "/login"))))
+      (.redirect res "/login"))))
 
 (ex/get app #".+"
   (fn [_ res]

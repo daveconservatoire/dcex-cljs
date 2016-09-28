@@ -354,3 +354,41 @@
           (do-report
             {:type :error, :message (.-message e) :actual e})))
       (done))))
+
+(deftest test-consume-guest-tx
+  (async done
+    (go
+      (try
+        (<? (knex/truncate (::ps/db env) "UserExerciseAnswer"))
+        (<? (ps/save env {:db/table   :user
+                          :db/id      720
+                          :user/score 1}))
+
+        (let [req (js-obj "session" (js-obj))
+              guest-tx [{:db/table                :ex-answer
+                         :guest-tx/increase-score 3
+                         :ex-answer/timestamp     123
+                         :ex-answer/lesson-id     53}]
+              env (assoc env :http-request req
+                             :current-user-id 720)]
+          (ex/session-set! req :guest-tx guest-tx)
+
+          (<? (p/consume-guest-tx env))
+
+          (testing "the score is increased"
+            (is (= (-> (ps/find-by env {:db/table :user :db/id 720})
+                       <? :user/score)
+                   4)))
+
+          (testing "the records are created"
+            (is (= (<? (ps/find-by env {:db/table :ex-answer
+                                        :ex-answer/lesson-id 53}))
+                   {:db/id 1, :ex-answer/user-id 720, :ex-answer/lesson-id 53, :ex-answer/timestamp 123, :db/table :ex-answer})))
+
+          (testing "the guest-tx are cleaned from the session"
+            (is (= (ex/session-get req :guest-tx)
+                   []))))
+        (catch :default e
+          (do-report
+            {:type :error, :message (.-message e) :actual e})))
+      (done))))

@@ -236,33 +236,36 @@
                                       :url/slug slug}))
           answer {:db/table            :ex-answer
                   :ex-answer/timestamp (current-timestamp)
-                  :ex-answer/lesson-id (:db/id lesson)}]
+                  :ex-answer/lesson-id (:db/id lesson)
+                  :guest-tx/increase-score 1}]
       (if current-user-id
         (let [user (<? (ps/find-by env {:db/table :user :db/id current-user-id}))]
           (ps/save env (update user :user/score inc))
           (ps/save env (assoc answer :ex-answer/user-id current-user-id)))
 
         ; save for guest
-        (do
-          (js/console.log "updating session")
-          (ex/session-update! http-request :guest-tx
-            #(conj-vec % answer))))
+        (ex/session-update! http-request :guest-tx
+          #(conj-vec % answer)))
       true)))
 
-(defn compute-ex-answer-master [{:keys [current-user-id] :as env}
+(defn compute-ex-answer-master [{:keys [current-user-id http-request] :as env}
                                 {:keys [url/slug]}]
-  (if current-user-id
-    (go-catch
-      (let [user (<? (ps/find-by env {:db/table :user :db/id current-user-id}))
-            lesson (<? (ps/find-by env {:db/table :lesson
-                                        :url/slug slug}))]
-        (ps/save env (update user :user/score (partial + 100)))
-        (ps/save env {:db/table             :ex-mastery
-                      :ex-mastery/timestamp (current-timestamp)
-                      :ex-mastery/user-id   current-user-id
-                      :ex-mastery/lesson-id (:db/id lesson)})
-        true))
-    (go nil)))
+  (go-catch
+    (let [lesson (<? (ps/find-by env {:db/table :lesson
+                                      :url/slug slug}))
+          answer {:db/table             :ex-mastery
+                  :ex-mastery/timestamp (current-timestamp)
+                  :ex-mastery/lesson-id (:db/id lesson)
+                  :guest-tx/increase-score 100}]
+      (if current-user-id
+        (let [user (<? (ps/find-by env {:db/table :user :db/id current-user-id}))]
+          (ps/save env (update user :user/score (partial + 100)))
+          (ps/save env (assoc answer :ex-mastery/user-id current-user-id)))
+
+        ; save for guest
+        (ex/session-update! http-request :guest-tx
+          #(conj-vec % answer)))
+      true)))
 
 ;; ROOT READS
 

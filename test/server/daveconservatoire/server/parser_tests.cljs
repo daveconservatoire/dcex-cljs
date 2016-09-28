@@ -83,9 +83,10 @@
               (<? (p/compute-ex-answer env {:url/slug "bass-clef-reading"}))
               (is (zero? (<? (ps/count env :ex-answer))))
               (is (= (ex/session-get req :guest-tx)
-                     [{:db/table            :ex-answer
-                       :ex-answer/timestamp 123
-                       :ex-answer/lesson-id 53}])))))
+                     [{:db/table                :ex-answer
+                       :guest-tx/increase-score 1
+                       :ex-answer/timestamp     123
+                       :ex-answer/lesson-id     53}])))))
 
         (testing "compute score for logged user"
           (<? (p/compute-ex-answer (assoc env :current-user-id 720)
@@ -109,9 +110,17 @@
                           :db/id      720
                           :user/score 1}))
 
-        (testing "does nothing for unlogged users"
-          (<? (p/compute-ex-answer-master env {:url/slug "bass-clef-reading"}))
-          (is (zero? (<? (ps/count env :ex-mastery)))))
+        (let [req (js-obj "session" (js-obj))
+              env (assoc env :http-request req)]
+          (with-redefs [p/current-timestamp (fn [] 123)]
+            (testing "saves score on session for unlogged users"
+              (<? (p/compute-ex-answer-master env {:url/slug "bass-clef-reading"}))
+              (is (zero? (<? (ps/count env :ex-mastery))))
+              (is (= (ex/session-get req :guest-tx)
+                     [{:db/table                :ex-mastery
+                       :guest-tx/increase-score 100
+                       :ex-mastery/timestamp    123
+                       :ex-mastery/lesson-id    53}])))))
 
         (testing "compute score for logged user"
           (<? (p/compute-ex-answer-master (assoc env :current-user-id 720)

@@ -78,6 +78,9 @@
   (let [res (read-from* env reader)]
     (if (= res ::continue) nil res)))
 
+(defn continue-with-reader [{:keys [parser ast] :as env} reader]
+  (parser (assoc env ::reader reader) (:query ast)))
+
 ;; NODE HELPERS
 
 (defn placeholder-node [{:keys [ast parser] :as env}]

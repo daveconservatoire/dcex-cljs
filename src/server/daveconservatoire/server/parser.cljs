@@ -285,6 +285,11 @@
 (defn ast-sort [env sort]
   (assoc-in env [:ast :params :sort] sort))
 
+(def guest-user-reader
+  {:user/score (fn [{:keys [http-request]}]
+                 (let [tx-list (ex/session-get http-request :guest-tx)]
+                   (transduce (map :guest-tx/increase-score) + tx-list)))})
+
 (def root-endpoints
   {:route/data     #(p/read-chan-values ((:parser %) % (:query (:ast %))))
    :topic/by-slug  #(ps/sql-first-node (assoc % ::ps/table :topic)
@@ -295,7 +300,8 @@
                                            (assoc ::ps/union-selector :course/home-type)) :course)
    :app/me         #(if-let [id (:current-user-id %)]
                      (ps/sql-first-node (assoc % ::ps/table :user)
-                                        [[:where {:id id}]]))})
+                                        [[:where {:id id}]])
+                     (p/continue-with-reader % guest-user-reader))})
 
 (def root-reader
   [root-endpoints p/placeholder-node #(vector :error :not-found)])

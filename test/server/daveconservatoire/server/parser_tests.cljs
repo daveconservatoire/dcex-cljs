@@ -10,6 +10,8 @@
             [nodejs.knex :as knex]
             [om.next :as om]))
 
+(defn blank-request [] (js-obj "session" (js-obj)))
+
 (deftest test-create-user
   (async done
     (go
@@ -76,7 +78,7 @@
                           :db/id      720
                           :user/score 1}))
 
-        (let [req (js-obj "session" (js-obj))
+        (let [req (blank-request)
               env (assoc env :http-request req)]
           (with-redefs [p/current-timestamp (fn [] 123)]
             (testing "saves score on session for unlogged users"
@@ -110,7 +112,7 @@
                           :db/id      720
                           :user/score 1}))
 
-        (let [req (js-obj "session" (js-obj))
+        (let [req (blank-request)
               env (assoc env :http-request req)]
           (with-redefs [p/current-timestamp (fn [] 123)]
             (testing "saves score on session for unlogged users"
@@ -228,12 +230,26 @@
 (deftest test-read-me
   (async done
     (go
-      (is (= (->> (p/parse (assoc env :current-user-id 720) [{:app/me [:db/id]}]) <!
-                  :app/me)
-             {:db/id 720 :db/table :user}))
-      (is (= (->> (p/parse env [{:app/me [:db/id]}]) <!
-                  :app/me)
-             nil))
+      (testing "reading me when logged in"
+        (is (= (->> (p/parse (assoc env :current-user-id 720
+                                        :http-request (blank-request)) [{:app/me [:db/id]}]) <!
+                    :app/me)
+               {:db/id 720 :db/table :user})))
+      (testing "blank map when user is not signed in"
+        (is (= (->> (p/parse (assoc env :http-request (blank-request)) [{:app/me [:db/id]}]) <!
+                    :app/me)
+               {})))
+      (testing "get score for guest user"
+        (testing "zero when there is no information"
+          (is (= (->> (p/parse (assoc env :http-request (blank-request)) [{:app/me [:user/score]}]) <!
+                      :app/me)
+                 {:user/score 0})))
+        (testing "sum the scores"
+          (let [req (js-obj "session" (js-obj ":guest-tx" (pr-str [{:guest-tx/increase-score 4}
+                                                                   {:guest-tx/increase-score 3}])))]
+            (is (= (->> (p/parse (assoc env :http-request req) [{:app/me [:user/score]}]) <!
+                        :app/me)
+                   {:user/score 7})))))
       (done))))
 
 (deftest test-read-user-lessons-view
@@ -364,7 +380,7 @@
                           :db/id      720
                           :user/score 1}))
 
-        (let [req (js-obj "session" (js-obj))
+        (let [req (blank-request)
               guest-tx [{:db/table                :ex-answer
                          :guest-tx/increase-score 3
                          :ex-answer/timestamp     123
@@ -381,7 +397,7 @@
                    4)))
 
           (testing "the records are created"
-            (is (= (<? (ps/find-by env {:db/table :ex-answer
+            (is (= (<? (ps/find-by env {:db/table            :ex-answer
                                         :ex-answer/lesson-id 53}))
                    {:db/id 1, :ex-answer/user-id 720, :ex-answer/lesson-id 53, :ex-answer/timestamp 123, :db/table :ex-answer})))
 

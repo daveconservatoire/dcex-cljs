@@ -272,8 +272,12 @@
                   :guest-tx/increase-score 100}]
       (if current-user-id
         (let [user (<? (ps/find-by env {:db/table :user :db/id current-user-id}))]
-          (ps/save env (update user :user/score (partial + 100)))
-          (ps/save env (assoc answer :ex-mastery/user-id current-user-id)))
+          (if (zero? (<? (ps/count env :ex-mastery [[:where {:ex-mastery/user-id   current-user-id
+                                                             :ex-mastery/lesson-id (:db/id lesson)}]])))
+            (do
+              (<? (ps/save env (update user :user/score (partial + 100))))
+              (<? (ps/save env (assoc answer :ex-mastery/user-id current-user-id))))
+            (<? (ps/save env (update user :user/score inc)))))
 
         ; save for guest
         (ex/session-update! http-request :guest-tx

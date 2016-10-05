@@ -134,8 +134,17 @@
                  101)))
 
         (testing "can only record mastery once a day for a given exercise"
-          ; TODO
-          )
+          (<? (p/compute-ex-answer-master (assoc env :current-user-id 720)
+                                          {:url/slug "bass-clef-reading"}))
+          (is (= (<? (ps/count env :ex-mastery))
+                 1))
+          (is (= (-> (ps/find-by env {:db/table :user :db/id 720})
+                     <? :user/score)
+                 102))
+          (<? (p/compute-ex-answer-master (assoc env :current-user-id 720)
+                                          {:url/slug "pitch-1"}))
+          (is (= (<? (ps/count env :ex-mastery))
+                 2)))
 
         (catch :default e
           (do-report
@@ -238,7 +247,7 @@
       (testing "blank map when user is not signed in"
         (is (= (->> (p/parse (assoc env :http-request (blank-request)) [{:app/me [:db/id]}]) <!
                     :app/me)
-               {})))
+               {:db/id -1})))
       (testing "get score for guest user"
         (testing "zero when there is no information"
           (is (= (->> (p/parse (assoc env :http-request (blank-request)) [{:app/me [:user/score]}]) <!
@@ -271,6 +280,7 @@
   (async done
     (go
       (try
+        (<? (knex/truncate (::ps/db env) "UserExSingleMastery"))
         (<? (knex/truncate (::ps/db env) "UserVideoView"))
         (<? (ps/save env {:db/table            :user-view
                           :user-view/user-id   720

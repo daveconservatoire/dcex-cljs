@@ -20,13 +20,13 @@
                  [binaryage/devtools "0.7.0" :exclusions [cljsjs/react]]
                  [devcards "0.2.1-4" :exclusions [org.omcljs/om cljsjs/react cljsjs/react-dom]]
                  [org.clojure/core.async "0.2.374"]
-                 [navis/untangled-client "0.5.4-SNAPSHOT" :exclusions [org.omcljs/om com.cognitect/transit-cljs cljsjs/react-dom org.clojure/tools.reader cljsjs/react]]
+                 [navis/untangled-client "0.5.7-SNAPSHOT" :exclusions [org.omcljs/om com.cognitect/transit-cljs cljsjs/react-dom org.clojure/tools.reader cljsjs/react]]
                  [org.clojure/test.check "0.9.0"]
                  [com.rpl/specter "0.9.3"]
                  [com.cognitect/transit-cljs "0.8.239"]
                  [lein-doo "0.1.6" :scope "test"]]
 
-  :plugins [[lein-cljsbuild "1.1.3"]
+  :plugins [[lein-cljsbuild "1.1.4"]
             [lein-doo "0.1.6"]]
 
   :figwheel {:open-file-command "open-in-intellij"}

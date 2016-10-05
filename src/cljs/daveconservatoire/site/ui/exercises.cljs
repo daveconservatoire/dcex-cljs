@@ -65,6 +65,13 @@
 
 (defn play-sound [c] (play-notes (-> (om/props c) ::notes)))
 
+(def ModelIdent
+  (reify
+    om/Ident
+    (ident [_ props] (u/model-ident props))))
+
+(defn with-ident [query] (with-meta query {:component ModelIdent}))
+
 (defmethod um/mutate 'dcex/check-answer
   [{:keys [state ref]} _ _]
   {:action
@@ -126,7 +133,10 @@
   (render [this]
     (let [{:keys [::options ::ex-answer ::ex-total-questions
                   ::streak-count] :as props} (om/props this)
-          [opt-type _] (s/conform ::options options)]
+          [opt-type _] (s/conform ::options options)
+          check-answer #(do
+                         (om/transact! this `[(dcex/check-answer)
+                                              (untangled/load {:query [{:app/me ~(with-ident [:db/table :db/id :user/score])}] :marker false})]))]
       (assert (s/valid? ::ex-props props) (s/explain-str ::ex-props props))
       (dom/div #js {:className "lesson-content"}
         (dom/div #js {:className "single-exercise visited-no-recolor"
@@ -161,7 +171,7 @@
                         (dom/div #js {:id "answer_area_wrap"}
                           (dom/div #js {:id "answer_area"}
                             (dom/form #js {:id "answerform" :name "answerform" :onSubmit #(do
-                                                                                           (om/transact! this `[(dcex/check-answer)])
+                                                                                           (check-answer)
                                                                                            (.preventDefault %))}
                               (dom/div #js {:className "info-box" :id "answercontent"}
                                 (dom/span #js {:className "info-box-header"}
@@ -186,7 +196,7 @@
                                 (dom/div #js {:className "answer-buttons"}
                                   (dom/div #js {:className "check-answer-wrapper"}
                                     (dom/input #js {:className "simple-button green" :type "button" :value "Check Answer"
-                                                    :onClick   #(om/transact! this `[(dcex/check-answer)])}))
+                                                    :onClick   check-answer}))
                                   (dom/input #js {:className "simple-button green" :id "next-question-button" :name "correctnextbutton" :style #js {:display "none"} :type "button" :value "Correct! Next Question..."})
                                   (dom/div #js {:id "positive-reinforcement" :style #js {:display "none"}}
                                     (dom/img #js {:src "/images/face-smiley.png"})))))))

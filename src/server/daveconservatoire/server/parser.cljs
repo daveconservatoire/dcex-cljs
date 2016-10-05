@@ -286,7 +286,9 @@
   (assoc-in env [:ast :params :sort] sort))
 
 (def guest-user-reader
-  {:user/score (fn [{:keys [http-request]}]
+  {:db/table   (constantly :user)
+   :db/id      (constantly -1)
+   :user/score (fn [{:keys [http-request]}]
                  (let [tx-list (ex/session-get http-request :guest-tx)]
                    (transduce (map :guest-tx/increase-score) + tx-list)))})
 

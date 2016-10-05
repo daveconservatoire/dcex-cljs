@@ -217,11 +217,11 @@
   (ident [_ props] (u/model-ident props))
 
   static om/IQuery
-  (query [_] [:user/name :user/score])
+  (query [_] [:db/id :db/table :user/name :user/score])
 
   Object
   (render [this]
-    (let [{:user/keys [name] :as props} (om/props this)]
+    (let [{:keys [user/name user/score] :as props} (om/props this)]
       (dom/div #js {:className "header hidden-phone"}
         (dom/div #js {:className "navbar"}
           (dom/div #js {:className "navbar-inner"}
@@ -231,17 +231,23 @@
               (dom/div #js {:className "navbar"}
                 (dom/div #js {:className "navbuttons"}
                   (button {:react-key "btn-0" ::r/handler ::r/about, ::button-color "yellow"}
-                          "About")
+                    "About")
                   (button {:react-key "btn-1" :href "/donate", ::button-color "orange"}
-                          "Donate")
+                    "Donate")
                   (button {:react-key "btn-2" :href "/tuition", ::button-color "redorange"}
-                          "Personal Tuition")
+                    "Personal Tuition")
                   (button {:react-key "btn-3" :href "/contact", ::button-color "red"}
-                          "Contact")
+                    "Contact")
                   (if name
                     (user-menu-status this)
-                    (button {:react-key "btn-4" ::r/handler ::r/login :className "loginbutton", ::button-color "red"}
-                            "Login"))
+                    (if (> score 0)
+                      (button {:className  "btn btn-success loginbutton"
+                               :react-key  "btn-4"
+                               ::r/handler ::r/login}
+                        (dom/i #js {:className "icon-exclamation-sign icon-white" :style #js {:marginRight 5}})
+                        score " unclaimed points. Login to save your progress")
+                      (button {:react-key "btn-4" ::r/handler ::r/login :className "loginbutton", ::button-color "red"}
+                        "Login")))
                   (dom/span #js {:id "socialmediaicons"}
                     (dom/a #js {:href "http://www.youtube.com/daveconservatoire", :target "_blank"}
                       (dom/img #js {:className "socialicon", :src "/img/socialicons/youtube.png"}))
@@ -515,9 +521,9 @@
               {:lesson/topic (om/get-query LessonTopicMenu)}])
 
   Object
-  (initLocalState [this] {:reported? false})
+  (initLocalState [_] {:reported? false})
 
-  (componentWillReceiveProps [this next-props] (om/set-state! this {:reported? false}))
+  (componentWillReceiveProps [this _] (om/set-state! this {:reported? false}))
 
   (render [this]
     (let [{:keys [lesson/description lesson/topic youtube/id] :as props} (om/props this)]
@@ -586,9 +592,13 @@
 (def lesson-playlist (om/factory LessonPlaylist))
 
 (om/defui ^:once LessonExercise
+  static om/IQueryParams
+  (params [this]
+    {:exercise/data '[*]})
+
   static om/IQuery
   (query [_] [:lesson/type :lesson/title :url/slug :db/id
-              {:exercise/data '[*]}
+              {:exercise/data '?exercise/data}
               {:lesson/topic (om/get-query LessonTopicMenu)}])
 
   Object
@@ -598,12 +608,10 @@
       (if info
         (let [state (-> (uc/initial-state class props)
                         (merge info))
-              ident (om/ident class state)]
-          (om/transact! (om/get-reconciler this) ident
-                        [`(ui/set-props ~state)])
-          (om/transact! (om/get-reconciler this) [type id]
-                        [`(ui/set-props {:exercise/data ~ident})])
-          (om/force-root-render! (om/get-reconciler this))))))
+              ident (om/ident class state)
+              r (om/get-reconciler this)]
+          (om/transact! r ident [`(ui/set-props ~state)])
+          (om/transact! r [type id] [`(ui/set-props {:exercise/data ~ident})])))))
 
   (render [this]
     (let [{:keys [lesson/topic url/slug exercise/data]} (om/props this)
@@ -733,7 +741,7 @@
   (query [_]
     [:db/id :db/table :user/name :user/about :user/score :ui/editing-info?
      :user/lessons-viewed-count :user/created-at :ui/tmp-about
-     {:user/user-views (om/get-query ProfileRecentActivity)}])
+     (list {:user/user-views (om/get-query ProfileRecentActivity)} {:limit 8})])
 
   Object
   (render [this]
@@ -896,7 +904,7 @@
     (let [{:keys [topic/title topic/started? url/slug]} (om/props this)]
       (dom/li #js {:className (cond-> "span4"
                                 started? (str " ribbon ribbon-inprogress"))
-                   :style #js {"marginBottom" 5}}
+                   :style     #js {"marginBottom" 5}}
         (link {:className "btn btn-large btn-block dc-btn-yellow" ::r/handler ::r/topic ::r/params {::r/slug slug} :react-key "link"}
           (dom/h3 #js {:key "title"}
             title))))))
@@ -1057,7 +1065,7 @@
                  (let [{:app/keys [route]} n]
                    (if (or (not= (:app/route o) route)
                            (not= (:app/me o) (:app/me n)))
-                     (let [comp (some-> route r/route->component*)
+                     (let [comp (some-> route r/route->component)
                            auth-req? (if (implements? IRequireAuth comp)
                                        (auth-required? comp) false)]
                        (when (and auth-req? (= (auth-state n) ::guest))

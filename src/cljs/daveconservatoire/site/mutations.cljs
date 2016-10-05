@@ -15,7 +15,7 @@
   [{:keys [state reconciler] :as env} _ route]
   {:action
    (fn []
-     (let [comp (r/route->component* route)
+     (let [comp (r/route->component route)
            data-query (if (implements? r/IRouteMiddleware comp)
                         (r/remote-query comp route)
                         (om/get-query comp))

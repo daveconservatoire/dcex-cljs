@@ -41,6 +41,13 @@
 (s/def ::intervals (s/every ::audio/semitone))
 (s/def ::direction? #{-1 1})
 
+(s/def ::read-note-order (s/coll-of string? :kind vector?))
+(s/def ::read-note-prefix string?)
+
+(s/def ::read-music-props
+  (s/merge ::ex-props
+           (s/keys :req [::read-note-order ::read-note-prefix])))
+
 (om/defui ^:once ProgressBar
   Object
   (render [this]
@@ -137,7 +144,7 @@
           check-answer #(do
                          (om/transact! this `[(dcex/check-answer)
                                               (untangled/load {:query [{:app/me ~(with-ident [:db/table :db/id :user/score])}] :marker false})]))]
-      (assert (s/valid? ::ex-props props) (s/explain-str ::ex-props props))
+      (s/assert ::ex-props props)
       (dom/div #js {:className "lesson-content"}
         (dom/div #js {:className "single-exercise visited-no-recolor"
                       :style     #js {:overflow "hidden" :visibility "visible"}}
@@ -151,7 +158,7 @@
                       (if-not (completed? props)
                         (progress-bar {::progress-value streak-count
                                        ::progress-total ex-total-questions}))
-                      (u/transition-group #js {:transitionName "ex-complete"
+                      (u/transition-group #js {:transitionName         "ex-complete"
                                                :transitionEnterTimeout 200
                                                :transitionLeaveTimeout 200}
                         (if (completed? props)
@@ -283,14 +290,22 @@
     (exercise (om/props this)
       (dom/p #js {:key "p"} "You will hear two notes. Are they an octave apart?"))))
 
+(def notes-tremble
+  {::read-note-order  ["E" "F" "G" "A" "B" "C" "D" "E" "F"]
+   ::read-note-prefix "trebleclefimages"})
+
+(def notes-bass
+  {::read-note-order  ["G" "A" "B" "C" "D" "E" "F" "G" "A"]
+   ::read-note-prefix "bassclefimages"})
+
 (om/defui ^:once ReadingMusic
   static uc/InitialAppState
   (initial-state [this props]
     (new-round this
       (merge
         (uc/initial-state Exercise nil)
-        {::name    "reading-music"
-         ::options ::option-type-text}
+        {::name        "reading-music"
+         ::options     ::option-type-text}
         props)))
 
   static om/Ident
@@ -301,9 +316,9 @@
 
   static IExercise
   (new-round [_ props]
-    (let [order ["E" "F" "G" "A" "B" "C" "D" "E" "F"]
+    (let [{:keys [::read-note-order]} props
           pos (rand-int 9)
-          note (get order pos)
+          note (get read-note-order pos)
           notes [(str note (cond-> 3
                              (> pos 4) inc))]]
       (assoc props
@@ -313,11 +328,11 @@
 
   Object
   (render [this]
-    (let [{:keys [::read-note] :as props} (om/props this)]
+    (let [{:keys [::read-note ::read-note-prefix] :as props} (om/props this)]
       (exercise props
         (dom/p #js {:key "p"} "Enter the letter name of the note displayed below. Please use a lower case letter (e.g. e, f or c).")
         (dom/div #js {:key "img"}
-          (dom/img #js {:src (str "/img/trebleclefimages/" read-note ".jpg")}))))))
+          (dom/img #js {:src (str "/img/" read-note-prefix "/" read-note ".jpg")}))))))
 
 (def INTERVAL-NAMES
   {2  "Major 2nd"
@@ -387,7 +402,12 @@
 (defmethod slug->exercise "treble-clef-reading" [name]
   {::name  name
    ::class ReadingMusic
-   ::props {}})
+   ::props notes-tremble})
+
+(defmethod slug->exercise "bass-clef-reading" [name]
+  {::name  name
+   ::class ReadingMusic
+   ::props notes-bass})
 
 (defmethod slug->exercise "intervals-1" [name]
   {::name  name

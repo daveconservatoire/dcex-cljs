@@ -139,7 +139,7 @@
   Object
   (render [this]
     (let [{:keys [::options ::ex-answer ::ex-total-questions
-                  ::streak-count] :as props} (om/props this)
+                  ::streak-count ::notes] :as props} (om/props this)
           [opt-type _] (s/conform ::options options)
           check-answer #(do
                          (om/transact! this `[(dcex/check-answer)
@@ -171,9 +171,10 @@
                             (dom/div #js {:id "problem-type-or-description"}
                               (dom/div #js {:className "problem"}
                                 (om/children this)
-                                (dom/a #js {:className "btn_primary"
-                                            :onClick   #(play-sound this)}
-                                  "Play Again"))))
+                                (if (seq notes)
+                                  (dom/a #js {:className "btn_primary"
+                                              :onClick   #(play-sound this)}
+                                    "Play Again")))))
                           (dom/div #js {:id "hintsarea"}))
                         (dom/div #js {:id "answer_area_wrap"}
                           (dom/div #js {:id "answer_area"}

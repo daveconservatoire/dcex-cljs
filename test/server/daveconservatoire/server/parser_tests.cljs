@@ -1,7 +1,7 @@
 (ns daveconservatoire.server.parser-tests
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [cljs.test :refer [is are run-tests async testing deftest do-report]]
-            [cljs.core.async :refer [<!]]
+            [cljs.core.async :refer [<?]]
             [pathom.test :refer [async-test]]
             [common.async :refer [<?]]
             [pathom.sql :as ps]
@@ -123,7 +123,7 @@
 (deftest parse-read-not-found
   (async done
     (go
-      (is (= (<! (p/parse {} [:invalid]))
+      (is (= (<? (p/parse {} [:invalid]))
              {:invalid [:error :not-found]}))
       (done))))
 
@@ -132,39 +132,39 @@
     (is (= (<? (p/parse env [:app/courses]))
            {:app/courses [{:db/id 4 :db/table :course} {:db/id 7 :db/table :course}]}))
 
-    (is (= (<! (p/parse env [{:app/courses [:db/id :course/title]}]))
+    (is (= (<? (p/parse env [{:app/courses [:db/id :course/title]}]))
            {:app/courses [{:db/id 4 :course/title "Reading Music" :db/table :course}
                           {:db/id 7 :course/title "Music:  A Beginner's Guide" :db/table :course}]}))
 
-    (is (= (<! (p/parse env [{:app/courses [:db/id :course/title]}]))
+    (is (= (<? (p/parse env [{:app/courses [:db/id :course/title]}]))
            {:app/courses [{:db/id 4 :course/title "Reading Music" :db/table :course}
                           {:db/id 7 :course/title "Music:  A Beginner's Guide" :db/table :course}]}))
 
-    (is (= (<! (p/parse env [{:app/courses [:db/id :course/home-type]}]))
+    (is (= (<? (p/parse env [{:app/courses [:db/id :course/home-type]}]))
            {:app/courses [{:db/id 4 :course/home-type :course.type/multi-topic :db/table :course}
                           {:db/id 7 :course/home-type :course.type/multi-topic :db/table :course}]}))
 
-    (is (= (<! (p/parse env [{:app/courses {:course.type/multi-topic  [:db/id :course/home-type]
+    (is (= (<? (p/parse env [{:app/courses {:course.type/multi-topic  [:db/id :course/home-type]
                                             :course.type/single-topic [:db/id :course/title]}}]))
            {:app/courses [{:db/id 4 :course/home-type :course.type/multi-topic :db/table :course}
                           {:db/id 7 :course/home-type :course.type/multi-topic :db/table :course}]}))))
 
 (deftest test-parse-read-lesson-by-slug
   (async-test
-    (is (= (->> (p/parse env [{[:lesson/by-slug "percussion"] [:db/id :lesson/title]}]) <!)
+    (is (= (->> (p/parse env [{[:lesson/by-slug "percussion"] [:db/id :lesson/title]}]) <?)
            {[:lesson/by-slug "percussion"] {:db/id 9 :db/table :lesson :lesson/title "Percussion"}}))
 
-    (is (= (->> (p/parse env [{[:lesson/by-slug "percussion"] [:db/id :lesson/type]}]) <!)
+    (is (= (->> (p/parse env [{[:lesson/by-slug "percussion"] [:db/id :lesson/type]}]) <?)
            {[:lesson/by-slug "percussion"] {:db/id 9 :db/table :lesson :lesson/type :lesson.type/video}}))
 
-    (is (= (->> (p/parse env [{[:lesson/by-slug "invalid"] [:db/id :lesson/title]}]) <!)
+    (is (= (->> (p/parse env [{[:lesson/by-slug "invalid"] [:db/id :lesson/title]}]) <?)
            {[:lesson/by-slug "invalid"] [:error :row-not-found]}))))
 
 (deftest parser-read-route-data
   (async-test
-    (is (= (<! (p/parse env [{:route/data [:app/courses]}]))
+    (is (= (<? (p/parse env [{:route/data [:app/courses]}]))
            {:route/data {:app/courses [{:db/id 4 :db/table :course} {:db/id 7 :db/table :course}]}}))
-    (is (= (<! (p/parse env [{:ph/anything [:app/courses]}]))
+    (is (= (<? (p/parse env [{:ph/anything [:app/courses]}]))
            {:ph/anything {:app/courses [{:db/id 4 :db/table :course} {:db/id 7 :db/table :course}]}}))))
 
 (deftest test-read-lesson-union
@@ -174,17 +174,17 @@
                         :lesson.type/exercise [:lesson/type :lesson/title :url/slug]}]
       (is (= (->> (p/parse env
                            [{[:lesson/by-slug "percussion"]
-                             lesson-union}]) <!)
+                             lesson-union}]) <?)
              {[:lesson/by-slug "percussion"]
               {:db/id 9 :db/table :lesson :lesson/title "Percussion" :lesson/type :lesson.type/video}}))
       (is (= (->> (p/parse env
                            [{[:lesson/by-slug "percussion-playlist"]
-                             lesson-union}]) <!)
+                             lesson-union}]) <?)
              {[:lesson/by-slug "percussion-playlist"]
               {:db/id 11 :db/table :lesson :lesson/description "" :lesson/type :lesson.type/playlist}}))
       (is (= (->> (p/parse env
                            [{[:lesson/by-slug "tempo-markings"]
-                             lesson-union}]) <!)
+                             lesson-union}]) <?)
              {[:lesson/by-slug "tempo-markings"]
               {:db/id    67 :db/table :lesson :lesson/title "Exercise: Tempo Markings Quiz" :lesson/type :lesson.type/exercise
                :url/slug "tempo-markings"}})))))
@@ -193,22 +193,22 @@
   (async-test
     (testing "reading me when logged in"
       (is (= (->> (p/parse (assoc env :current-user-id 720
-                                      :http-request (blank-request)) [{:app/me [:db/id]}]) <!
+                                      :http-request (blank-request)) [{:app/me [:db/id]}]) <?
                   :app/me)
              {:db/id 720 :db/table :user})))
     (testing "blank map when user is not signed in"
-      (is (= (->> (p/parse (assoc env :http-request (blank-request)) [{:app/me [:db/id]}]) <!
+      (is (= (->> (p/parse (assoc env :http-request (blank-request)) [{:app/me [:db/id]}]) <?
                   :app/me)
              {:db/id -1})))
     (testing "get score for guest user"
       (testing "zero when there is no information"
-        (is (= (->> (p/parse (assoc env :http-request (blank-request)) [{:app/me [:user/score]}]) <!
+        (is (= (->> (p/parse (assoc env :http-request (blank-request)) [{:app/me [:user/score]}]) <?
                     :app/me)
                {:user/score 0})))
       (testing "sum the scores"
         (let [req (js-obj "session" (js-obj ":guest-tx" (pr-str [{:guest-tx/increase-score 4}
                                                                  {:guest-tx/increase-score 3}])))]
-          (is (= (->> (p/parse (assoc env :http-request req) [{:app/me [:user/score]}]) <!
+          (is (= (->> (p/parse (assoc env :http-request req) [{:app/me [:user/score]}]) <?
                       :app/me)
                  {:user/score 7})))))))
 

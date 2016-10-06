@@ -1,7 +1,6 @@
 (ns daveconservatoire.server.parser-tests
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [cljs.test :refer [is are run-tests async testing deftest do-report]]
-            [cljs.core.async :refer [<?]]
             [pathom.test :refer [async-test]]
             [common.async :refer [<?]]
             [pathom.sql :as ps]

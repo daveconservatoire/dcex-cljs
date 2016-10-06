@@ -338,6 +338,49 @@
         (dom/div #js {:key "img"}
           (dom/img #js {:src (str "/img/" read-note-prefix "/" read-note ".jpg")}))))))
 
+(def available-rhytm-notes
+  {1 "quarter"
+   2 "half"
+   4 "whole"})
+
+(om/defui ^:once RhythmMath
+  static uc/InitialAppState
+  (initial-state [this props]
+    (new-round this
+      (merge
+        (uc/initial-state Exercise nil)
+        {::name        "rhythm-math"
+         ::options     ::option-type-text}
+        props)))
+
+  static om/Ident
+  (ident [_ props] [:exercise/by-name (::name props)])
+
+  static om/IQuery
+  (query [_] '[*])
+
+  static IExercise
+  (new-round [_ props]
+    (let [notes (->> (repeatedly #(rand-nth (keys available-rhytm-notes)))
+                     (take 3))]
+      (assoc props
+        ::rhytm-notes notes
+        ::notes []
+        ::correct-answer (str (reduce + notes)))))
+
+  Object
+  (render [this]
+    (let [{:keys [::rhytm-notes] :as props} (om/props this)
+          display-notes (->> rhytm-notes
+                             (map available-rhytm-notes)
+                             (interpose "plus"))]
+      (exercise props
+        (dom/p #js {:key "p"} "Solve this problem, adding together the lengths in beats of the notes shown.")
+        (dom/div #js {:key "images"}
+          (for [[i note] (map vector (range) display-notes)]
+            (dom/span #js {:key i}
+              (dom/img #js {:src (str "/img/rhythmimages/" note ".jpg")}))))))))
+
 (def INTERVAL-NAMES
   {2  "Major 2nd"
    4  "Major 3rd"
@@ -417,6 +460,11 @@
   {::name  name
    ::class ReadingMusic
    ::props notes-grand-staff})
+
+(defmethod slug->exercise "rhythm-maths" [name]
+  {::name  name
+   ::class RhythmMath
+   ::props {}})
 
 (defmethod slug->exercise "intervals-1" [name]
   {::name  name

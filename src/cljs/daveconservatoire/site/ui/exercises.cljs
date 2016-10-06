@@ -298,6 +298,10 @@
   {::read-note-order  ["G" "A" "B" "C" "D" "E" "F" "G" "A"]
    ::read-note-prefix "bassclefimages"})
 
+(def notes-grand-staff
+  {::read-note-order  ["G" "A" "B" "C" "D" "E" "F" "G" "A" "B" #_"TREMBLE" "D" "E" "F" "G" "A" "B" "C" "D" "E" "F" "C"]
+   ::read-note-prefix "grandstaffimages"})
+
 (om/defui ^:once ReadingMusic
   static uc/InitialAppState
   (initial-state [this props]
@@ -317,7 +321,7 @@
   static IExercise
   (new-round [_ props]
     (let [{:keys [::read-note-order]} props
-          pos (rand-int 9)
+          pos (rand-int (count read-note-order))
           note (get read-note-order pos)
           notes [(str note (cond-> 3
                              (> pos 4) inc))]]
@@ -408,6 +412,11 @@
   {::name  name
    ::class ReadingMusic
    ::props notes-bass})
+
+(defmethod slug->exercise "grand-staff-reading" [name]
+  {::name  name
+   ::class ReadingMusic
+   ::props notes-grand-staff})
 
 (defmethod slug->exercise "intervals-1" [name]
   {::name  name

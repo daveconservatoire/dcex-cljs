@@ -47,7 +47,7 @@
     (loop [i n]
       (try
         (<? (f))
-        (catch js/Error e
+        (catch :default e
           (if (> i 0)
             (recur (dec i))
             e))))))
@@ -59,4 +59,4 @@
   (go
     (alt!
       c ([x] x)
-      (async/timeout msec) (js/Error. (str "Timeout " msec "ms")))))
+      (async/timeout msec) (ex-info (str "Timeout " msec "ms") {::timeout msec}))))

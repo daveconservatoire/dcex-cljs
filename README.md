@@ -14,6 +14,8 @@ Running the Javascripts compilation:
 lein run -m clojure.main script/figwheel.clj
 ```
 
+Make sure Redis is running.
+
 Setup the server by copying the file `server.example.edn` to `server.edn` and filling
 the required information for database and social networks.
 

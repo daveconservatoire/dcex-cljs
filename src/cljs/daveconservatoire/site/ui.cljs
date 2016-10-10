@@ -1,6 +1,7 @@
 (ns daveconservatoire.site.ui
   (:require [om.next :as om :include-macros true]
             [om.dom :as dom]
+            [goog.object :as gobj]
             [daveconservatoire.site.routes :as r :refer [routes]]
             [daveconservatoire.site.ui.util :as u]
             [daveconservatoire.site.ui.exercises :as ux]
@@ -230,14 +231,10 @@
                 (dom/img #js {:src "/img/dclogo3.png" :alt "Dave Conservatoire" :key "logo"}))
               (dom/div #js {:className "navbar"}
                 (dom/div #js {:className "navbuttons"}
-                  (button {:react-key "btn-0" ::r/handler ::r/about, ::button-color "yellow"}
-                    "About")
-                  (button {:react-key "btn-1" :href "/donate", ::button-color "orange"}
-                    "Donate")
-                  (button {:react-key "btn-2" :href "/tuition", ::button-color "redorange"}
-                    "Personal Tuition")
-                  (button {:react-key "btn-3" :href "/contact", ::button-color "red"}
-                    "Contact")
+                  (button {:react-key "btn-0" ::r/handler ::r/about, ::button-color "yellow"} "About")
+                  (button {:react-key "btn-1" ::r/handler ::r/donate, ::button-color "orange"} "Donate")
+                  (button {:react-key "btn-2" ::r/handler ::r/tuition, ::button-color "redorange"} "Personal Tuition")
+                  (button {:react-key "btn-3" ::r/handler ::r/contact, ::button-color "red"} "Contact")
                   (if name
                     (user-menu-status this)
                     (if (> score 0)
@@ -267,6 +264,23 @@
         (dom/div #js {:className "pad30"})
         (dom/h1 #js {:className "title"} title)
         (dom/h1 #js {:className "intro" :dangerouslySetInnerHTML #js {:__html intro}})))))
+
+(defn testimonial [{:keys [quote person]}]
+  (dom/div #js {:className "span4 pad15"}
+    (dom/div #js {:className "testimonial1"}
+      (dom/p #js {}
+        (dom/i #js {:className "icon-comments icon-4x pull-left hue" :style #js {:margin "0"}}) quote))
+    (dom/div #js {:className "center"}
+      (dom/p #js {}
+        (dom/small #js {} person)))))
+
+(defn getstarted [{}]
+  (dom/div #js {:className "strip"}
+    (dom/h1 #js {:className "center"} "Ready to learn something great?")
+    (dom/h3 #js {:className "center about_strip"} "Everyone is musical and everyone can learn to play, compose and enjoy music.  All you need to do is . . . ")
+    (dom/div #js {:className "pad45"})
+    (dom/a #js {:href "/course/music-theory" :className "big_button"} "Get Started")))
+
 
 (om/defui ^:once LoginPage
   Object
@@ -325,9 +339,130 @@
   Object
   (render [this]
     (let [{:keys []} (om/props this)]
-      (course-banner {:title "About" :intro "Intro"}))))
+      (dom/div #js {}
+        (course-banner {:title "About" :intro "Dave Conservatoire is a free music school for everyone . . . even you! In fact, <em>especially</em> you!"})
+        (dom/div #js {:className "container wrapper"}
+          (dom/div #js {:className "inner_content"}
+            (dom/div #js {:className "row"}
+              (dom/div #js {:className "span4"}
+                (dom/h2 nil "The story so far")
+                (dom/p nil "Hello, my name's Dave, and I'm a musician from London, UK. I started Dave Conservatoire in 2011 to help people to learn music, no matter what their circumstances.")
+                (dom/p nil "Inspired by non-profit educational sites like Khan Academy who teach millions of people for free, I wanted to see if I could do the same for people who wanted to learn, not just how to play music, but more importantly how music works.")
+                (dom/p nil "Music, to me, is the most wonderful and interesting thing in the world, it brings us together and teaches us about ourselves and the world around us. Music helps to heal and helps people to grow in confidence and express their ideas. Everyone should have the opportunity to learn about music and explore this wonderful world. Whether you are lucky enough to have a music teacher or are learning by yourself, I'm here to help you on your journey!"))
+              (dom/div #js {:className "span4"}
+                (dom/h2 nil "Where we're at")
+                (dom/p nil "So far I've made over 300 video music lessons and exercises. But I feel like I'm only just scratching the surface of what's possible.")
+                (dom/p nil "Every day I get emails for students excited by the fact the site is help them to learn about music. Teachers are using the site's tools as homework or assignments and while others are using them to learn by themselves.")
+                (dom/p nil "So far I've been able to deliver over 1,500,000 lessons and exercises to over 250,000 students in over 100 countries."))
+              (dom/div #js {:className "span4"}
+                (dom/h2 nil "Where we're heading")
+                (dom/p nil "The plan is to keep making lessons and developing this website so that students have a greater choice over what they're learning, have more opportunities to interact and test their skills and get feedback on how their ability is progressing. I'm really excited about the challenges that lie ahead.")
+                (dom/p nil "I know that I'm not going to be able achieve everything I'd like to on my own. I've already been very lucky to have been offered advice and support from some very smart and talented people (I've written a list of these people here).")
+                (dom/p nil "If you are excited by the possibility of helping thousands (if not millions) of people to know the joy of music in their lives, there are lots of ways you can lend a hand and get involved!")))))
+        (dom/div #js {:className "container wrapper"}
+          (dom/div #js {:className "inner_content"}
+            (dom/div #js {:className "row"}
+              (testimonial {:quote "Watching your videos made music seem a lot less like sorcery, they do make it much more magical though." :person "Kristian Theisson, Dave Conservatoire student"})
+              (testimonial {:quote "Wishing you all the best with Dave Conservatoire. I'll be sure to share it with my colleagues." :person "Martin Bean, Vice Chancellor, Open University"})
+              (testimonial {:quote "The stuff you're doing is super cool! I hope we get the chance to meet and/or collaborate in the not-too-far-off future." :person "Salman Khan, Founder, Khan Academy"}))))
+        (getstarted {})))))
 
 (defmethod r/route->component ::r/about [_] AboutPage)
+
+(om/defui ^:once TuitionPage
+  Object
+  (render [this]
+    (let [{:keys []} (om/props this)]
+      (dom/div #js {}
+        (course-banner {:title "Personal Tuition" :intro "Need some extra help? - book a session with Dave!"})
+        (dom/div #js {:className "container wrapper"}
+          (dom/div #js {:className "inner_content"}
+            (dom/div #js {:className "pad15"})
+            (dom/div #js {:className "row"}
+              (dom/div #js {:className "span6"}
+                (dom/p nil "Students on Dave Conservatoire often ask for some extra help on their musical journey.  It is very reassuring to know you're on the right path, have that bit of guidance before the big test or get some regular honest feedback about your performance or composition work.")
+                (dom/p nil "For that reason, I am pleased to offer personal music tutoring via Skype or Google Hangout. This works surprisingly well and allows anyone to access a music teacher at a time that suits them and at low cost. Price start from $40 for a single 30 minute session and discounts for multiple bookings are available.")
+                (dom/p nil "If you might find this useful, please complete the contact form and we can arrange a free consultation lesson to discuss your requirements."))
+              (dom/div #js {:className "span6"}
+                (dom/div #js {:className "form"}
+                  (dom/form #js {:id "contact-form" :action "/tuition" :method "post"}
+                    (dom/p #js {:className "note"} "Fields marked (*) are required.")
+                    (dom/div #js {:className "control-group"}
+                      (dom/label #js {:htmlFor "ContactForm_name" :className "required"} "Name*")
+                      (dom/input #js {:name "ContactForm[name]" :id "ContactForm_name" :type "text"})
+                      (dom/div #js {:className "errorMessage" :id "ContactForm_name_em_"}))
+                    (dom/div #js {:className "control-group"}
+                      (dom/label #js {:htmlFor "ContactForm_email" :className "required"} "Email*")
+                      (dom/input #js {:name "ContactForm[email]" :id "ContactForm_email" :type "text"})
+                      (dom/div #js {:className "errorMessage" :id "ContactForm_email_em_"}))
+                    (dom/div #js {:className "control-group"}
+                      (dom/label #js {:htmlFor "ContactForm_body" :className "required"} "Message*")
+                      (dom/textarea #js {:name "ContactForm[body]" :id "ContactForm_body" :type "text"})
+                      (dom/div #js {:className "errorMessage" :id "ContactForm_body_em_"}))
+                    (dom/div #js {:className "g-recaptcha" :data-sitekey "6LeLxhkTAAAAAPRgeOsY44L4N27hvPhRjKFM4BP4"})
+                    (dom/div #js {:className "form-actions"}
+                      (dom/button #js {:type "submit" :className "btn btn-primary"} "Submit")
+                      (dom/button #js {:type "reset" :className "btn"} "Reset"))))))))))))
+
+(defmethod r/route->component ::r/tuition [_] TuitionPage)
+
+(om/defui ^:once ContactPage
+  Object
+  (render [this]
+    (let [{:keys []} (om/props this)]
+      (dom/div #js {}
+        (course-banner {:title "Contact" :intro "Any questions, feedback or suggestions?"})
+        (dom/div #js {:className "container wrapper"}
+          (dom/div #js {:className "inner_content"}
+            (dom/div #js {:className "pad15"})
+            (dom/div #js {:className "row"}
+              (dom/div #js {:className "span6"}
+                (dom/div #js {:className "form"}
+                  (dom/form #js {:id "contact-form" :action "/tuition" :method "post"}
+                    (dom/p #js {:className "note"} "Fields marked (*) are required.")
+                    (dom/div #js {:className "control-group"}
+                      (dom/label #js {:htmlFor "ContactForm_name" :className "required"} "Name*")
+                      (dom/input #js {:name "ContactForm[name]" :id "ContactForm_name" :type "text"})
+                      (dom/div #js {:className "errorMessage" :id "ContactForm_name_em_"}))
+                    (dom/div #js {:className "control-group"}
+                      (dom/label #js {:htmlFor "ContactForm_email" :className "required"} "Email*")
+                      (dom/input #js {:name "ContactForm[email]" :id "ContactForm_email" :type "text"})
+                      (dom/div #js {:className "errorMessage" :id "ContactForm_email_em_"}))
+                    (dom/div #js {:className "control-group"}
+                      (dom/label #js {:htmlFor "ContactForm_body" :className "required"} "Message*")
+                      (dom/textarea #js {:name "ContactForm[body]" :id "ContactForm_body" :type "text"})
+                      (dom/div #js {:className "errorMessage" :id "ContactForm_body_em_"}))
+                    (dom/div #js {:className "g-recaptcha" :data-sitekey "6LeLxhkTAAAAAPRgeOsY44L4N27hvPhRjKFM4BP4"})
+                    (dom/div #js {:className "form-actions"}
+                      (dom/button #js {:type "submit" :className "btn btn-primary"} "Submit")
+                      (dom/button #js {:type "reset" :className "btn"} "Reset"))))))))))))
+
+(defmethod r/route->component ::r/contact [_] ContactPage)
+
+(defn import-facebook-api []
+  (if-not (js/document.getElementById "fbjssk")
+    (let [script (doto (js/document.createElement "script")
+                   (gobj/set "id" "fbjssk")
+                   (gobj/set "src" "//connect.facebook.net/en_US/all.js#xfbml=1&appId=447944221964271"))]
+      (js/document.body.appendChild script))))
+
+(om/defui ^:once FacebookLike
+  Object
+  (componentDidMount [_]
+    (import-facebook-api))
+
+  (render [this]
+    (let [{:keys []} (om/props this)]
+      (dom/div nil
+        (dom/div #js {:id "fb-root"})
+        (dom/div #js {:className       "fb-like"
+                      :data-href       "http://www.daveconservatoire.org"
+                      :data-layout     "box_count"
+                      :data-action     "recommend"
+                      :data-show-faces "true"
+                      :data-share      "true"})))))
+
+(def facebook-like (om/factory FacebookLike))
 
 (om/defui ^:once DonatePage
   static uc/InitialAppState
@@ -336,7 +471,44 @@
   Object
   (render [this]
     (let [{:keys []} (om/props this)]
-      (course-banner {:title "Donate" :intro "Intro"}))))
+      (dom/div nil
+        (course-banner {:title "Donate and Support" :intro "Dave Conservatoire helps over 30,000 people each month on their musical journey. Here's how you can us help increase our impact:"})
+        (dom/div #js {:className "container wrapper"}
+          (dom/div #js {:className "inner_content"}
+            (dom/div #js {:className "pad30"})
+            (dom/div #js {:className "row"}
+              (dom/div #js {:className "span8"}
+                (dom/h2 nil "Give a one-time or recurring donation")
+                (dom/p nil "Any amount donated via Paypal is greatly received.")
+                (dom/p nil "Paypal securely accepts all major credit and debit cards in all currencies.")
+                (dom/p nil " "))
+              (dom/div #js {:className "span3 offset1"}
+                (dom/div #js {:className "btn btn-block dc-btn-orange"}
+                  (dom/form #js {:action "https://www.paypal.com/cgi-bin/webscr", :method "post"}
+                    (dom/input #js {:type "hidden", :name "cmd", :value "_s-xclick"})
+                    (dom/input #js {:type "hidden", :name "hosted_button_id", :value "UNU8E3PLEYG3N"})
+                    (dom/input #js {:type "image", :src "https://www.paypalobjects.com/en_US/GB/i/btn/btn_donateCC_LG.gif", :name "submit", :alt "PayPal — The safer, easier way to pay online."})
+                    (dom/img #js {:alt "", :src "https://www.paypalobjects.com/en_GB/i/scr/pixel.gif", :width "1", :height "1"})))))
+            (dom/hr nil)
+            (dom/div #js {:className "row"}
+              (dom/div #js {:className "span8"}
+                (dom/h2 nil "Donate your skills and expertise")
+                (dom/p nil "No matter what your skills: amazing beatboxer, composer, vocal coach, bassoonist, programming ninja; if you'd like to contribute some of your time, energy and skills to the site, we want to hear from you!")
+                (dom/p nil "We'd particularly like to get to know you if you enjoy contributing software to open source projects, are interested in machine learning, can make sense of large datasets, are a whizz at Google Analytics or are a keen filmmaker.")
+                (dom/p nil " "))
+              (dom/div #js {:className "span3 offset1"}
+                (link {::r/handler ::r/contact, :className "btn btn-block dc-btn-redorange"}
+                  (dom/h2 #js {} "Get in Touch!"))))
+            (dom/hr nil)
+            (dom/div #js {:className "row"}
+              (dom/div #js {:className "span8"}
+                (dom/h2 nil "Spread the word")
+                (dom/p nil "Even if you tell those you meet about the site and what is has to offer, you'd be helping a great deal spread the word about the project.")
+                (dom/p nil "A like, follow or any mention in the real world would be fantastic!")
+                (dom/p nil " "))
+              (dom/div #js {:className "span3 offset1"}
+                (dom/div #js {:className "btn btn-block dc-btn-orange"}
+                  (facebook-like nil))))))))))
 
 (defmethod r/route->component ::r/donate [_] DonatePage)
 

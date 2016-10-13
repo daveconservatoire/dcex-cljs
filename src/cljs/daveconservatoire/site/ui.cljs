@@ -1248,11 +1248,11 @@
     (remove-watch (some-> (om/get-reconciler this) :config :state) :auth-state-detector))
 
   (render [this]
-    (let [{:keys [app/route app/me route/data ui/react-key ui/fetch-state]} (om/props this)]
+    (let [{:keys [app/route app/me route/data ui/react-key]} (om/props this)]
       (dom/div #js {:key react-key}
         (desktop-menu (assoc me :react-key "desktop-menu"))
         (u/transition-group #js {:transitionName "loading" :transitionEnterTimeout 200 :transitionLeaveTimeout 200}
-          (if (df/loading? fetch-state)
+          (if (df/loading? (get data :ui/fetch-state))
             (loading nil)))
         ((u/route->factory route) data)
         (footer {:react-key "footer"})))))

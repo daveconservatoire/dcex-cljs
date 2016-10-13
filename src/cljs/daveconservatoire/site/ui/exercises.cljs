@@ -72,12 +72,12 @@
 
 (defn play-sound [c] (play-notes (-> (om/props c) ::notes)))
 
-(def ModelIdent
-  (reify
-    om/Ident
-    (ident [_ props] (u/model-ident props))))
+(om/defui UserScore
+  static om/IQuery
+  (query [_] [:db/table :db/id :user/score])
 
-(defn with-ident [query] (with-meta query {:component ModelIdent}))
+  static om/Ident
+  (ident [_ props] (u/model-ident props)))
 
 (defmethod um/mutate 'dcex/check-answer
   [{:keys [state ref]} _ _]
@@ -143,7 +143,7 @@
           [opt-type _] (s/conform ::options options)
           check-answer #(do
                          (om/transact! this `[(dcex/check-answer)
-                                              (untangled/load {:query [{:app/me ~(with-ident [:db/table :db/id :user/score])}] :marker false})]))]
+                                              (untangled/load {:query [{:app/me ~(om/get-query UserScore)}] :marker false})]))]
       (s/assert ::ex-props props)
       (dom/div #js {:className "lesson-content"}
         (dom/div #js {:className "single-exercise visited-no-recolor"

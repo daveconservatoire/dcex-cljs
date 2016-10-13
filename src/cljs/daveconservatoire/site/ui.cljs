@@ -9,7 +9,8 @@
             [daveconservatoire.site.ui.portal :refer [portal]]
             [untangled.client.core :as uc]
             [untangled.client.mutations :as um]
-            [untangled.client.impl.data-fetch :as df]
+            [untangled.client.data-fetch :as df]
+            [untangled.client.impl.data-fetch :as dfi]
             [cljs.spec :as s]
             [daveconservatoire.site.ui.listeners :as l])
   (:import goog.i18n.DateTimeFormat))
@@ -1247,11 +1248,11 @@
     (remove-watch (some-> (om/get-reconciler this) :config :state) :auth-state-detector))
 
   (render [this]
-    (let [{:keys [app/route app/me route/data ui/react-key]} (om/props this)]
+    (let [{:keys [app/route app/me route/data ui/react-key ui/fetch-state]} (om/props this)]
       (dom/div #js {:key react-key}
         (desktop-menu (assoc me :react-key "desktop-menu"))
         (u/transition-group #js {:transitionName "loading" :transitionEnterTimeout 200 :transitionLeaveTimeout 200}
-          (if (= :loading (get-in data [:ui/fetch-state ::df/type]))
+          (if (df/loading? fetch-state)
             (loading nil)))
         ((u/route->factory route) data)
         (footer {:react-key "footer"})))))

@@ -158,3 +158,26 @@
     42 "Eb4")
 
   (is (= (st/result-type (st/check `audio/semitone->note)) :check-passed)))
+
+(defcard test-play-regular-sequence
+  (fn [_ _]
+    (dom/button #js {:onClick (fn []
+                                (let [nodes (->> ["C4" "D4" "E4" "F4"]
+                                                 (into [] (map (fn [s]
+                                                                 {::audio/node-gen (->> s audio/semitone->note (get @audio/*sound-library*))}))))]
+                                  (audio/play-regular-sequence nodes {::audio/time     (audio/current-time)
+                                                                      ::audio/interval 1})))}
+      "Play")))
+
+(defcard test-play-note-sequence
+  (fn [_ _]
+    (let [anodes (atom [])]
+      (dom/div nil
+        (dom/button #js {:onClick (fn []
+                                    (let [nodes (->> [["C4" 0.5] ["G4" 1] ["F4" 0.3] ["E4" 0.3] ["D4" 0.3] ["Db4" 0.6] ["D4" 0]]
+                                                     (into [] (map (fn [[s d]]
+                                                                     {::audio/node-gen (->> s audio/semitone->note (get @audio/*sound-library*))
+                                                                      ::audio/duration d}))))]
+                                      (reset! anodes (audio/play-sequence nodes {::audio/time (audio/current-time)}))))}
+          "Play")
+        (dom/button #js {:onClick #(audio/stop-all @anodes)} "Stop")))))

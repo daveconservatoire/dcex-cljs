@@ -32,6 +32,7 @@
   (s/+ (s/cat :node-gens (s/+ ::node-gen)
               :interval ::time)))
 (s/def ::interval ::time)
+(s/def ::duration nat-int?)
 
 (defn decode-audio-data [buffer]
   {:pre [(s/valid? ::ss/array-buffer buffer)]}
@@ -127,12 +128,16 @@
   :args (s/cat :sound ::sound-point
                :tracker (s/? #(instance? Atom %))))
 
-(defn play-regular-sequence [nodes {:keys [::time ::interval]}]
-  (reduce (fn [t node]
-            (play (assoc node ::time t))
-            (+ t interval))
-          time
-          nodes))
+(defn play-sequence [nodes {:keys [::time]}]
+  (-> (reduce (fn [[anodes t] {:keys [::duration] :as node}]
+                [(conj anodes (play (assoc node ::time t)))
+                 (+ t duration)])
+              [[] time]
+              nodes)
+      (first)))
+
+(defn play-regular-sequence [nodes {:keys [::interval] :as options}]
+  (play-sequence (map #(assoc % ::duration interval) nodes) options))
 
 (defn loop-chan [items start chan]
   {:pre [(s/valid? ::items-list items)

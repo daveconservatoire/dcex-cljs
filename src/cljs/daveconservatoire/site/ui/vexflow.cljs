@@ -26,8 +26,6 @@
 
 (defonce scripts (atom {}))
 
-(defn script-loaded? [path] (contains? @scripts path))
-
 (defn load-external-script [path]
   (if-let [script (get @scripts path)]
     script
@@ -37,6 +35,8 @@
       (swap! scripts assoc path c)
       (gdom/append js/document.body script)
       c)))
+
+(defn require-vexflow [] (load-external-script "/vendor/vexflow-min.js"))
 
 (defn format-and-draw [ctx stave notes]
   (js/Vex.Flow.Formatter.FormatAndDraw ctx stave (clj->js notes)))
@@ -65,8 +65,7 @@
 
   (componentDidMount [this]
     (go
-      (<! (load-external-script "/vendor/vexflow-min.js"))
-      (om/set-state! this {:ready true})
+      (<! (require-vexflow))
       (let [div (js/ReactDOM.findDOMNode this)]
         (render-score (om/props this) div))))
 

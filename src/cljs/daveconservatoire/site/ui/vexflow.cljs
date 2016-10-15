@@ -69,6 +69,11 @@
       (let [div (js/ReactDOM.findDOMNode this)]
         (render-score (om/props this) div))))
 
+  (componentDidUpdate [this prev-props prev-state]
+    (let [node (js/ReactDOM.findDOMNode this)]
+      (gdom/removeChildren node)
+      (render-score (om/props this) node)))
+
   (render [this]
     (let [{:keys []} (om/props this)]
       (dom/div nil))))

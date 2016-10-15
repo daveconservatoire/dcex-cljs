@@ -5,6 +5,7 @@
             [untangled.client.mutations :as um]
             [cljs.spec :as s]
             [daveconservatoire.audio.core :as audio]
+            [daveconservatoire.site.ui.vexflow :as vf]
             [daveconservatoire.site.ui.util :as u]))
 
 (defprotocol IExercise
@@ -63,14 +64,22 @@
   :args (s/cat :props (s/keys :opt [::progress-total ::progress-value]))
   :ret ::react-component)
 
-(defn play-notes [notes]
-  (let [nodes (->> notes
-                   (into [] (map (fn [s]
-                                   {::audio/node-gen (->> s audio/semitone->note (get @audio/*sound-library*))}))))]
-    (audio/play-regular-sequence nodes {::audio/time     (audio/current-time)
-                                        ::audio/interval 2})))
+(defn prepare-notes [notes]
+  (->> notes
+       (into [] (map (fn [s]
+                       (let [[note duration] (if (vector? s) s [s 2])]
+                         {::audio/node-gen (->> note audio/semitone->note (get @audio/*sound-library*))
+                          ::audio/duration duration}))))))
 
-(defn play-sound [c] (play-notes (-> (om/props c) ::notes)))
+(defn play-notes [notes]
+  (let [nodes (prepare-notes notes)]
+    (audio/play-sequence nodes {::audio/time (audio/current-time)})))
+
+(defn play-fn [props] (get props ::play-notes play-notes))
+
+(defn play-sound [c]
+  (let [play (or (-> (om/props c) ::play-notes) play-notes)]
+    (play (-> (om/props c) ::notes))))
 
 (om/defui UserScore
   static om/IQuery
@@ -83,7 +92,7 @@
   [{:keys [state ref]} _ _]
   {:action
    (fn []
-     (let [{:keys [::ex-answer ::correct-answer ::streak-count ::class ::ex-total-questions] :as props} (get-in @state ref)]
+     (let [{:keys [::ex-answer ::correct-answer ::streak-count ::class] :as props} (get-in @state ref)]
        (if (= ex-answer correct-answer)
          (let [next-streak (inc streak-count)
                new-props (new-round class
@@ -91,7 +100,7 @@
                              {::streak-count next-streak
                               ::ex-answer    nil}))]
            (swap! state assoc-in ref new-props)
-           (play-notes (::notes new-props)))
+           ((play-fn new-props) (::notes new-props)))
          (swap! state update-in ref assoc ::streak-count 0))))
 
    :remote
@@ -309,8 +318,8 @@
     (new-round this
       (merge
         (uc/initial-state Exercise nil)
-        {::name        "reading-music"
-         ::options     ::option-type-text}
+        {::name    "reading-music"
+         ::options ::option-type-text}
         props)))
 
   static om/Ident
@@ -350,8 +359,8 @@
     (new-round this
       (merge
         (uc/initial-state Exercise nil)
-        {::name        "rhythm-math"
-         ::options     ::option-type-text}
+        {::name    "rhythm-math"
+         ::options ::option-type-text}
         props)))
 
   static om/Ident
@@ -381,6 +390,82 @@
           (for [[i note] (map vector (range) display-notes)]
             (dom/span #js {:key i}
               (dom/img #js {:src (str "/img/rhythmimages/" note ".jpg")}))))))))
+
+(def rhythm-combinations
+  [["w"]
+   ["h" "h"]
+   ["h" "q" "q"]
+   ["q" "h" "q"]
+   ["q" "q" "h"]
+   ["q" "q" "q" "q"]])
+
+(defn duration->seconds
+  ([v] (duration->seconds v 4))
+  ([v whole]
+   (case v
+     "w" (* whole 1)
+     "h" (* whole 0.5)
+     "q" (* whole 0.25))))
+
+(defn to-note [duration] {::vf/keys ["b/4"] ::vf/duration duration})
+
+(defn random-rhythm []
+  (->> (rand-nth rhythm-combinations)
+       (map to-note)))
+
+(defn random-bars [] (repeatedly #(hash-map ::vf/notes (random-rhythm))))
+
+(def rhytm-metronome (flatten1 (repeat 5 [["high" 1] ["low" 1] ["low" 1] ["low" 1]])))
+
+(om/defui ^:once RhythmReading
+  static uc/InitialAppState
+  (initial-state [this props]
+    (new-round this
+      (merge
+        (uc/initial-state Exercise nil)
+        {::name       "rhythm-reading"
+         ::options    [["0" "A"] ["1" "B"] ["2" "C"] ["3" "D"]]
+         ::play-notes (let [last-play (atom [])]
+                        (fn [notes]
+                          (let [time (audio/current-time)
+                                nodes (prepare-notes notes)
+                                metro (prepare-notes rhytm-metronome)]
+                            (audio/stop-all @last-play)
+                            (reset! last-play (concat (audio/play-sequence metro {::audio/time time})
+                                                      (audio/play-sequence nodes {::audio/time (+ time 4)}))))))}
+        props)))
+
+  static om/Ident
+  (ident [_ props] [:exercise/by-name (::name props)])
+
+  static om/IQuery
+  (query [_] '[*])
+
+  static IExercise
+  (new-round [_ props]
+    (let [rhytms (partition 4 (take 16 (random-bars)))
+          idx (rand-int 4)
+          notes (->> (nth rhytms idx)
+                     (map ::vf/notes)
+                     (flatten)
+                     (map (comp #(vector "B4" %)
+                                duration->seconds
+                                ::vf/duration)))]
+      (js/console.log "notes" notes)
+      (assoc props
+        ::rhytms rhytms
+        ::notes notes
+        ::correct-answer (str idx))))
+
+  Object
+  (render [this]
+    (let [{:keys [::rhytms] :as props} (om/props this)]
+      (exercise props
+        (dom/p #js {:key "p"} "Listen the sound clip and choose the correct rhythm. You will hear a metronome count in and then the piano will play the rhythm over this.")
+        (dom/div #js {:key "scores"}
+          (for [[i bars] (map vector (range) rhytms)]
+            (vf/score #::vf {:width 500 :height 110 :clef ::vf/treble :key i
+                             :bars  bars})))))))
 
 (def INTERVAL-NAMES
   {2  "Major 2nd"
@@ -465,6 +550,11 @@
 (defmethod slug->exercise "rhythm-maths" [name]
   {::name  name
    ::class RhythmMath
+   ::props {}})
+
+(defmethod slug->exercise "rhythm-reading" [name]
+  {::name  name
+   ::class RhythmReading
    ::props {}})
 
 (defmethod slug->exercise "intervals-1" [name]

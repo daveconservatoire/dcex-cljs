@@ -91,6 +91,8 @@
                                                               {::v/keys ["b/4"] ::v/duration "q"}
                                                               {::v/keys ["b/4"] ::v/duration "q"}]})}
         "Add bar")
+      (dom/button #js {:onClick #(swap! bars (partial take 1))}
+        "Reset")
       (v/score {::v/width 500 ::v/height 150
                 ::v/clef  ::v/treble
                 ::v/bars  @bars})))

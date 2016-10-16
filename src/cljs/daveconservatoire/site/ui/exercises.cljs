@@ -400,12 +400,13 @@
    ["q" "q" "q" "q"]])
 
 (defn duration->seconds
-  ([v] (duration->seconds v 4))
-  ([v whole]
-   (case v
-     "w" (* whole 1)
-     "h" (* whole 0.5)
-     "q" (* whole 0.25))))
+  ([v] (duration->seconds v 60))
+  ([v bpm]
+   (let [whole (* (/ bpm 60) 4)]
+     (case v
+       "w" (* whole 1)
+       "h" (* whole 0.5)
+       "q" (* whole 0.25)))))
 
 (defn to-note [duration] {::vf/keys ["b/4"] ::vf/duration duration})
 
@@ -425,14 +426,15 @@
         (uc/initial-state Exercise nil)
         {::name       "rhythm-reading"
          ::options    [["0" "A"] ["1" "B"] ["2" "C"] ["3" "D"]]
-         ::play-notes (let [last-play (atom [])]
+         ::play-notes (let [last-play (atom [])
+                            time-multiplier 0.7]
                         (fn [notes]
                           (let [time (audio/current-time)
-                                nodes (prepare-notes notes)
-                                metro (prepare-notes rhytm-metronome)]
+                                nodes (map #(update % ::audio/duration (partial * time-multiplier)) (prepare-notes notes))
+                                metro (map #(update % ::audio/duration (partial * time-multiplier)) (prepare-notes rhytm-metronome))]
                             (audio/stop-all @last-play)
                             (reset! last-play (concat (audio/play-sequence metro {::audio/time time})
-                                                      (audio/play-sequence nodes {::audio/time (+ time 4)}))))))}
+                                                      (audio/play-sequence nodes {::audio/time (+ time (* 4 time-multiplier))}))))))}
         props)))
 
   static om/Ident
@@ -451,7 +453,6 @@
                      (map (comp #(vector "B4" %)
                                 duration->seconds
                                 ::vf/duration)))]
-      (js/console.log "notes" notes)
       (assoc props
         ::rhytms rhytms
         ::notes notes
@@ -464,7 +465,7 @@
         (dom/p #js {:key "p"} "Listen the sound clip and choose the correct rhythm. You will hear a metronome count in and then the piano will play the rhythm over this.")
         (dom/div #js {:key "scores"}
           (for [[i bars] (map vector (range) rhytms)]
-            (vf/score #::vf {:width 500 :height 110 :clef ::vf/treble :key i
+            (vf/score #::vf {:width 500 :height 110 :clef ::vf/treble :_/react-key (hash bars)
                              :bars  bars})))))))
 
 (def INTERVAL-NAMES

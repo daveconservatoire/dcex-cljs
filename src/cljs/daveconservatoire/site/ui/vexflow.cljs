@@ -9,6 +9,8 @@
 
 (s/def ::width pos-int?)
 (s/def ::height pos-int?)
+(s/def ::scale (s/and number? pos?))
+(s/def ::backend #{::canvas ::svg ::raphael})
 
 (s/def ::note-key string?)
 (s/def ::duration #{"q" "h" "w" "1" "2" "4" "8"})
@@ -22,7 +24,7 @@
 (s/def ::keys (s/coll-of ::note-key))
 (s/def ::notes (s/coll-of ::note))
 (s/def ::bars (s/coll-of ::bars))
-(s/def ::score (s/keys :req [::width ::height] :opt [::bars ::clef]))
+(s/def ::score (s/keys :req [::width ::height] :opt [::bars ::clef ::scale ::backend]))
 
 (defonce scripts (atom {}))
 
@@ -41,14 +43,28 @@
 (defn format-and-draw [ctx stave notes]
   (js/Vex.Flow.Formatter.FormatAndDraw ctx stave (clj->js notes)))
 
-(defn render-score [{:keys [::bars ::width ::height ::clef] :as props} container]
+(def backend-renderer
+  {nil  1
+   ::canvas  1
+   ::svg     3
+   ::raphael 2})
+
+(def backend-element
+  {nil  dom/canvas
+   ::canvas  dom/canvas
+   ::svg     dom/div
+   ::raphael dom/div})
+
+(defn render-score [{:keys [::bars ::width ::height ::clef ::scale ::backend]} container]
   (let [VF (.. js/Vex -Flow)
-        renderer (VF.Renderer. container VF.Renderer.Backends.SVG)
+        renderer (VF.Renderer. container (backend-renderer backend))
         ctx (.getContext renderer)
-        bar-size (/ width (count bars))]
-    (.resize renderer (inc width) height)
+        scale (or scale 1)
+        bar-size (/ width (count bars) scale)]
+    (.resize renderer (+ width scale) height)
     (.setFont ctx "Arial" 10 "")
     (.setBackgroundFillStyle ctx "#eed")
+    (.scale ctx scale scale)
 
     (doseq [[i {:keys [::notes]}] (map vector (range) bars)
             :let [stave (VF.Stave. (* i bar-size) 0 bar-size)]]
@@ -75,7 +91,7 @@
       (render-score (om/props this) node)))
 
   (render [this]
-    (let [{:keys []} (om/props this)]
-      (dom/div nil))))
+    (let [el (-> (om/props this) ::backend backend-element)]
+      (el nil))))
 
 (def score (om/factory Score))

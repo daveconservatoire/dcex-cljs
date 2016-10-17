@@ -19,6 +19,30 @@
                                      {::v/keys ["c/4"] ::v/duration "q"}]}]}))
   {})
 
+(defcard incomplete-score
+  (fn [_ _]
+    (v/score {::v/width 500 ::v/height 150
+              ::v/clef  ::v/treble
+              ::v/bars  [{::v/notes [{::v/keys ["c/5"] ::v/duration "q"}]}]}))
+  {})
+
+(defcard scale-score
+  (fn [_ _]
+    (v/score #::v {:width 300 :height 300 :scale 2
+                   :clef  ::v/treble
+                   :bars  [{::v/notes [{::v/keys ["c/5"] ::v/duration "q"}]}]}))
+  {})
+
+(defcard svg-backend
+  (fn [_ _]
+    (v/score #::v {:width 500 :height 150 :backend ::v/svg
+                   :clef  ::v/treble
+                   :bars  [{::v/notes [{::v/keys ["c/5"] ::v/duration "q"}
+                                       {::v/keys ["d/5"] ::v/duration "q"}
+                                       {::v/keys ["e/5"] ::v/duration "q"}
+                                       {::v/keys ["c/4"] ::v/duration "q"}]}]}))
+  {})
+
 (defcard multi-bar
   (fn [_ _]
     (v/score {::v/width 500 ::v/height 150
@@ -93,9 +117,10 @@
         "Add bar")
       (dom/button #js {:onClick #(swap! bars (partial take 1))}
         "Reset")
-      (v/score {::v/width 500 ::v/height 150
-                ::v/clef  ::v/treble
-                ::v/bars  @bars})))
+      (dom/div nil
+        (v/score {::v/width 500 ::v/height 150
+                  ::v/clef  ::v/treble
+                  ::v/bars  @bars}))))
   [{::v/notes [{::v/keys ["b/4"] ::v/duration "q"}
                {::v/keys ["b/4"] ::v/duration "q"}
                {::v/keys ["b/4"] ::v/duration "q"}

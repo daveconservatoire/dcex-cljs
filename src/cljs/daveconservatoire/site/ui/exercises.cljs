@@ -300,7 +300,7 @@
     (exercise (om/props this)
       (dom/p #js {:key "p"} "You will hear two notes. Are they an octave apart?"))))
 
-(def notes-tremble
+(def notes-treble
   {::read-note-order  ["E" "F" "G" "A" "B" "C" "D" "E" "F"]
    ::read-note-prefix "trebleclefimages"})
 
@@ -309,8 +309,17 @@
    ::read-note-prefix "bassclefimages"})
 
 (def notes-grand-staff
-  {::read-note-order  ["G" "A" "B" "C" "D" "E" "F" "G" "A" "B" #_"TREMBLE" "D" "E" "F" "G" "A" "B" "C" "D" "E" "F" "C"]
+  {::read-note-order  ["G" "A" "B" "C" "D" "E" "F" "G" "A" "B" #_"TREBLE" "D" "E" "F" "G" "A" "B" "C" "D" "E" "F" "C"]
    ::read-note-prefix "grandstaffimages"})
+
+(defn rand-int-new [n old]
+  "Generate a new random number like rand-int, if number is equals to `old` a new
+  number will be generated until it's different."
+  (loop []
+    (let [x (rand-int n)]
+      (if (= x old)
+        (recur)
+        x))))
 
 (om/defui ^:once ReadingMusic
   static uc/InitialAppState
@@ -330,23 +339,23 @@
 
   static IExercise
   (new-round [_ props]
-    (let [{:keys [::read-note-order]} props
-          pos (rand-int (count read-note-order))
+    (let [{::keys [read-note-order read-note]} props
+          pos (rand-int-new (count read-note-order) read-note)
           note (get read-note-order pos)
-          notes [(str note (cond-> 3
-                             (> pos 4) inc))]]
+          octave (if (> pos 4) 4 3)
+          notes [(str note octave)]]
       (assoc props
-        ::read-note (inc pos)
+        ::read-note pos
         ::notes notes
         ::correct-answer (.toLowerCase note))))
 
   Object
   (render [this]
-    (let [{:keys [::read-note ::read-note-prefix] :as props} (om/props this)]
+    (let [{::keys [read-note read-note-prefix] :as props} (om/props this)]
       (exercise props
         (dom/p #js {:key "p"} "Enter the letter name of the note displayed below. Please use a lower case letter (e.g. e, f or c).")
         (dom/div #js {:key "img"}
-          (dom/img #js {:src (str "/img/" read-note-prefix "/" read-note ".jpg")}))))))
+          (dom/img #js {:src (str "/img/" read-note-prefix "/" (inc read-note) ".jpg")}))))))
 
 (def available-rhytm-notes
   {1 "quarter"
@@ -536,7 +545,7 @@
 (defmethod slug->exercise "treble-clef-reading" [name]
   {::name  name
    ::class ReadingMusic
-   ::props notes-tremble})
+   ::props notes-treble})
 
 (defmethod slug->exercise "bass-clef-reading" [name]
   {::name  name

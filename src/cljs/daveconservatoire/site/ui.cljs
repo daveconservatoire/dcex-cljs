@@ -913,12 +913,12 @@
   static om/IQuery
   (query [_]
     [:db/id :db/table :user/name :user/about :user/score :ui/editing-info?
-     :user/lessons-viewed-count :user/created-at :ui/tmp-about
+     :user/lessons-viewed-count :user/created-at :user/ex-answer-count :ui/tmp-about
      (list {:user/user-views (om/get-query ProfileRecentActivity)} {:limit 8})])
 
   Object
   (render [this]
-    (let [{:user/keys [name about user-views score lessons-viewed-count created-at]
+    (let [{:user/keys [name about user-views score lessons-viewed-count created-at ex-answer-count]
            :ui/keys   [editing-info?]} (om/props this)]
       (dom/div #js {:className "span10"}
         (dom/div #js {:className "row"}
@@ -958,7 +958,7 @@
                     (dom/td #js {:className "pull-right"} lessons-viewed-count))
                   (dom/tr nil
                     (dom/td nil "Exercises Answered:")
-                    (dom/td #js {:className "pull-right"} "XXX"))
+                    (dom/td #js {:className "pull-right"} ex-answer-count))
                   (dom/tr nil
                     (dom/td nil "Member Since:")
                     (dom/td #js {:className "pull-right"} (format-time (js/Date. (* 1000 created-at)) "MMMM ddo yyyy")))))))

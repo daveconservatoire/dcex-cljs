@@ -151,7 +151,12 @@
                        :user/user-views           (ps/has-many :user-view :user-view/user-id {:sort ["timestamp" "desc"]})
                        :user/lessons-viewed-count (fn [env]
                                                     (let [id (ps/row-get env :db/id)]
-                                                      (ps/count env :user-view [[:where {:user-view/user-id id}]])))}}
+                                                      (ps/count env :user-view [[:where {:user-view/user-id id}]])))
+                       :user/ex-answer-count      (fn [env]
+                                                    (go-catch
+                                                      (let [id (ps/row-get env :db/id)]
+                                                        (+ (<? (ps/count env :ex-answer [[:where {:ex-answer/user-id id}]]))
+                                                           (<? (ps/count env :ex-mastery [[:where {:ex-mastery/user-id id}]]))))))}}
 
      {::ps/table      :user-view
       ::ps/table-name "UserVideoView"

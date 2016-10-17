@@ -220,6 +220,24 @@
                 <? :app/me)
            {:db/id 720 :db/table :user :user/lessons-viewed-count 2}))))
 
+(deftest test-read-user-ex-answered
+  (async-test
+    (<? (knex/truncate (::ps/db env) "UserExerciseAnswer"))
+    (<? (knex/truncate (::ps/db env) "UserExSingleMastery"))
+    (<? (ps/save env {:db/table            :ex-answer
+                      :ex-answer/user-id   720
+                      :ex-answer/lesson-id 120}))
+    (<? (ps/save env {:db/table            :ex-answer
+                      :ex-answer/user-id   720
+                      :ex-answer/lesson-id 120}))
+    (<? (ps/save env {:db/table             :ex-mastery
+                      :ex-mastery/user-id   720
+                      :ex-mastery/lesson-id 121}))
+
+    (is (= (->> (p/parse (assoc env :current-user-id 720) [{:app/me [:user/ex-answer-count]}])
+                <? :app/me)
+           {:db/id 720 :db/table :user :user/ex-answer-count 3}))))
+
 (deftest test-read-lesson-view-state
   (async-test
     (<? (knex/truncate (::ps/db env) "UserExSingleMastery"))

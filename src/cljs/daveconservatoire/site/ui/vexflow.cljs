@@ -91,7 +91,8 @@
       (render-score (om/props this) node)))
 
   (render [this]
-    (let [el (-> (om/props this) ::backend backend-element)]
-      (el nil))))
+    (let [{::keys [width height backend]} (om/props this)
+          el (backend-element backend)]
+      (el #js {:style #js {:width width :height height}}))))
 
 (def score (om/factory Score))

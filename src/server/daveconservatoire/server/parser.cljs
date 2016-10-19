@@ -149,6 +149,19 @@
                        :user/score                "points"
                        :user/last-activity        "lastActivity"
                        :user/user-views           (ps/has-many :user-view :user-view/user-id {:sort ["timestamp" "desc"]})
+                       :user/ex-answers           (ps/has-many :ex-answer :ex-answer/user-id {:sort ["timestamp" "desc"]})
+                       :user/ex-masteries         (ps/has-many :ex-mastery :ex-mastery/user-id {:sort ["timestamp" "desc"]})
+                       :user/activity             (fn [env]
+                                                    (go-catch
+                                                      (let [env' (-> (assoc env ::ps/union-selector :db/table))
+                                                            views (<? (ps/row-get env' :user/user-views))
+                                                            answers (<? (ps/row-get env' :user/ex-answers))
+                                                            masteries (<? (ps/row-get env' :user/ex-masteries))
+                                                            limit (get-in env [:ast :params :limit] 50)]
+                                                        (->> (concat views answers masteries)
+                                                             (sort-by :db/timestamp #(* -1 (compare %1 %2)))
+                                                             (take limit)
+                                                             (vec)))))
                        :user/lessons-viewed-count (fn [env]
                                                     (let [id (ps/row-get env :db/id)]
                                                       (ps/count env :user-view [[:where {:user-view/user-id id}]])))
@@ -161,27 +174,30 @@
      {::ps/table      :user-view
       ::ps/table-name "UserVideoView"
       ::ps/fields     {:db/id               "id"
+                       :db/timestamp        "timestamp"
                        :user-view/user-id   "userId"
                        :user-view/lesson-id "lessonId"
                        :user-view/status    "status"
                        :user-view/position  "position"
-                       :user-view/timestamp "timestamp"
                        :user-view/user      (ps/has-one :user :user-view/user-id)
-                       :user-view/lesson    (ps/has-one :lesson :user-view/lesson-id)}}
+                       :user-view/lesson    (ps/has-one :lesson :user-view/lesson-id)
+                       :activity/lesson     (ps/has-one :lesson :user-view/lesson-id)}}
 
      {::ps/table      :ex-answer
       ::ps/table-name "UserExerciseAnswer"
       ::ps/fields     {:db/id               "id"
+                       :db/timestamp        "timestamp"
                        :ex-answer/user-id   "userId"
                        :ex-answer/lesson-id "exerciseId"
-                       :ex-answer/timestamp "timestamp"}}
+                       :activity/lesson     (ps/has-one :lesson :ex-answer/lesson-id)}}
 
      {::ps/table      :ex-mastery
       ::ps/table-name "UserExSingleMastery"
       ::ps/fields     {:db/id                "id"
+                       :db/timestamp         "timestamp"
                        :ex-mastery/user-id   "userId"
                        :ex-mastery/lesson-id "exerciseId"
-                       :ex-mastery/timestamp "timestamp"}}]))
+                       :activity/lesson      (ps/has-one :lesson :ex-mastery/lesson-id)}}]))
 
 (defn current-timestamp []
   (js/Math.round (/ (.getTime (js/Date.)) 1000)))
@@ -239,10 +255,10 @@
   (go-catch
     (let [last-view (<? (ps/find-by env {:db/table          :user-view
                                          :user-view/user-id user-id
-                                         ::ps/query         [[:orderBy :user-view/timestamp "desc"]]}))]
+                                         ::ps/query         [[:orderBy :db/timestamp "desc"]]}))]
       (if (not= lesson-id (:user-view/lesson-id last-view))
         (<? (ps/save env (assoc view :db/table :user-view
-                                     :user-view/timestamp (current-timestamp))))))))
+                                     :db/timestamp (current-timestamp))))))))
 
 (defn conj-vec [v x]
   (conj (or v []) x))
@@ -253,7 +269,7 @@
     (let [lesson (<? (ps/find-by env {:db/table :lesson
                                       :url/slug slug}))
           answer {:db/table                :ex-answer
-                  :ex-answer/timestamp     (current-timestamp)
+                  :db/timestamp            (current-timestamp)
                   :ex-answer/lesson-id     (:db/id lesson)
                   :guest-tx/increase-score 1}]
       (if current-user-id
@@ -272,7 +288,7 @@
     (let [lesson (<? (ps/find-by env {:db/table :lesson
                                       :url/slug slug}))
           answer {:db/table                :ex-mastery
-                  :ex-mastery/timestamp    (current-timestamp)
+                  :db/timestamp            (current-timestamp)
                   :ex-mastery/lesson-id    (:db/id lesson)
                   :guest-tx/increase-score 100}]
       (if current-user-id

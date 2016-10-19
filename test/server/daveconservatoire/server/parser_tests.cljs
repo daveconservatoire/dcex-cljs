@@ -66,7 +66,7 @@
           (is (= (ex/session-get req :guest-tx)
                  [{:db/table                :ex-answer
                    :guest-tx/increase-score 1
-                   :ex-answer/timestamp     123
+                   :db/timestamp            123
                    :ex-answer/lesson-id     53}])))))
 
     (testing "compute score for logged user"
@@ -94,7 +94,7 @@
           (is (= (ex/session-get req :guest-tx)
                  [{:db/table                :ex-mastery
                    :guest-tx/increase-score 100
-                   :ex-mastery/timestamp    123
+                   :db/timestamp            123
                    :ex-mastery/lesson-id    53}])))))
 
     (testing "compute score for logged user"
@@ -238,6 +238,23 @@
                 <? :app/me)
            {:db/id 720 :db/table :user :user/ex-answer-count 3}))))
 
+(deftest test-read-user-activity
+  (async-test
+    (<? (knex/truncate (::ps/db env) "UserVideoView"))
+    (<? (knex/truncate (::ps/db env) "UserExerciseAnswer"))
+    (<? (knex/truncate (::ps/db env) "UserExSingleMastery"))
+    (<? (ps/save env {:db/table :user-view :user-view/user-id 720}))
+    (<? (ps/save env {:db/table            :ex-answer
+                      :ex-answer/user-id   720
+                      :ex-answer/lesson-id 120}))
+    (<? (ps/save env {:db/table             :ex-mastery
+                      :ex-mastery/user-id   720
+                      :ex-mastery/lesson-id 121}))
+
+    (is (= (->> (p/parse (assoc env :current-user-id 720) [{:app/me [{:user/activity [:db/timestamp :user-view/user-id]}]}])
+                <? :app/me)
+           {:db/id 720 :db/table :user :user/activity []}))))
+
 (deftest test-read-lesson-view-state
   (async-test
     (<? (knex/truncate (::ps/db env) "UserExSingleMastery"))
@@ -341,7 +358,7 @@
     (let [req (blank-request)
           guest-tx [{:db/table                :ex-answer
                      :guest-tx/increase-score 3
-                     :ex-answer/timestamp     123
+                     :db/timestamp            123
                      :ex-answer/lesson-id     53}]
           env (assoc env :http-request req
                          :current-user-id 720)]
@@ -357,7 +374,7 @@
       (testing "the records are created"
         (is (= (<? (ps/find-by env {:db/table            :ex-answer
                                     :ex-answer/lesson-id 53}))
-               {:db/id 1, :ex-answer/user-id 720, :ex-answer/lesson-id 53, :ex-answer/timestamp 123, :db/table :ex-answer})))
+               {:db/id 1, :ex-answer/user-id 720, :ex-answer/lesson-id 53, :db/timestamp 123, :db/table :ex-answer})))
 
       (testing "the guest-tx are cleaned from the session"
         (is (= (ex/session-get req :guest-tx)

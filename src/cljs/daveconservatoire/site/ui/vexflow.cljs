@@ -6,7 +6,6 @@
             [goog.dom :as gdom]
             [cljs.spec :as s]))
 
-
 (s/def ::width pos-int?)
 (s/def ::height pos-int?)
 (s/def ::scale (s/and number? pos?))

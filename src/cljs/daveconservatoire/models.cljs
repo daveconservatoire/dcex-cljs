@@ -74,10 +74,10 @@
 (s/def :user-view/course :model/course)
 (s/def :user-view/status any?)
 (s/def :user-view/position any?)
-(s/def :user-view/timestamp any?)
+(s/def :db/timestamp any?)
 
 (s/def :model/user-view
-  (s/keys :opt [:db/id :user-view/status :user-view/position :user-view/timestamp
+  (s/keys :opt [:db/id :user-view/status :user-view/position :db/timestamp
                 :user-view/user-id :user-view/user
                 :user-view/lesson-id :user-view/lesson]))
 

@@ -51,14 +51,15 @@
                              simple-fields (local-fields m)]
                         (assoc %
                           ::reader-map
-                          (zipmap (keys m)
-                                  (map
-                                    (fn [field]
-                                      (if (fn? field)
-                                        field
-                                        (fn [{:keys [::row]}]
-                                          (get row field))))
-                                    (vals m)))
+                          (-> (zipmap (keys m)
+                                      (map
+                                        (fn [field]
+                                          (if (fn? field)
+                                            field
+                                            (fn [{:keys [::row]}]
+                                              (get row field))))
+                                        (vals m)))
+                              (assoc :db/table (constantly (::table %))))
                           ::fields simple-fields
                           ::fields' (zipmap (vals simple-fields) (keys simple-fields))))
                       schema))
@@ -103,10 +104,11 @@
 
 (defn row-get
   ([{:keys [::table-spec] :as env} attr]
-   (p/read-from (assoc env :ast {:key attr :dispatch-key attr})
-                (::reader-map table-spec)) )
+   (p/read-from (update env :ast merge {:key attr :dispatch-key attr})
+                (::reader-map table-spec)))
   ([{:keys [::table-spec] :as env} row attr]
-   (p/read-from (assoc env ::row row :ast {:key attr :dispatch-key attr})
+   (p/read-from (-> (assoc env ::row row)
+                    (update :ast merge {:key attr :dispatch-key attr}))
                 (::reader-map table-spec))))
 
 (defn ensure-chan [x]

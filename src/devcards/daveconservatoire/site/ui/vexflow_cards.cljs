@@ -1,5 +1,5 @@
 (ns daveconservatoire.site.ui.vexflow-cards
-  (:require [devcards.core :refer [defcard deftest dom-node]]
+  (:require [devcards.core :refer [dom-node] :refer-macros [defcard deftest]]
             [cljs.test :refer [is are run-tests async testing]]
             [daveconservatoire.site.ui.vexflow :as v]
             [om.dom :as dom]))

@@ -828,22 +828,32 @@
 
 (defmethod r/route->component ::r/lesson [_] LessonPage)
 
+(def activity-icon
+  {:user-view  "icon-facetime-video"
+   :ex-answer  "icon-list-alt"
+   :ex-mastery "icon-star-empty"})
+
+(def activity-label
+  {:user-view  "Watched"
+   :ex-answer  "Practiced"
+   :ex-mastery "Mastered"})
+
 (om/defui ^:once ProfileRecentActivity
   static om/IQuery
-  (query [_] [:db/id {:user-view/lesson [:lesson/title :url/slug]}])
+  (query [_] [:db/id :db/table :db/timestamp {:activity/lesson [:lesson/title :url/slug]}])
 
   static om/Ident
   (ident [_ props] (u/model-ident props))
 
   Object
   (render [this]
-    (let [{:keys [user-view/lesson]} (om/props this)
+    (let [{:keys [db/table activity/lesson]} (om/props this)
           {:keys [lesson/title url/slug]} lesson]
       (dom/tr nil
         (dom/td nil
-          (dom/i #js {:className "icon-facetime-video"}))
+          (dom/i #js {:className (activity-icon table)}))
         (dom/td nil
-          (dom/strong #js {} "Watched: ")
+          (dom/strong #js {} (str (activity-label table) ": "))
           (link {::r/handler ::r/lesson ::r/params {::r/slug slug}}
             title))))))
 
@@ -914,11 +924,11 @@
   (query [_]
     [:db/id :db/table :user/name :user/about :user/score :ui/editing-info?
      :user/lessons-viewed-count :user/created-at :user/ex-answer-count :ui/tmp-about
-     (list {:user/user-views (om/get-query ProfileRecentActivity)} {:limit 8})])
+     (list {:user/activity (om/get-query ProfileRecentActivity)} {:limit 8})])
 
   Object
   (render [this]
-    (let [{:user/keys [name about user-views score lessons-viewed-count created-at ex-answer-count]
+    (let [{:user/keys [name about activity score lessons-viewed-count created-at ex-answer-count]
            :ui/keys   [editing-info?]} (om/props this)]
       (dom/div #js {:className "span10"}
         (dom/div #js {:className "row"}
@@ -967,7 +977,7 @@
               (dom/h3 nil "Recent Activity")
               (dom/table #js {:className "table" :style #js {:margin 0}}
                 (dom/tbody nil
-                  (map profile-recent-activity user-views))))))))))
+                  (map profile-recent-activity activity))))))))))
 
 (def profile-dashboard (om/factory ProfileDashboard))
 
@@ -999,24 +1009,24 @@
 
 (om/defui ^:once ProfileActivity
   static om/IQuery
-  (query [_] [:db/id :user-view/timestamp {:user-view/lesson [:lesson/title :url/slug]}])
+  (query [_] [:db/table :db/id :db/timestamp {:activity/lesson [:lesson/title :url/slug]}])
 
   static om/Ident
   (ident [_ props] (u/model-ident props))
 
   Object
   (render [this]
-    (let [{:keys [user-view/lesson user-view/timestamp]} (om/props this)
+    (let [{:keys [activity/lesson db/timestamp db/table] :as props} (om/props this)
           {:keys [new-streak?]} (om/get-computed this)
           {:keys [lesson/title url/slug]} lesson]
-      (dom/tr nil
+      (dom/tr #js {:key (pr-str (u/model-ident props))}
         (dom/td nil
           (if new-streak?
             (format-time timestamp "EEEE ddo MMMM yyyy")))
         (dom/td nil
-          (dom/i #js {:className "icon-facetime-video"}))
+          (dom/i #js {:className (activity-icon table)}))
         (dom/td nil
-          (dom/strong #js {} "Watched: ")
+          (dom/strong #js {} (str (activity-label table) ": "))
           (link {::r/handler ::r/lesson ::r/params {::r/slug slug}}
             title))))))
 
@@ -1025,7 +1035,7 @@
 (defn process-view-consecutive-date [views]
   (->> (reduce
          (fn [[acc last] v]
-           (let [time (format-time (:user-view/timestamp v) "ddMMyyyy")]
+           (let [time (format-time (:db/timestamp v) "ddMMyyyy")]
              [(conj acc (om/computed v {:new-streak? (not= last time)}))
               time]))
          [[]]
@@ -1037,17 +1047,17 @@
   (ident [_ props] (u/model-ident props))
 
   static om/IQuery
-  (query [_] [{:user/user-views (om/get-query ProfileActivity)}])
+  (query [_] [:db/table :db/id {:user/activity (om/get-query ProfileActivity)}])
 
   Object
   (render [this]
-    (let [{:keys [user/user-views]} (om/props this)]
+    (let [{:keys [user/activity]} (om/props this)]
       (dom/div #js {:className "span10"}
         (dom/h2 nil "Here's what you've been working on:")
         (dom/br nil)
         (dom/table #js {:className "table"}
           (dom/tbody nil
-            (map profile-activity (process-view-consecutive-date user-views))))))))
+            (map profile-activity (process-view-consecutive-date activity))))))))
 
 (def profile-activity-page-internal (om/factory ProfileActivityPageInternal))
 
@@ -1256,3 +1266,155 @@
             (loading nil)))
         ((u/route->factory route) data)
         (footer {:react-key "footer"})))))
+
+(comment
+  (do
+    (om/defui DemoChild
+      static om/IQuery
+      (query [_] [:type :id])
+
+      static om/Ident
+      (ident [_ {:keys [type id]}] [type id]))
+
+    (om/defui DemoRoot
+      static om/IQuery
+      (query [_] [{:items (om/get-query DemoChild)}]))
+
+    (let [data {:items [{:type :a :id 1}
+                        {:type :b :id 2}]}]
+      (om/tree->db DemoRoot data true)))
+
+  (some-> daveconservatoire.site.core/app deref :reconciler om/app-state deref js/console.log)
+
+  (let [data {:app/me
+              {:db/table                  :user,
+               :user/lessons-viewed-count 11,
+               :user/name                 "Wilker Lucio",
+               :user/about
+                                          "Please tell us about your musical interests and goals. This will help develop the site to better support your learning. It will not be made public.",
+               :user/score                805,
+               :user/created-at           1473878547,
+               :db/id                     2,
+               :user/ex-answer-count      209,
+               :user/activity
+                                          [{:db/table     :ex-answer,
+                                            :activity/lesson
+                                                          {:db/table     :lesson,
+                                                           :lesson/title "Exercise: Rhythm Reading",
+                                                           :url/slug     "rhythm-reading",
+                                                           :db/id        62},
+                                            :db/timestamp 1476747171,
+                                            :db/id        202}
+                                           {:db/table     :ex-answer,
+                                            :activity/lesson
+                                                          {:db/table     :lesson,
+                                                           :lesson/title "Exercise: Rhythm Reading",
+                                                           :url/slug     "rhythm-reading",
+                                                           :db/id        62},
+                                            :db/timestamp 1476747163,
+                                            :db/id        201}
+                                           {:db/table     :ex-answer,
+                                            :activity/lesson
+                                                          {:db/table     :lesson,
+                                                           :lesson/title "Exercise: Rhythm Reading",
+                                                           :url/slug     "rhythm-reading",
+                                                           :db/id        62},
+                                            :db/timestamp 1476747154,
+                                            :db/id        200}
+                                           {:db/table     :ex-answer,
+                                            :activity/lesson
+                                                          {:db/table     :lesson,
+                                                           :lesson/title "Exercise: Rhythm Reading",
+                                                           :url/slug     "rhythm-reading",
+                                                           :db/id        62},
+                                            :db/timestamp 1476734748,
+                                            :db/id        199}
+                                           {:db/table     :ex-answer,
+                                            :activity/lesson
+                                                          {:db/table     :lesson,
+                                                           :lesson/title "Exercise: Rhythm Reading",
+                                                           :url/slug     "rhythm-reading",
+                                                           :db/id        62},
+                                            :db/timestamp 1476734584,
+                                            :db/id        198}
+                                           {:db/table     :ex-mastery,
+                                            :activity/lesson
+                                                          {:db/table     :lesson,
+                                                           :lesson/title "Exercise: Reading the Treble Clef",
+                                                           :url/slug     "treble-clef-reading",
+                                                           :db/id        48},
+                                            :db/timestamp 1476635877,
+                                            :db/id        8}
+                                           {:db/table     :ex-mastery,
+                                            :activity/lesson
+                                                          {:db/table     :lesson,
+                                                           :lesson/title "Exercise: Rhythm Reading",
+                                                           :url/slug     "rhythm-reading",
+                                                           :db/id        62},
+                                            :db/timestamp 1476572567,
+                                            :db/id        7}
+                                           {:db/table     :ex-mastery,
+                                            :activity/lesson
+                                                          {:db/table     :lesson,
+                                                           :lesson/title "Listening to Pitches - (Easy)",
+                                                           :url/slug     "pitch-1",
+                                                           :db/id        120},
+                                            :db/timestamp 1475689456,
+                                            :db/id        6}
+                                           {:db/table     :ex-mastery,
+                                            :activity/lesson
+                                                          {:db/table     :lesson,
+                                                           :lesson/title "Listening to Pitches - (Easy)",
+                                                           :url/slug     "pitch-1",
+                                                           :db/id        120},
+                                            :db/timestamp 1475689348,
+                                            :db/id        5}
+                                           {:db/table     :ex-mastery,
+                                            :activity/lesson
+                                                          {:db/table     :lesson,
+                                                           :lesson/title "Listening to Pitches - (Medium)",
+                                                           :url/slug     "pitch-2",
+                                                           :db/id        121},
+                                            :db/timestamp 1475005626,
+                                            :db/id        4}
+                                           {:db/table     :user-view,
+                                            :activity/lesson
+                                                          {:db/table     :lesson,
+                                                           :lesson/title "Introducing Rhythm Notation",
+                                                           :url/slug     "rhythmnotation ",
+                                                           :db/id        51},
+                                            :db/timestamp 1474650868,
+                                            :db/id        19}
+                                           {:db/table     :user-view,
+                                            :activity/lesson
+                                                          {:db/table     :lesson,
+                                                           :lesson/title "Rhythmic Patterns",
+                                                           :url/slug     "htp-rhythmpatterns",
+                                                           :db/id        245},
+                                            :db/timestamp 1474596753,
+                                            :db/id        18}
+                                           {:db/table     :user-view,
+                                            :activity/lesson
+                                                          {:db/table     :lesson,
+                                                           :lesson/title "What is Articulation?",
+                                                           :url/slug     "articulation",
+                                                           :db/id        126},
+                                            :db/timestamp 1474596186,
+                                            :db/id        17}
+                                           {:db/table     :user-view,
+                                            :activity/lesson
+                                                          {:db/table     :lesson,
+                                                           :lesson/title "Introduction ",
+                                                           :url/slug     "htp-intro",
+                                                           :db/id        243},
+                                            :db/timestamp 1474389503,
+                                            :db/id        16}
+                                           {:db/table     :user-view,
+                                            :activity/lesson
+                                                          {:db/table     :lesson,
+                                                           :lesson/title "What is beat?",
+                                                           :url/slug     "what-is-beat",
+                                                           :db/id        99},
+                                            :db/timestamp 1473556070,
+                                            :db/id        14}]}}]
+    (js/console.log (om/tree->db ProfilePage data true))))

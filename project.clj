@@ -12,7 +12,7 @@
   :dependencies [[org.clojure/clojure "1.9.0-alpha13" :scope "provided"]
                  [org.clojure/clojurescript "1.9.229" :scope "provided"]
                  [org.clojure/core.async "0.2.374"]
-                 [org.omcljs/om "1.0.0-alpha46" :exclusions [cljsjs/react-dom  cljsjs/react]]
+                 [org.omcljs/om "1.0.0-alpha47" :exclusions [cljsjs/react-dom cljsjs/react]]
                  [cljsjs/react-with-addons "15.2.1-0"]
                  [cljsjs/react-dom "15.2.1-0" :exclusions [cljsjs/react]]
                  [navis/untangled-client "0.5.7" :exclusions [org.omcljs/om com.cognitect/transit-cljs cljsjs/react-dom org.clojure/tools.reader cljsjs/react]]
@@ -26,6 +26,7 @@
                  [org.clojure/test.check "0.9.0"]
                  [com.rpl/specter "0.9.3"]
                  [com.cognitect/transit-cljs "0.8.239"]
+                 [navis/untangled-spec "0.3.9" :scope "test"]
                  [lein-doo "0.1.6" :scope "test"]]
 
   :plugins [[lein-cljsbuild "1.1.4"]

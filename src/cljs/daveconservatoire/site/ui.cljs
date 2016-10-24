@@ -278,13 +278,12 @@
       (dom/p #js {}
         (dom/small #js {} person)))))
 
-(defn getstarted [{}]
+(defn get-started []
   (dom/div #js {:className "strip"}
     (dom/h1 #js {:className "center"} "Ready to learn something great?")
     (dom/h3 #js {:className "center about_strip"} "Everyone is musical and everyone can learn to play, compose and enjoy music.  All you need to do is . . . ")
     (dom/div #js {:className "pad45"})
     (dom/a #js {:href "/course/music-theory" :className "big_button"} "Get Started")))
-
 
 (om/defui ^:once LoginPage
   Object
@@ -369,7 +368,7 @@
               (testimonial {:quote "Watching your videos made music seem a lot less like sorcery, they do make it much more magical though." :person "Kristian Theisson, Dave Conservatoire student"})
               (testimonial {:quote "Wishing you all the best with Dave Conservatoire. I'll be sure to share it with my colleagues." :person "Martin Bean, Vice Chancellor, Open University"})
               (testimonial {:quote "The stuff you're doing is super cool! I hope we get the chance to meet and/or collaborate in the not-too-far-off future." :person "Salman Khan, Founder, Khan Academy"}))))
-        (getstarted {})))))
+        (get-started)))))
 
 (defmethod r/route->component ::r/about [_] AboutPage)
 

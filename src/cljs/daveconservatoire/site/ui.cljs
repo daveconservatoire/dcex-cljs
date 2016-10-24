@@ -214,6 +214,9 @@
                             (dom/a #js {:href "#" :onClick #(om/transact! comp ['(app/logout)])}
                               (dom/i #js {:className "icon-share-alt"}) "Logout")))))
 
+(defn signed-in? [me]
+  (boolean (:user/name me)))
+
 (om/defui ^:once DesktopMenu
   static om/Ident
   (ident [_ props] (u/model-ident props))
@@ -223,7 +226,7 @@
 
   Object
   (render [this]
-    (let [{:keys [user/name user/score] :as props} (om/props this)]
+    (let [{:keys [user/score] :as props} (om/props this)]
       (dom/div #js {:className "header hidden-phone"}
         (dom/div #js {:className "navbar"}
           (dom/div #js {:className "navbar-inner"}
@@ -236,7 +239,7 @@
                   (button {:react-key "btn-1" ::r/handler ::r/donate, ::button-color "orange"} "Donate")
                   (button {:react-key "btn-2" ::r/handler ::r/tuition, ::button-color "redorange"} "Personal Tuition")
                   (button {:react-key "btn-3" ::r/handler ::r/contact, ::button-color "red"} "Contact")
-                  (if name
+                  (if (signed-in? props)
                     (user-menu-status this)
                     (if (> score 0)
                       (button {:className  "btn btn-success loginbutton"
@@ -1215,11 +1218,40 @@
 
 (def loading (om/factory Loading))
 
+(defn banner-subscribe []
+  (dom/div #js {:className "dropdown-notification text-center visible-desktop", :id "patreonbanner"}
+    (dom/div #js {:className "container"}
+      (dom/div #js {:className "row"}
+        (dom/div #js {:className "span8"}
+          (dom/h3 nil "Love our lessons?")
+          (dom/h3 nil "Help us reach more students just like you!")
+          (dom/p nil "We never run ads and will be free forever.  A monthly voluntary subscription will help us continue to power music learning around the world!  When you do we'll remove these annoying banners and you can cancel anytime."))
+        (dom/div #js {:className "span4"}
+          (link {::r/handler ::r/login :className "btn btn-primary" :style #js {:marginTop 43}}
+            (dom/h2 nil
+              "Click to Subscribe!")))))))
+
+(defn banner-personal-tuition []
+  (dom/div #js {:className "dropdown-notification text-center visible-desktop", :id "patreonbanner"}
+    (dom/div #js {:className "container"}
+      (dom/div #js {:className "row"}
+        (dom/div #js {:className "span8"}
+          (dom/h3 nil "Need some extra help, guidance or feedback?")
+          (dom/h3 nil "We now offer personal tuition at all levels of ability")
+          (dom/p nil "Sometimes it is good to know you're on the track, book in a lesson with Dave Conservatoire founder David Rees!"))
+        (dom/div #js {:className "span4"}
+          (link {::r/handler ::r/tuition :className "btn btn-primary" :style #js {:marginTop 43}}
+            (dom/h2 nil
+              "Find out more!")))))))
+
+(def banner-routes #{::r/topic ::r/lesson})
+
 (om/defui ^:once Root
   static uc/InitialAppState
   (initial-state [_ _]
     (let [route (r/current-handler)]
       {:app/route    route
+       :ui/banner    (rand-nth [banner-subscribe banner-personal-tuition])
        :ui/react-key (random-uuid)
        :route/data   (r/route->initial-state route)
        :app/me       {:ui/fetch-state {}}}))
@@ -1230,7 +1262,7 @@
 
   static om/IQuery
   (query [this]
-    [:app/route :ui/react-key
+    [:app/route :ui/react-key :ui/banner
      {:app/me (om/get-query DesktopMenu)}
      {:route/data '?route/data}])
 
@@ -1258,8 +1290,12 @@
     (remove-watch (some-> (om/get-reconciler this) :config :state) :auth-state-detector))
 
   (render [this]
-    (let [{:keys [app/route app/me route/data ui/react-key]} (om/props this)]
+    (let [{:keys [app/route app/me route/data ui/react-key ui/banner]} (om/props this)]
       (dom/div #js {:key react-key}
+        (when (and banner
+                   (not (signed-in? me))
+                   (contains? banner-routes (::r/handler route)))
+          (banner))
         (desktop-menu (assoc me :react-key "desktop-menu"))
         (u/transition-group #js {:transitionName "loading" :transitionEnterTimeout 200 :transitionLeaveTimeout 200}
           (if (df/loading? (get data :ui/fetch-state))

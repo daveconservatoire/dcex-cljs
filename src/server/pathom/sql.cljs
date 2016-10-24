@@ -147,13 +147,9 @@
 
 (defn sql-node [{:keys [::table ::schema] :as env} cmds]
   (assert (get schema table) (str "[Query SQL] No specs for table " table))
-  (let [{:keys [::table-name ::fields ::reader-map] :as table-spec} (get schema table)]
+  (let [{:keys [::table-name ::reader-map] :as table-spec} (get schema table)]
     (go-catch
-      (let [cmds (map (fn [[type v :as cmd]]
-                        (if (= type :where)
-                          [type (set/rename-keys v fields)]
-                          cmd)) cmds)
-            rows (<? (cached-query env (cons [:from table-name] cmds)))
+      (let [rows (<? (cached-query env (cons [:from table-name] cmds)))
             env (assoc env ::table-spec table-spec
                            ::p/reader [reader-map p/placeholder-node])]
         (<? (p/read-chan-seq #(parse-row env %) rows))))))

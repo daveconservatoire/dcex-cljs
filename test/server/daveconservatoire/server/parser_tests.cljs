@@ -253,7 +253,10 @@
 
     (is (= (->> (p/parse (assoc env :current-user-id 720) [{:app/me [{:user/activity [:db/timestamp :user-view/user-id]}]}])
                 <? :app/me)
-           {:db/id 720 :db/table :user :user/activity []}))))
+           {:db/id         720 :db/table :user
+            :user/activity [{:db/table :user-view, :db/timestamp 0, :db/id 1, :user-view/user-id 720}
+                            {:db/table :ex-answer, :db/timestamp 0, :db/id 1}
+                            {:db/table :ex-mastery, :db/timestamp 0, :db/id 1}]}))))
 
 (deftest test-read-lesson-view-state
   (async-test
@@ -311,8 +314,45 @@
                              [:lesson/view-state]}]) <?)
              {[:lesson/by-slug "pitch-2"] {:db/table          :lesson
                                            :db/id             121
-                                           :lesson/view-state :lesson.view-state/mastered}})))
-    ))
+                                           :lesson/view-state :lesson.view-state/mastered}})))))
+
+(deftest test-read-lesson-prev
+  (async-test
+    (testing "fetchs the previous item"
+      (is (= (->> (p/parse env
+                           [{[:lesson/by-slug "pitch-1"]
+                             [{:lesson/prev [:url/slug]}]}]) <?)
+             {[:lesson/by-slug "pitch-1"] {:db/table    :lesson
+                                           :db/id       120
+                                           :lesson/prev {:db/id    88 :db/table :lesson
+                                                         :url/slug "pitch-and-octaves"}}})))
+
+    (testing "return nil when there is no previous item"
+      (is (= (->> (p/parse env
+                           [{[:lesson/by-slug "pitch-and-octaves"]
+                             [{:lesson/prev [:url/slug]}]}]) <?)
+             {[:lesson/by-slug "pitch-and-octaves"] {:db/table    :lesson
+                                                     :db/id       88
+                                                     :lesson/prev nil}})))))
+
+(deftest test-read-lesson-next
+  (async-test
+    (testing "fetchs the next item"
+      (is (= (->> (p/parse env
+                           [{[:lesson/by-slug "pitch-and-octaves"]
+                             [{:lesson/next [:url/slug]}]}]) <?)
+             {[:lesson/by-slug "pitch-and-octaves"] {:db/table    :lesson
+                                                     :db/id       88
+                                                     :lesson/next {:db/id    42 :db/table :lesson
+                                                                   :url/slug "pitch-playlist"}}})))
+
+    (testing "return nil when there is no next item"
+      (is (= (->> (p/parse env
+                           [{[:lesson/by-slug "introducing-melody"]
+                             [{:lesson/next [:url/slug]}]}]) <?)
+             {[:lesson/by-slug "introducing-melody"] {:db/table    :lesson
+                                                      :db/id       107
+                                                      :lesson/next nil}})))))
 
 (deftest test-read-topic-started?
   (async-test

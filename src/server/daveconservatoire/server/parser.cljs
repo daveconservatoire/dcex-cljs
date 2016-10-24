@@ -101,6 +101,7 @@
       ::ps/fields     {:db/id                 "id"
                        :url/slug              "urltitle"
                        :youtube/id            "youtubeid"
+                       :lesson/order          "lessonno"
                        :lesson/topic-id       "topicno"
                        :lesson/course-id      "seriesno"
                        :lesson/title          "title"
@@ -137,7 +138,19 @@
                                                                                  :ex-answer/user-id   current-user-id}))
                                                           :lesson.view-state/started)))
                                                     nil)
-                                                  nil))}}
+                                                  nil))
+                       :lesson/prev           (fn [env]
+                                                (go-catch
+                                                  (let [res (<? (ps/sql-first-node env [[:where :lesson/order "<" (ps/row-get env :lesson/order)]
+                                                                                        [:and-where {:lesson/topic-id (ps/row-get env :lesson/topic-id)}]
+                                                                                        [:limit 1]]))]
+                                                    (if (not= res [:error :row-not-found]) res))))
+                       :lesson/next           (fn [env]
+                                                (go-catch
+                                                  (let [res (<? (ps/sql-first-node env [[:where :lesson/order ">" (ps/row-get env :lesson/order)]
+                                                                                        [:and-where {:lesson/topic-id (ps/row-get env :lesson/topic-id)}]
+                                                                                        [:limit 1]]))]
+                                                    (if (not= res [:error :row-not-found]) res))))}}
 
      {::ps/table      :user
       ::ps/table-name "User"

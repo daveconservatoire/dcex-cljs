@@ -10,12 +10,12 @@
   :source-paths ["src/devcards" "src/cljs" "src/site" "script" "src/server" "src/dev"]
 
   :dependencies [[org.clojure/clojure "1.9.0-alpha13" :scope "provided"]
-                 [org.clojure/clojurescript "1.9.229" :scope "provided"]
+                 [org.clojure/clojurescript "1.9.293" :scope "provided"]
                  [org.clojure/core.async "0.2.374"]
                  [org.omcljs/om "1.0.0-alpha47" :exclusions [cljsjs/react-dom cljsjs/react]]
                  [cljsjs/react-with-addons "15.2.1-0"]
                  [cljsjs/react-dom "15.2.1-0" :exclusions [cljsjs/react]]
-                 [navis/untangled-client "0.5.7" :exclusions [org.omcljs/om com.cognitect/transit-cljs cljsjs/react-dom org.clojure/tools.reader cljsjs/react]]
+                 [navis/untangled-client "0.6.0-SNAPSHOT" :exclusions [org.omcljs/om com.cognitect/transit-cljs cljsjs/react-dom org.clojure/tools.reader cljsjs/react]]
 
                  [figwheel-sidecar "0.5.4-4" :exclusions [clj-time joda-time org.clojure/tools.reader] :scope "test"]
                  [bidi "2.0.9"]

@@ -143,12 +143,14 @@
                                                 (go-catch
                                                   (let [res (<? (ps/sql-first-node env [[:where :lesson/order "<" (ps/row-get env :lesson/order)]
                                                                                         [:and-where {:lesson/topic-id (ps/row-get env :lesson/topic-id)}]
+                                                                                        [:order-by :lesson/order "desc"]
                                                                                         [:limit 1]]))]
                                                     (if (not= res [:error :row-not-found]) res))))
                        :lesson/next           (fn [env]
                                                 (go-catch
                                                   (let [res (<? (ps/sql-first-node env [[:where :lesson/order ">" (ps/row-get env :lesson/order)]
                                                                                         [:and-where {:lesson/topic-id (ps/row-get env :lesson/topic-id)}]
+                                                                                        [:order-by :lesson/order]
                                                                                         [:limit 1]]))]
                                                     (if (not= res [:error :row-not-found]) res))))}}
 

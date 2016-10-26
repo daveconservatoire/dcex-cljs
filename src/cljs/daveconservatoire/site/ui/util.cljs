@@ -47,10 +47,16 @@
                :props map?)
   :ret map?)
 
-(defn model-ident [{:keys [db/id db/table]}]
-  (if (and table id)
-    [(keyword (name table) "by-id") id]
-    [:unknown 0]))
+(defn model-map? [m]
+  (and (contains? m :db/id)
+       (contains? m :db/table)))
+
+(defn model-ident [props]
+  (let [props (if (model-map? props) props (first (vals props)))
+        {:keys [db/id db/table]} props]
+    (if (and table id)
+      [(keyword (name table) "by-id") id]
+      [:unknown nil])))
 
 (s/fdef model-ident
   :args (s/cat :model (s/keys :opt [:db/id :db/table]))
@@ -58,7 +64,9 @@
 
 (defn route-prop [c [k route-param]]
   (let [{:keys [app/route] :as props} (if (om/component? c) (om/props c) c)]
-    (get props [k (get-in route [::r/params route-param])])))
+    (if route
+      (get props [k (get-in route [::r/params route-param])])
+      (some-> props vals first))))
 
 (s/fdef route-prop
   :args (s/cat :component om/component?

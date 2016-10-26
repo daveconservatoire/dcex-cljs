@@ -142,17 +142,15 @@
   static om/IQuery
   (query [_] ['*])
 
-  static om/Ident
-  (ident [_ props] [:exercise/by-name (::name props)])
-
   Object
   (render [this]
     (let [{:keys [::options ::ex-answer ::ex-total-questions
                   ::streak-count ::notes] :as props} (om/props this)
           [opt-type _] (s/conform ::options options)
+          parent (om/parent this)
           check-answer #(do
-                         (om/transact! this `[(dcex/check-answer)
-                                              (untangled/load {:query [{:app/me ~(om/get-query UserScore)}] :marker false})]))]
+                         (om/transact! parent `[(dcex/check-answer)
+                                                (untangled/load {:query [{:app/me ~(om/get-query UserScore)}] :marker false})]))]
       (s/assert ::ex-props props)
       (dom/div #js {:className "lesson-content"}
         (dom/div #js {:className "single-exercise visited-no-recolor"
@@ -198,7 +196,7 @@
                                     :text
                                     (dom/input #js {:type     "text"
                                                     :value    (or ex-answer "")
-                                                    :onChange #(um/set-string! this ::ex-answer :event %)})
+                                                    :onChange #(um/set-string! parent ::ex-answer :event %)})
 
                                     :select
                                     (dom/ul nil
@@ -208,7 +206,7 @@
                                             (dom/input #js {:type     "radio" :name "exercise-answer"
                                                             :checked  (= ex-answer value)
                                                             :value    value
-                                                            :onChange #(um/set-string! this ::ex-answer :event %)})
+                                                            :onChange #(um/set-string! parent ::ex-answer :event %)})
                                             (dom/span #js {:className "value"} label)))))))
                                 (dom/div #js {:className "answer-buttons"}
                                   (dom/div #js {:className "check-answer-wrapper"}

@@ -4,12 +4,15 @@
             [daveconservatoire.site.routes :as r]
             [daveconservatoire.site.ui :as ui]
             [daveconservatoire.site.ui.util :as uiu]
+            [daveconservatoire.site.core :as dc]
             [om.next :as om]
             [om.util :as omu]))
 
 (defn update-page [{:keys [state]} {:keys [route route/data]}]
-  (om/set-query! (-> @state ::om/queries ffirst) {:params {:route/data data}})
-  (swap! state assoc :app/route route))
+  (let [reconciler (some-> dc/app deref :reconciler)
+        root (om/class->any reconciler ui/Root)]
+    (om/set-query! root {:params {:route/data data}})
+    (swap! state assoc :app/route route)))
 
 (defmethod m/mutate 'app/set-route
   [{:keys [state reconciler] :as env} _ route]
@@ -25,7 +28,7 @@
        (if data-query
          (do
            (swap! state assoc :app/route-swap page-data)
-           (om/transact! reconciler [`(untangled/load {:query [{:route/data ~data-query}]
+           (om/transact! reconciler [`(untangled/load {:query         [{:route/data ~data-query}]
                                                        :post-mutation fetch/complete-set-route})])
            (df/load reconciler :app/me ui/DesktopMenu {:marker false}))
          (update-page env page-data))))})

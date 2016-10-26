@@ -220,7 +220,8 @@
 
 (om/defui ^:once DesktopMenu
   static om/Ident
-  (ident [_ props] (u/model-ident props))
+  (ident [_ props]
+    (u/model-ident props))
 
   static om/IQuery
   (query [_] [:db/id :db/table :user/name :user/score])
@@ -521,7 +522,7 @@
 
 (om/defui ^:once LessonCell
   static om/IQuery
-  (query [_] [:db/id :lesson/title :youtube/id :lesson/type :lesson/view-state :url/slug])
+  (query [_] [:db/id :db/table :lesson/title :youtube/id :lesson/type :lesson/view-state :url/slug])
 
   static om/Ident
   (ident [_ props] (u/model-ident props))
@@ -542,7 +543,7 @@
 
 (om/defui ^:once TopicSideBarLink
   static om/IQuery
-  (query [_] [:topic/title :topic/started? :url/slug])
+  (query [_] [:db/id :db/table :topic/title :topic/started? :url/slug])
 
   static om/Ident
   (ident [_ props] (u/model-ident props))
@@ -560,7 +561,7 @@
 
 (om/defui ^:once CourseTopicsMenu
   static om/IQuery
-  (query [_] [:course/title
+  (query [_] [:db/id :db/table :course/title
               {:course/topics (om/get-query TopicSideBarLink)}])
 
   static om/Ident
@@ -590,10 +591,12 @@
       [{[:topic/by-slug slug] (om/get-query this)}]))
 
   static om/Ident
-  (ident [_ props] (u/model-ident props))
+  (ident [_ props]
+    (u/model-ident props))
 
   static om/IQuery
-  (query [_] [{:topic/course (om/get-query CourseTopicsMenu)}
+  (query [_] [:db/id :db/table
+              {:topic/course (om/get-query CourseTopicsMenu)}
               {:topic/lessons (om/get-query LessonCell)}])
 
   Object
@@ -638,7 +641,7 @@
 
 (om/defui ^:once LessonTopicMenuItem
   static om/IQuery
-  (query [_] [:lesson/title :url/slug])
+  (query [_] [:db/id :db/table :lesson/title :url/slug])
 
   static om/Ident
   (ident [_ props] (u/model-ident props))
@@ -655,7 +658,7 @@
 
 (om/defui ^:once LessonTopicMenu
   static om/IQuery
-  (query [_] [:url/slug
+  (query [_] [:db/id :db/table :url/slug
               {:topic/course [:course/title
                               {:course/topics (om/get-query TopicSideBarLink)}]}
               {:topic/lessons (om/get-query LessonTopicMenuItem)}])
@@ -727,7 +730,7 @@
 
 (om/defui ^:once LessonVideo
   static om/IQuery
-  (query [_] [:db/id :lesson/type :lesson/description :youtube/id
+  (query [_] [:db/id :db/table :lesson/type :lesson/description :youtube/id
               {:lesson/topic (om/get-query LessonTopicMenu)}
               {:ph/pagination (om/get-query LessonPagination)}])
 
@@ -755,7 +758,7 @@
 
 (om/defui ^:once LessonPlaylistItem
   static om/IQuery
-  (query [_] [:db/id :youtube/id :playlist-item/title :playlist-item/text])
+  (query [_] [:db/id :db/table :youtube/id :playlist-item/title :playlist-item/text])
 
   static om/Ident
   (ident [_ props] (u/model-ident props))
@@ -787,7 +790,7 @@
 
 (om/defui ^:once LessonPlaylist
   static om/IQuery
-  (query [_] [:lesson/type :lesson/description :ui/selected-index :db/id
+  (query [_] [:lesson/type :lesson/description :ui/selected-index :db/id :db/table
               {:lesson/playlist-items (om/get-query LessonPlaylistItem)}
               {:lesson/topic (om/get-query LessonTopicMenu)}
               {:ph/pagination (om/get-query LessonPagination)}])
@@ -802,7 +805,7 @@
                          (om/transact! (om/get-reconciler this)
                                        [type id]
                                        [`(ui/set-props {:ui/selected-index ~n})
-                                        :route/data]))]
+                                        :route/data :app/route]))]
       (container
         (dom/div #js {:className "row"}
           (dom/div #js {:className "span3"}
@@ -823,7 +826,7 @@
     {:exercise/data '[*]})
 
   static om/IQuery
-  (query [_] [:lesson/type :lesson/title :url/slug :db/id
+  (query [_] [:lesson/type :lesson/title :url/slug :db/id :db/table
               {:exercise/data '?exercise/data}
               {:lesson/topic (om/get-query LessonTopicMenu)}
               {:ph/pagination (om/get-query LessonPagination)}])
@@ -837,6 +840,7 @@
                         (merge info))
               ident (om/ident class state)
               r (om/get-reconciler this)]
+          (om/set-query! this {:params {:exercise/data (om/get-query class)}})
           (om/transact! r ident [`(ui/set-props ~state)])
           (om/transact! r [type id] [`(ui/set-props {:exercise/data ~ident})])))))
 
@@ -858,8 +862,10 @@
 
 (om/defui ^:once LessonPage
   static om/Ident
-  (ident [_ {:keys [lesson/type db/id]}]
-    [(or type :unknown) id])
+  (ident [_ props]
+    (let [props (if (u/model-map? props) props (first (vals props)))
+          {:keys [lesson/type db/id]} props]
+      [(or type :unknown) id]))
 
   static om/IQuery
   (query [_]
@@ -1132,7 +1138,7 @@
 
 (om/defui ^:once HomeCourseTopic
   static om/IQuery
-  (query [_] [:db/id :topic/title :topic/started? :url/slug])
+  (query [_] [:db/id :db/table :topic/title :topic/started? :url/slug])
 
   static om/Ident
   (ident [_ props] (u/model-ident props))
@@ -1171,7 +1177,7 @@
 
 (om/defui ^:once HomeCourseTopicOpen
   static om/IQuery
-  (query [_] [:db/id {:topic/lessons (om/get-query LessonCell)}])
+  (query [_] [:db/id :db/table {:topic/lessons (om/get-query LessonCell)}])
 
   static om/Ident
   (ident [_ props] (u/model-ident props))
@@ -1302,29 +1308,23 @@
   static uc/InitialAppState
   (initial-state [_ _]
     (let [route (r/current-handler)]
-      {:app/route    route
+      {:app/route    nil
        :ui/banner    (rand-nth [banner-subscribe banner-personal-tuition])
        :ui/react-key (random-uuid)
        :route/data   (r/route->initial-state route)
-       :app/me       {:ui/fetch-state {}}}))
+       :app/me       {:db/id 0 :db/table :user :ui/fetch-state {}}}))
 
   static om/IQueryParams
-  (params [this]
+  (params [_]
     {:route/data []})
 
   static om/IQuery
-  (query [this]
+  (query [_]
     [:app/route :ui/react-key :ui/banner
      {:app/me (om/get-query DesktopMenu)}
      {:route/data '?route/data}])
 
   Object
-  (componentWillMount [this]
-    (let [{:keys [app/route]} (om/props this)
-          page-comp (r/route->component route)
-          initial-query (om/get-query page-comp)]
-      (om/set-query! this {:params {:route/data (u/normalize-route-data-query initial-query)}})))
-
   (componentDidMount [this]
     (add-watch (some-> (om/get-reconciler this) :config :state)
                :auth-state-detector
@@ -1352,5 +1352,6 @@
         (u/transition-group #js {:transitionName "loading" :transitionEnterTimeout 200 :transitionLeaveTimeout 200}
           (if (df/loading? (get data :ui/fetch-state))
             (loading nil)))
-        ((u/route->factory route) data)
+        (if route
+          ((u/route->factory route) data))
         (footer {:react-key "footer"})))))

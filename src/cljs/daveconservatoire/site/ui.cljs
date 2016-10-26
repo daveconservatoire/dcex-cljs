@@ -1108,7 +1108,7 @@
   (ident [_ props] (u/model-ident props))
 
   static om/IQuery
-  (query [_] [:db/table :db/id {:user/activity (om/get-query ProfileActivity)}])
+  (query [_] [:db/id :db/table {:user/activity (om/get-query ProfileActivity)}])
 
   Object
   (render [this]
@@ -1322,6 +1322,7 @@
   (query [_]
     [:app/route :ui/react-key :ui/banner
      {:app/me (om/get-query DesktopMenu)}
+     {:route/next-data [:ui/fetch-state]}
      {:route/data '?route/data}])
 
   Object
@@ -1342,7 +1343,7 @@
     (remove-watch (some-> (om/get-reconciler this) :config :state) :auth-state-detector))
 
   (render [this]
-    (let [{:keys [app/route app/me route/data ui/react-key ui/banner]} (om/props this)]
+    (let [{:keys [app/route app/me route/data route/next-data ui/react-key ui/banner]} (om/props this)]
       (dom/div #js {:key react-key}
         (when (and banner
                    (not (signed-in? me))
@@ -1350,7 +1351,7 @@
           (banner))
         (desktop-menu (assoc me :react-key "desktop-menu"))
         (u/transition-group #js {:transitionName "loading" :transitionEnterTimeout 200 :transitionLeaveTimeout 200}
-          (if (df/loading? (get data :ui/fetch-state))
+          (if (df/loading? (get next-data :ui/fetch-state))
             (loading nil)))
         (if route
           ((u/route->factory route) data))

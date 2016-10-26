@@ -29,6 +29,7 @@
          (do
            (swap! state assoc :app/route-swap page-data)
            (om/transact! reconciler [`(untangled/load {:query         [{:route/data ~data-query}]
+                                                       :target        [:route/next-data]
                                                        :post-mutation fetch/complete-set-route})])
            (df/load reconciler :app/me ui/DesktopMenu {:marker false}))
          (update-page env page-data))))})
@@ -37,6 +38,7 @@
   [{:keys [state] :as env} _ _]
   {:action
    (fn []
+     (swap! state assoc :route/data (get @state :route/next-data))
      (update-page env (get @state :app/route-swap))
      (if (map? (get @state :route/data))
        (let [pairs (filter (fn [[k _]] (omu/ident? k)) (get @state :route/data))]

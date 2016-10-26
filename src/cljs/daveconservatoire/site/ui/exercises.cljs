@@ -203,18 +203,19 @@
                                       (for [[value label] options]
                                         (dom/li #js {:key value}
                                           (dom/label nil
-                                            (dom/input #js {:type     "radio" :name "exercise-answer"
-                                                            :checked  (= ex-answer value)
-                                                            :value    value
-                                                            :onChange #(um/set-string! parent ::ex-answer :event %)})
-                                            (dom/span #js {:className "value"} label)))))))
-                                (dom/div #js {:className "answer-buttons"}
-                                  (dom/div #js {:className "check-answer-wrapper"}
-                                    (dom/input #js {:className "simple-button green" :type "button" :value "Check Answer"
-                                                    :onClick   check-answer}))
-                                  (dom/input #js {:className "simple-button green" :id "next-question-button" :name "correctnextbutton" :style #js {:display "none"} :type "button" :value "Correct! Next Question..."})
-                                  (dom/div #js {:id "positive-reinforcement" :style #js {:display "none"}}
-                                    (dom/img #js {:src "/images/face-smiley.png"})))))))
+                                            (dom/button #js {:type "button"
+                                                             :onClick #(do
+                                                                        (um/set-string! parent ::ex-answer :value value)
+                                                                        (check-answer))}
+                                              label)))))))
+                                (if (contains? #{:text} opt-type)
+                                  (dom/div #js {:className "answer-buttons"}
+                                    (dom/div #js {:className "check-answer-wrapper"}
+                                      (dom/input #js {:className "simple-button green" :type "button" :value "Check Answer"
+                                                      :onClick   check-answer}))
+                                    (dom/input #js {:className "simple-button green" :id "next-question-button" :name "correctnextbutton" :style #js {:display "none"} :type "button" :value "Correct! Next Question..."})
+                                    (dom/div #js {:id "positive-reinforcement" :style #js {:display "none"}}
+                                      (dom/img #js {:src "/images/face-smiley.png"}))))))))
                         (dom/div #js {:style #js {:clear "both"}})))))))))))))
 
 (def exercise (om/factory Exercise))

@@ -6,7 +6,7 @@
             [daveconservatoire.site.ui :as ui]))
 
 (defn start-callback [{:keys [reconciler]}]
-  (df/load-data reconciler [{:app/me (om/get-query ui/DesktopMenu)}])
+  (df/load reconciler :app/me ui/DesktopMenu)
   (om/transact! reconciler `[(app/set-route ~(r/current-handler))]))
 
 (defonce app

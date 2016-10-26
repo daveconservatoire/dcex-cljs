@@ -25,8 +25,9 @@
        (if data-query
          (do
            (swap! state assoc :app/route-swap page-data)
-           (df/load-data reconciler [{:route/data data-query}
-                                     {:app/me (om/get-query ui/DesktopMenu)}] :post-mutation 'fetch/complete-set-route))
+           (om/transact! reconciler [`(untangled/load {:query [{:route/data ~data-query}]
+                                                       :post-mutation fetch/complete-set-route})])
+           (df/load reconciler :app/me ui/DesktopMenu))
          (update-page env page-data))))})
 
 (defmethod m/mutate 'fetch/complete-set-route

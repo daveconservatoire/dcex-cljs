@@ -365,9 +365,12 @@
         (dom/div #js {:className "container wrapper"}
           (dom/div #js {:className "inner_content"}
             (dom/div #js {:className "row"}
-              (testimonial {:quote "Watching your videos made music seem a lot less like sorcery, they do make it much more magical though." :person "Kristian Theisson, Dave Conservatoire student"})
-              (testimonial {:quote "Wishing you all the best with Dave Conservatoire. I'll be sure to share it with my colleagues." :person "Martin Bean, Vice Chancellor, Open University"})
-              (testimonial {:quote "The stuff you're doing is super cool! I hope we get the chance to meet and/or collaborate in the not-too-far-off future." :person "Salman Khan, Founder, Khan Academy"}))))
+              (testimonial {:quote  "Watching your videos made music seem a lot less like sorcery, they do make it much more magical though."
+                            :person "Kristian Theisson, Dave Conservatoire student"})
+              (testimonial {:quote  "Wishing you all the best with Dave Conservatoire. I'll be sure to share it with my colleagues."
+                            :person "Martin Bean, Vice Chancellor, Open University"})
+              (testimonial {:quote  "The stuff you're doing is super cool! I hope we get the chance to meet and/or collaborate in the not-too-far-off future."
+                            :person "Salman Khan, Founder, Khan Academy"}))))
         (get-started)))))
 
 (defmethod r/route->component ::r/about [_] AboutPage)
@@ -690,10 +693,42 @@
       (om/set-state! c {:reported? true})
       (om/transact! (om/get-reconciler c) `[(lesson/save-view {:db/id ~id})]))))
 
+(om/defui ^:once SiblingLessonQuery
+  static om/Ident
+  (ident [_ props] (u/model-ident props))
+
+  static om/IQuery
+  (query [_] [:db/table :db/id :url/slug]))
+
+(om/defui ^:once LessonPagination
+  static om/IQuery
+  (query [_] [:db/id :db/table
+              {:lesson/prev (om/get-query SiblingLessonQuery)}
+              {:lesson/next (om/get-query SiblingLessonQuery)}])
+
+  static om/Ident
+  (ident [_ props] (u/model-ident props))
+
+  Object
+  (render [this]
+    (let [{:lesson/keys [prev next]} (om/props this)]
+      (dom/ul #js {:className "pager"}
+        (dom/li #js {:className "previous"}
+          (if (seq prev)
+            (link {::r/handler ::r/lesson ::r/params {::r/slug (:url/slug prev)}}
+              "Previous")))
+        (dom/li #js {:className "next"}
+          (if (seq next)
+            (link {::r/handler ::r/lesson ::r/params {::r/slug (:url/slug next)}}
+              "Next")))))))
+
+(def lesson-pagination (om/factory LessonPagination))
+
 (om/defui ^:once LessonVideo
   static om/IQuery
   (query [_] [:db/id :lesson/type :lesson/description :youtube/id
-              {:lesson/topic (om/get-query LessonTopicMenu)}])
+              {:lesson/topic (om/get-query LessonTopicMenu)}
+              {:ph/pagination (om/get-query LessonPagination)}])
 
   Object
   (initLocalState [_] {:reported? false})
@@ -701,7 +736,7 @@
   (componentWillReceiveProps [this _] (om/set-state! this {:reported? false}))
 
   (render [this]
-    (let [{:keys [lesson/description lesson/topic youtube/id] :as props} (om/props this)]
+    (let [{:keys [lesson/description lesson/topic youtube/id ph/pagination]} (om/props this)]
       (container
         (dom/div #js {:className "row"}
           (dom/div #js {:className "span3"}
@@ -712,7 +747,8 @@
                 (ytp/youtube-player (om/computed {:videoId id}
                                                  {:on-state-change #(if %2 (report-video-play this))})))
               (dom/div #js {:className "well"}
-                description))))))))
+                description))
+            (lesson-pagination pagination)))))))
 
 (def lesson-video (om/factory LessonVideo))
 
@@ -728,9 +764,13 @@
     (let [{:keys [youtube/id playlist-item/title playlist-item/text]} (om/props this)]
       (dom/div nil
         (dom/div #js {:className "vendor"} (ytp/youtube-player {:videoId id}))
-        (dom/div #js {:className "well"}
-          (dom/div nil title)
-          (dom/div nil text))))))
+        (dom/div #js {:className "classroom-slider coda-slider-wrapper arrows" :style #js {:padding 0}}
+          (dom/div #js {:style {:width 20}})
+          (dom/div #js {:className "coda-slider" :style {:height 169}}
+            (dom/div #js {:className "panel" :style {:display "block"}}
+              (dom/div #js {:className "panel-wrapper"}
+                (dom/h2 #js {:className "title"} title)
+                (dom/p nil text)))))))))
 
 (def lesson-playlist-item (om/factory LessonPlaylistItem))
 
@@ -738,11 +778,13 @@
   static om/IQuery
   (query [_] [:lesson/type :lesson/description :ui/selected-index :db/id
               {:lesson/playlist-items (om/get-query LessonPlaylistItem)}
-              {:lesson/topic (om/get-query LessonTopicMenu)}])
+              {:lesson/topic (om/get-query LessonTopicMenu)}
+              {:ph/pagination (om/get-query LessonPagination)}])
 
   Object
   (render [this]
-    (let [{:keys [db/id lesson/topic lesson/type lesson/playlist-items ui/selected-index]} (om/props this)
+    (let [{:keys [db/id lesson/topic lesson/type lesson/playlist-items ui/selected-index
+                  ph/pagination]} (om/props this)
           selected-index (or selected-index 0)
           item (nth (vec playlist-items) selected-index)
           set-selected (fn [n]
@@ -758,11 +800,21 @@
             (dom/div #js {:className "lesson-content"}
               (if item
                 (lesson-playlist-item item))
-              (dom/div nil
-                (dom/button #js {:onClick  #(set-selected (dec selected-index))
-                                 :disabled (= 0 selected-index)} "<<")
-                (dom/button #js {:style    #js {:float "right"} :onClick #(set-selected (inc selected-index))
-                                 :disabled (= (dec (count playlist-items)) selected-index)} ">>")))))))))
+              (dom/div #js {:className "classroom-slider coda-slider-wrapper arrows" :style #js {:padding 0}}
+                (dom/div #js {:className "coda-nav-left", :id "coda-nav-left-1"}
+                  (dom/a #js {:href     "#"
+                              :onClick  #(set-selected (dec selected-index))
+                              :disabled (= 0 selected-index)}
+                    "«"))
+                (dom/div #js {:className "coda-slider", :id "coda-slider-1", :style {:height 169}}
+                  (dom/div #js {:className "panel", :style {:display "block"}}
+                    (dom/div #js {:className "panel-wrapper"})))
+                (dom/div #js {:className "coda-nav-right", :id "coda-nav-right-1"}
+                  (dom/a #js {:href     "#"
+                              :onClick  #(set-selected (inc selected-index))
+                              :disabled (= (dec (count playlist-items)) selected-index)}
+                    "»"))))
+            (lesson-pagination pagination)))))))
 
 (def lesson-playlist (om/factory LessonPlaylist))
 
@@ -774,7 +826,8 @@
   static om/IQuery
   (query [_] [:lesson/type :lesson/title :url/slug :db/id
               {:exercise/data '?exercise/data}
-              {:lesson/topic (om/get-query LessonTopicMenu)}])
+              {:lesson/topic (om/get-query LessonTopicMenu)}
+              {:ph/pagination (om/get-query LessonPagination)}])
 
   Object
   (componentDidMount [this]
@@ -789,7 +842,7 @@
           (om/transact! r [type id] [`(ui/set-props {:exercise/data ~ident})])))))
 
   (render [this]
-    (let [{:keys [lesson/topic url/slug exercise/data]} (om/props this)
+    (let [{:keys [lesson/topic url/slug exercise/data ph/pagination]} (om/props this)
           {:keys [::ux/class]} (ux/slug->exercise slug)]
       (container
         (dom/div #js {:className "row"}
@@ -799,7 +852,8 @@
             (if class
               (when (get data ::ux/streak-count)
                 ((om/factory class) data))
-              (str "Exercice [" slug "] not implemented"))))))))
+              (str "Exercice [" slug "] not implemented"))
+            (lesson-pagination pagination)))))))
 
 (def lesson-exercise (om/factory LessonExercise))
 

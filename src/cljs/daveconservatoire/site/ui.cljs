@@ -12,7 +12,8 @@
             [untangled.client.data-fetch :as df]
             [untangled.client.impl.data-fetch :as dfi]
             [cljs.spec :as s]
-            [daveconservatoire.site.ui.listeners :as l])
+            [daveconservatoire.site.ui.listeners :as l]
+            [clojure.string :as str])
   (:import goog.i18n.DateTimeFormat))
 
 (defn ordinal-suffix [i]
@@ -746,8 +747,8 @@
               (dom/div #js {:className "vendor"}
                 (ytp/youtube-player (om/computed {:videoId id}
                                                  {:on-state-change #(if %2 (report-video-play this))})))
-              (dom/div #js {:className "well"}
-                description))
+              (if-not (str/blank? description)
+                (dom/div #js {:className "well"} description)))
             (lesson-pagination pagination)))))))
 
 (def lesson-video (om/factory LessonVideo))

@@ -761,16 +761,26 @@
 
   Object
   (render [this]
-    (let [{:keys [youtube/id playlist-item/title playlist-item/text]} (om/props this)]
+    (let [{:keys [youtube/id playlist-item/title playlist-item/text]} (om/props this)
+          {:keys [set-selected selected-index playlist-items]} (om/get-computed this)]
       (dom/div nil
         (dom/div #js {:className "vendor"} (ytp/youtube-player {:videoId id}))
-        (dom/div #js {:className "classroom-slider coda-slider-wrapper arrows" :style #js {:padding 0}}
-          (dom/div #js {:style {:width 20}})
+        (dom/div #js {:className "classroom-slider coda-slider-wrapper arrows"}
+          (dom/div #js {:className "coda-nav-left", :id "coda-nav-left-1"}
+            (dom/a #js {:href     "#"
+                        :onClick  #(set-selected (dec selected-index))
+                        :disabled (= 0 selected-index)}
+              "«"))
           (dom/div #js {:className "coda-slider" :style {:height 169}}
             (dom/div #js {:className "panel" :style {:display "block"}}
               (dom/div #js {:className "panel-wrapper"}
                 (dom/h2 #js {:className "title"} title)
-                (dom/p nil text)))))))))
+                (dom/p nil text))))
+          (dom/div #js {:className "coda-nav-right", :id "coda-nav-right-1"}
+            (dom/a #js {:href     "#"
+                        :onClick  #(set-selected (inc selected-index))
+                        :disabled (= (dec (count playlist-items)) selected-index)}
+              "»")))))))
 
 (def lesson-playlist-item (om/factory LessonPlaylistItem))
 
@@ -799,21 +809,9 @@
           (dom/div #js {:className "span9"}
             (dom/div #js {:className "lesson-content"}
               (if item
-                (lesson-playlist-item item))
-              (dom/div #js {:className "classroom-slider coda-slider-wrapper arrows" :style #js {:padding 0}}
-                (dom/div #js {:className "coda-nav-left", :id "coda-nav-left-1"}
-                  (dom/a #js {:href     "#"
-                              :onClick  #(set-selected (dec selected-index))
-                              :disabled (= 0 selected-index)}
-                    "«"))
-                (dom/div #js {:className "coda-slider", :id "coda-slider-1", :style {:height 169}}
-                  (dom/div #js {:className "panel", :style {:display "block"}}
-                    (dom/div #js {:className "panel-wrapper"})))
-                (dom/div #js {:className "coda-nav-right", :id "coda-nav-right-1"}
-                  (dom/a #js {:href     "#"
-                              :onClick  #(set-selected (inc selected-index))
-                              :disabled (= (dec (count playlist-items)) selected-index)}
-                    "»"))))
+                (lesson-playlist-item (om/computed item {:set-selected   set-selected
+                                                         :selected-index selected-index
+                                                         :playlist-items playlist-items}))))
             (lesson-pagination pagination)))))))
 
 (def lesson-playlist (om/factory LessonPlaylist))

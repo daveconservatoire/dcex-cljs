@@ -27,7 +27,7 @@
            (swap! state assoc :app/route-swap page-data)
            (om/transact! reconciler [`(untangled/load {:query [{:route/data ~data-query}]
                                                        :post-mutation fetch/complete-set-route})])
-           (df/load reconciler :app/me ui/DesktopMenu))
+           (df/load reconciler :app/me ui/DesktopMenu {:marker false}))
          (update-page env page-data))))})
 
 (defmethod m/mutate 'fetch/complete-set-route

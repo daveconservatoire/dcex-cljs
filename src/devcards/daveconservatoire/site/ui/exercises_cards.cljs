@@ -7,15 +7,23 @@
             [om.dom :as dom])
   (:require-macros [daveconservatoire.site.ui.exercises-cards :refer [defex]]))
 
-(defn ex-container [{:keys [::ex/class ::ex/props]}]
+(defn ex-container [{:keys [::ex/class ::ex/props ::ex/name] :as info}]
   (om/ui
     static uc/InitialAppState
-    (initial-state [_ _] {:exercice (uc/initial-state class props)})
+    (initial-state [_ _]
+                   {:exercice (uc/initial-state class (assoc props ::ex/name name))})
 
     static om/IQuery
     (query [_] [{:exercice (om/get-query class)}])
 
     Object
+    (componentDidMount [this]
+                       (let [state (-> (uc/initial-state class props)
+                                       (merge info))
+                             ident (om/ident class state)
+                             r (om/get-reconciler this)]
+                         (om/transact! r ident [`(ui/set-props ~state)])))
+
     (render [this]
             (let [{:keys [exercice]} (om/props this)]
               ((om/factory class) exercice)))))
@@ -29,6 +37,7 @@
 (defex grand-staff-reading)
 (defex rhythm-maths)
 (defex rhythm-reading)
+(defex chord-recognition)
 (defex intervals-1)
 (defex intervals-2)
 (defex intervals-3)

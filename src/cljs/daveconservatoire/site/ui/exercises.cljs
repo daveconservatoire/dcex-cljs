@@ -64,22 +64,22 @@
   :args (s/cat :props (s/keys :opt [::progress-total ::progress-value]))
   :ret ::react-component)
 
+(defn note->node [note]
+  {::audio/node-gen (->> note audio/semitone->note (get @audio/*sound-library*))})
+
 (defn prepare-notes [notes]
   (->> notes
        (into [] (map (fn [s]
                        (let [[note duration] (if (vector? s) s [s 2])]
-                         {::audio/node-gen (->> note audio/semitone->note (get @audio/*sound-library*))
-                          ::audio/duration duration}))))))
+                         (-> (note->node note)
+                             (assoc ::audio/duration duration))))))))
 
 (defn play-notes [notes]
   (let [nodes (prepare-notes notes)]
     (audio/play-sequence nodes {::audio/time (audio/current-time)})))
 
-(defn play-fn [props] (get props ::play-notes play-notes))
-
-(defn play-sound [c]
-  (let [play (or (-> (om/props c) ::play-notes) play-notes)]
-    (play (-> (om/props c) ::notes))))
+(defn play-sound [props]
+  ((-> props ::play-notes) (-> props ::notes)))
 
 (om/defui UserScore
   static om/IQuery
@@ -100,7 +100,7 @@
                              {::streak-count next-streak
                               ::ex-answer    nil}))]
            (swap! state assoc-in ref new-props)
-           ((play-fn new-props) (::notes new-props)))
+           (play-sound new-props))
          (swap! state update-in ref assoc ::streak-count 0))))
 
    :remote
@@ -137,7 +137,8 @@
   static uc/InitialAppState
   (initial-state [_ _] {::ex-answer          nil
                         ::ex-total-questions 10
-                        ::streak-count       0})
+                        ::streak-count       0
+                        ::play-notes         play-notes})
 
   static om/IQuery
   (query [_] ['*])
@@ -180,7 +181,7 @@
                                 (om/children this)
                                 (if (seq notes)
                                   (dom/a #js {:className "btn_primary"
-                                              :onClick   #(play-sound this)}
+                                              :onClick   #(play-sound props)}
                                     "Play Again")))))
                           (dom/div #js {:id "hintsarea"}))
                         (dom/div #js {:id "answer_area_wrap"}
@@ -188,7 +189,7 @@
                             (dom/form #js {:id "answerform" :name "answerform" :onSubmit #(do
                                                                                            (check-answer)
                                                                                            (.preventDefault %))}
-                              (dom/div #js {:className "info-box" :id "answercontent"}
+                              (dom/div #js {:className "info-box" :id "answercontent" :style #js {:marginLeft 200}}
                                 (dom/span #js {:className "info-box-header"}
                                   "Answer")
                                 (dom/div #js {:className "fancy-scrollbar" :id "solutionarea"}
@@ -203,7 +204,7 @@
                                       (for [[value label] options]
                                         (dom/li #js {:key value}
                                           (dom/label nil
-                                            (dom/button #js {:type "button"
+                                            (dom/button #js {:type    "button"
                                                              :onClick #(do
                                                                         (um/set-string! parent ::ex-answer :value value)
                                                                         (check-answer))}
@@ -399,6 +400,46 @@
             (dom/span #js {:key i}
               (dom/img #js {:src (str "/img/rhythmimages/" note ".jpg")}))))))))
 
+(def type->arrengement
+  {"major" audio/MAJOR-TRIAD
+   "minor" audio/MINOR-TRIAD})
+
+(om/defui ^:once ChordType
+  static uc/InitialAppState
+  (initial-state [this props]
+    (new-round this
+      (merge
+        (uc/initial-state Exercise nil)
+        {::name       "rhythm-math"
+         ::options    [["major" "Major"] ["minor" "Minor"]]
+         ::play-notes (fn [notes]
+                        (let [time (audio/current-time)]
+                          (audio/global-stop-all)
+                          (doseq [note notes]
+                            (audio/play (-> (note->node note)
+                                            (assoc ::audio/time time))))))}
+        props)))
+
+  static om/Ident
+  (ident [_ props] [:exercise/by-name (::name props)])
+
+  static om/IQuery
+  (query [_] '[*])
+
+  static IExercise
+  (new-round [_ props]
+    (let [type (rand-nth ["major" "minor"])
+          base-note (descriptor->value ["C3" ".." "A4"])]
+      (assoc props
+        ::notes (audio/chord base-note (type->arrengement type))
+        ::correct-answer type)))
+
+  Object
+  (render [this]
+    (let [{:keys [] :as props} (om/props this)]
+      (exercise props
+        (dom/p #js {:key "p"} "Tell which type of chord is being played.")))))
+
 (def rhythm-combinations
   [["w"]
    ["h" "h"]
@@ -564,6 +605,11 @@
 (defmethod slug->exercise "rhythm-reading" [name]
   {::name  name
    ::class RhythmReading
+   ::props {}})
+
+(defmethod slug->exercise "chord-recognition" [name]
+  {::name  name
+   ::class ChordType
    ::props {}})
 
 (defmethod slug->exercise "intervals-1" [name]

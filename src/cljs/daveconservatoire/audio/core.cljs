@@ -111,7 +111,7 @@
       (reset! a (<! (preload-sounds (merge piano metro)))))
     a))
 
-(def global-sound-manager
+(defonce global-sound-manager
   (atom {::nodes {}}))
 
 (defn play
@@ -166,6 +166,12 @@
   (doseq [node nodes]
     (.stop node)))
 
+(defn global-stop-all []
+  (stop-all (->> @global-sound-manager
+                 ::nodes
+                 (vals)
+                 (map ::node))))
+
 (s/fdef stop-all
   :args (s/cat :nodes (s/coll-of ::node)))
 
@@ -206,8 +212,11 @@
 (def ACCENT->VALUE {"b" -1 "#" 1 "" 0})
 (def SEMITONE->NOTE {0 "C" 1 "Db" 2 "D" 3 "Eb" 4 "E" 5 "F" 6 "Gb" 7 "G" 8 "Ab" 9 "A" 10 "Bb" 11 "B"})
 
-(def MAJOR-STEPS {0 0 1 2 2 4 3 5 4 7 5 9 6 11})
-(def MAJOR-ARRANGEMENTS {0 [0, 4, 7] 1 [0, 3, 7] 2 [0, 3, 7] 3 [0, 4, 7] 4 [0, 4, 7] 5 [0, 3, 7] 6 [0, 3, 6]})
+(def MAJOR-TRIAD [0 4 7])
+(def MINOR-TRIAD [0 3 7])
+
+(def MAJOR-STEPS {0 0, 1 2, 2 4, 3 5, 4 7, 5 9, 6 11})
+(def MAJOR-ARRANGEMENTS {0 MAJOR-TRIAD 1 MINOR-TRIAD 2 MINOR-TRIAD 3 MAJOR-TRIAD 4 MAJOR-TRIAD 5 MINOR-TRIAD 6 [0, 3, 6]})
 
 (s/def ::semitone-interval integer?)
 (s/def ::chord-intervals (s/coll-of ::semitone-interval))

@@ -1268,7 +1268,7 @@
       100))
 
   (render [this]
-    (dom/div #js {:style #js {:position "fixed" :top 0 :left 0 :right 0}}
+    (dom/div #js {:style #js {:position "fixed" :top 0 :left 0 :right 0 :zIndex 100}}
       (dom/div #js {:className "loading-bar"
                     :style     #js {:background "#F7941E"
                                     :transition "width 200ms"

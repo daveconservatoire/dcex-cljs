@@ -404,6 +404,8 @@
   {"major" audio/MAJOR-TRIAD
    "minor" audio/MINOR-TRIAD})
 
+
+
 (om/defui ^:once ChordType
   static uc/InitialAppState
   (initial-state [this props]
@@ -429,7 +431,7 @@
   static IExercise
   (new-round [_ props]
     (let [type (rand-nth ["major" "minor"])
-          base-note (descriptor->value ["C3" ".." "A4"])]
+          base-note (descriptor->value ["C3" ".." "G3"])]
       (assoc props
         ::notes (audio/chord base-note (type->arrengement type))
         ::correct-answer type)))
@@ -481,7 +483,7 @@
                           (let [time (audio/current-time)
                                 nodes (map #(update % ::audio/duration (partial * time-multiplier)) (prepare-notes notes))
                                 metro (map #(update % ::audio/duration (partial * time-multiplier)) (prepare-notes rhytm-metronome))]
-                            (audio/stop-all @last-play)
+                            (run! audio/stop @last-play)
                             (reset! last-play (concat (audio/play-sequence metro {::audio/time time})
                                                       (audio/play-sequence nodes {::audio/time (+ time (* 4 time-multiplier))}))))))}
         props)))

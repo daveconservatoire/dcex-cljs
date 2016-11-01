@@ -162,18 +162,13 @@
                :chan ::sound-point-chan)
   :ret ::sound-point-chan)
 
-(defn stop-all [nodes]
-  (doseq [node nodes]
-    (.stop node)))
+(defn stop [node] (.stop node))
 
 (defn global-stop-all []
-  (stop-all (->> @global-sound-manager
-                 ::nodes
-                 (vals)
-                 (map ::node))))
-
-(s/fdef stop-all
-  :args (s/cat :nodes (s/coll-of ::node)))
+  (run! stop (->> @global-sound-manager
+                  ::nodes
+                  (vals)
+                  (map ::node))))
 
 (defn consume-loop [interval chan]
   (let [control (async/chan)
@@ -191,11 +186,11 @@
                   control (case v
                             :stop-hard (->> (::nodes @active)
                                             (keys)
-                                            (stop-all))
+                                            (run! stop))
                             :stop (let [t (current-time)]
                                     (->> (::nodes @active)
                                          (keep (fn [[k {:keys [::time]}]] (if (> time t) k)))
-                                         (stop-all))))))
+                                         (run! stop))))))
               (recur))))))
     control))
 

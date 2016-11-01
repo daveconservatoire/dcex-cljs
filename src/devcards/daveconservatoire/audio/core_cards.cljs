@@ -180,4 +180,4 @@
                                                                       ::audio/duration d}))))]
                                       (reset! anodes (audio/play-sequence nodes {::audio/time (audio/current-time)}))))}
           "Play")
-        (dom/button #js {:onClick #(audio/stop-all @anodes)} "Stop")))))
+        (dom/button #js {:onClick #(run! audio/stop @anodes)} "Stop")))))

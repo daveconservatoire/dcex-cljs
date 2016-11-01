@@ -2,8 +2,9 @@
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [om.next :as om]
             [om.dom :as dom]
-            [cljs.core.async :as async :refer [chan <!]]
+            [cljs.core.async :refer [chan <!]]
             [goog.dom :as gdom]
+            [daveconservatoire.site.ui.util :as u]
             [cljs.spec :as s]))
 
 (s/def ::width pos-int?)
@@ -25,19 +26,7 @@
 (s/def ::bars (s/coll-of ::bars))
 (s/def ::score (s/keys :req [::width ::height] :opt [::bars ::clef ::scale ::backend]))
 
-(defonce scripts (atom {}))
-
-(defn load-external-script [path]
-  (if-let [script (get @scripts path)]
-    script
-    (let [c (chan)
-          script (gdom/createDom "script" #js {:src    path
-                                               :onload #(async/close! c)})]
-      (swap! scripts assoc path c)
-      (gdom/append js/document.body script)
-      c)))
-
-(defn require-vexflow [] (load-external-script "/vendor/vexflow-min.js"))
+(defn require-vexflow [] (u/load-external-script "/vendor/vexflow-min.js"))
 
 (defn format-and-draw [ctx stave notes]
   (js/Vex.Flow.Formatter.FormatAndDraw ctx stave (clj->js notes)))
@@ -84,7 +73,7 @@
       (let [div (js/ReactDOM.findDOMNode this)]
         (render-score (om/props this) div))))
 
-  (componentDidUpdate [this prev-props prev-state]
+  (componentDidUpdate [this _ _]
     (let [node (js/ReactDOM.findDOMNode this)]
       (gdom/removeChildren node)
       (render-score (om/props this) node)))

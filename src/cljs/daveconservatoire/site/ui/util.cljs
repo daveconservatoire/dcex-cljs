@@ -3,7 +3,9 @@
             [daveconservatoire.site.routes :as r :refer [routes]]
             [om.util :as omu]
             [goog.string :as gstr]
-            [cljs.spec :as s]))
+            [goog.dom :as gdom]
+            [cljs.spec :as s]
+            [cljs.core.async :as async :refer [chan]]))
 
 (def transition-group (js/React.createFactory js/React.addons.CSSTransitionGroup))
 
@@ -101,3 +103,17 @@
 (s/fdef current-uri-slug?
   :args (s/cat :handler ::r/handler :slug ::r/slug)
   :ret boolean?)
+
+(defonce scripts (atom {}))
+
+(defn load-external-script [path]
+  (if-let [script (get @scripts path)]
+    script
+    (let [c (chan)
+          script (gdom/createDom "script" #js {:src    path
+                                               :async  true
+                                               :type   "text/javascript"
+                                               :onload #(async/close! c)})]
+      (swap! scripts assoc path c)
+      (gdom/append js/document.body script)
+      c)))

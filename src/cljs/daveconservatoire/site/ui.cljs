@@ -7,6 +7,7 @@
             [daveconservatoire.site.ui.exercises :as ux]
             [daveconservatoire.site.ui.youtube-player :as ytp]
             [daveconservatoire.site.ui.portal :refer [portal]]
+            [daveconservatoire.site.ui.disqus :as dq]
             [untangled.client.core :as uc]
             [untangled.client.mutations :as um]
             [untangled.client.data-fetch :as df]
@@ -751,7 +752,9 @@
                 (ytp/youtube-player (om/computed {:videoId id}
                                                  {:on-state-change #(if %2 (report-video-play this))})))
               (if-not (str/blank? description)
-                (dom/div #js {:className "well"} description)))
+                (dom/div #js {:className "well"} description))
+              (dom/h3 nil "Any Questions?")
+              (dq/disqus-thread #::dq {:shortname "davecon"}))
             (lesson-pagination pagination)))))))
 
 (def lesson-video (om/factory LessonVideo))

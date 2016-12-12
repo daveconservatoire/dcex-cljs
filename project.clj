@@ -29,7 +29,7 @@
 
   :figwheel {:open-file-command "open-in-intellij"}
 
-  :prep-tasks []
+  :prep-tasks [["cljsbuild" "once" "server" "site-min"]]
 
   :profiles {:dev {:source-paths ["src/devcards" "src/cljs" "src/site" "script" "src/server" "src/dev"]
                    :dependencies [[navis/untangled-spec "0.3.9" :scope "test"]

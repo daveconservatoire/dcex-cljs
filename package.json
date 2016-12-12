@@ -9,6 +9,7 @@
     "build-js": "lein cljsbuild once prod",
     "start": "node server.js",
     "dev": "node target/server_dev/dcserver.js",
+    "server": "node target/server/dcserver.js",
     "test": "lein doo node server-test"
   },
   "dependencies": {

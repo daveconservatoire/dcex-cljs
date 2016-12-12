@@ -39,14 +39,7 @@
 
 (defonce rollbar-init (rollbar/init (::rollbar/access-token rollbar)))
 
-(defonce connection
-  (knex/create-connection
-    {:client     "mysql"
-     :connection {:host     "localhost"
-                  :user     "root"
-                  :password "root"
-                  :database "dcsite"
-                  :port     8889}}))
+(defonce connection (knex/create-connection (:database settings)))
 
 (def app (express))
 
@@ -186,7 +179,10 @@
     (.sendFile res (str (.cwd nodejs/process) "/resources/public/index.html"))))
 
 (defn -main []
-  (doto (.createServer http #(app %1 %2))
-    (.listen 3000)))
+  (let [port (or (gobj/getValueByKeys nodejs/process #js ["env" "PORT"])
+                 3000)]
+    (doto (.createServer http #(app %1 %2))
+      (.listen port))
+    (js/console.log "Server started at port" port)))
 
 (set! *main-cli-fn* -main)

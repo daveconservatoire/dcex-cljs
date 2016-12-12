@@ -70,11 +70,11 @@
                                :pseudo-names         true
                                :optimizations        :advanced
                                :asset-path           "/site-min"
-                               :output-to            "deploy/resources/public/site-min/site-min.js"
-                               :output-dir           "deploy/resources/public/site-min"
+                               :output-to            "resources/public/site-min/site-min.js"
+                               :output-dir           "resources/public/site-min"
                                :parallel-build       true
                                :recompile-dependents true
-                               :source-map           "deploy/resources/public/site-min/site-min.js.map"
+                               :source-map           "resources/public/site-min/site-min.js.map"
                                :verbose              false}}
 
                ;; server builds
@@ -91,13 +91,13 @@
                {:id           "server"
                 :source-paths ["src/cljs" "src/server"]
                 :compiler     {:main           daveconservatoire.server.core
-                               :output-to      "deploy/target/server/dcserver.js"
-                               :output-dir     "deploy/target/server"
+                               :output-to      "target/server/dcserver.js"
+                               :output-dir     "target/server"
                                :asset-path     "target/server"
                                :parallel-build true
                                :target         :nodejs
                                :optimizations  :simple
-                               :source-map     "deploy/target/server/dcserver.js.map"}}
+                               :source-map     "target/server/dcserver.js.map"}}
 
                {:id           "server-test"
                 :source-paths ["src/cljs" "src/server" "test/server"]

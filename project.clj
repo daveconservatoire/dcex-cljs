@@ -32,6 +32,8 @@
   :plugins [[lein-cljsbuild "1.1.4"]
             [lein-doo "0.1.6"]]
 
+  :min-lein-version "2.6.0"
+
   :figwheel {:open-file-command "open-in-intellij"}
 
   :cljsbuild {:builds

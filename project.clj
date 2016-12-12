@@ -7,7 +7,7 @@
   :clean-targets ^{:protect false} ["resources/public/devcards" "resources/public/site" "target"]
 
   :test-paths ["test/server"]
-  :source-paths ["src/devcards" "src/cljs" "src/site" "script" "src/server" "src/dev"]
+  :source-paths ["src/cljs" "src/site" "src/server"]
 
   :dependencies [[org.clojure/clojure "1.9.0-alpha13" :scope "provided"]
                  [org.clojure/clojurescript "1.9.293" :scope "provided"]
@@ -16,18 +16,11 @@
                  [cljsjs/react-with-addons "15.2.1-0"]
                  [cljsjs/react-dom "15.2.1-0" :exclusions [cljsjs/react]]
                  [navis/untangled-client "0.6.0-SNAPSHOT" :exclusions [org.omcljs/om com.cognitect/transit-cljs cljsjs/react-dom org.clojure/tools.reader cljsjs/react]]
-
-                 [figwheel-sidecar "0.5.4-4" :exclusions [clj-time joda-time org.clojure/tools.reader] :scope "test"]
                  [bidi "2.0.9"]
                  [kibu/pushy "0.3.6"]
-                 [binaryage/devtools "0.7.0" :exclusions [cljsjs/react]]
-                 [devcards "0.2.1-4" :exclusions [org.omcljs/om cljsjs/react cljsjs/react-dom]]
-
                  [org.clojure/test.check "0.9.0"]
                  [com.rpl/specter "0.9.3"]
-                 [com.cognitect/transit-cljs "0.8.239"]
-                 [navis/untangled-spec "0.3.9" :scope "test"]
-                 [lein-doo "0.1.6" :scope "test"]]
+                 [com.cognitect/transit-cljs "0.8.239"]]
 
   :plugins [[lein-cljsbuild "1.1.4"]
             [lein-doo "0.1.6"]]
@@ -35,6 +28,15 @@
   :min-lein-version "2.6.0"
 
   :figwheel {:open-file-command "open-in-intellij"}
+
+  :prep-tasks []
+
+  :profiles {:dev {:source-paths ["src/devcards" "src/cljs" "src/site" "script" "src/server" "src/dev"]
+                   :dependencies [[navis/untangled-spec "0.3.9" :scope "test"]
+                                  [figwheel-sidecar "0.5.4-4" :exclusions [clj-time joda-time org.clojure/tools.reader] :scope "test"]
+                                  [binaryage/devtools "0.7.0" :exclusions [cljsjs/react]]
+                                  [devcards "0.2.1-4" :exclusions [org.omcljs/om cljsjs/react cljsjs/react-dom]]
+                                  [lein-doo "0.1.6" :scope "test"]]}}
 
   :cljsbuild {:builds
               [{:id           "devcards"

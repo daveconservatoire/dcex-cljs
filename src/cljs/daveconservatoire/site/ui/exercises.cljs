@@ -92,16 +92,19 @@
   [{:keys [state ref]} _ _]
   {:action
    (fn []
-     (let [{:keys [::ex-answer ::correct-answer ::streak-count ::class] :as props} (get-in @state ref)]
+     (let [{:keys [::ex-answer ::correct-answer ::streak-count ::class ::last-error] :as props} (get-in @state ref)]
        (if (= ex-answer correct-answer)
          (let [next-streak (inc streak-count)
-               new-props (new-round class
-                           (merge props
-                             {::streak-count next-streak
-                              ::ex-answer    nil}))]
+               new-props (if last-error
+                           (assoc props ::streak-count next-streak
+                                        ::last-error false)
+                           (new-round class
+                             (merge props
+                               {::streak-count next-streak
+                                ::ex-answer    nil})))]
            (swap! state assoc-in ref new-props)
            (play-sound new-props))
-         (swap! state update-in ref assoc ::streak-count 0))))
+         (swap! state update-in ref assoc ::streak-count 0 ::last-error true))))
 
    :remote
    (let [{::keys [name streak-count ex-total-questions]} (get-in @state ref)]
@@ -431,7 +434,7 @@
   static IExercise
   (new-round [_ props]
     (let [type (rand-nth ["major" "minor"])
-          base-note (descriptor->value ["C3" ".." "G3"])]
+          base-note (descriptor->value ["C3" ".." "F3"])]
       (assoc props
         ::notes (audio/chord base-note (type->arrengement type))
         ::correct-answer type)))

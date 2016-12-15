@@ -17,3 +17,5 @@ resources/public/site
 node_modules/
 .idea/
 server.edn
+env.edn
+

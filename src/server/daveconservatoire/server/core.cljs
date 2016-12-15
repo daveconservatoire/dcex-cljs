@@ -9,6 +9,7 @@
             [cognitect.transit :as ct]
             [common.async :refer-macros [<? go-catch]]
             [daveconservatoire.server.parser :as p]
+            [daveconservatoire.server.settings :as ds]
             [pathom.sql :as ps]
             [nodejs.express :as ex]
             [nodejs.knex :as knex]
@@ -21,12 +22,7 @@
 
 (defonce source-map-support (.install (nodejs/require "source-map-support")))
 
-(defonce fs (nodejs/require "fs"))
-
-(defn slurp [path]
-  (.. fs (readFileSync path #js {:encoding "utf8"})))
-
-(def settings (read-string (slurp "./server.edn")))
+(def settings (ds/env-settings (ds/read-env "env.edn")))
 (def facebook (get settings :facebook))
 (def google (get settings :google))
 (def rollbar (get settings :rollbar))

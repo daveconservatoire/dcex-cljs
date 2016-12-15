@@ -9,7 +9,8 @@
 (defn use [app middleware] (.use app middleware))
 
 (defn session-get [req k]
-  (some-> (gobj/get (.-session req) (pr-str k))
+  (some-> (.-session req)
+          (gobj/get (pr-str k))
           (str)
           (read-string)))
 

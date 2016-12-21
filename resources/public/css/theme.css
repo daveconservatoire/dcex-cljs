@@ -2289,11 +2289,14 @@ right: 0px;
 }
 
 .loading-enter.loading-enter-active .loading-bar {
-	width: 30%;
+	width: 90%;
+	transition: width 1000ms ease-in;
 }
 
 .loading-leave.loading-leave-active .loading-bar {
 	width: 100%;
+	opacity: 0;
+	transition: all 100ms ease-out;
 }
 
 .ex-complete-enter {

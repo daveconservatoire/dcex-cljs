@@ -1274,7 +1274,6 @@
     (dom/div #js {:style #js {:position "fixed" :top 0 :left 0 :right 0 :zIndex 100}}
       (dom/div #js {:className "loading-bar"
                     :style     #js {:background "#F7941E"
-                                    :transition "width 200ms"
                                     :height     4}}))))
 
 (def loading (om/factory Loading))
@@ -1325,7 +1324,7 @@
   (query [_]
     [:app/route :ui/react-key :ui/banner
      {:app/me (om/get-query DesktopMenu)}
-     {:route/next-data [:ui/fetch-state]}
+     {:route/next-data [:clean :ui/fetch-state]}
      {:route/data '?route/data}])
 
   Object
@@ -1346,16 +1345,18 @@
     (remove-watch (some-> (om/get-reconciler this) :config :state) :auth-state-detector))
 
   (render [this]
-    (let [{:keys [app/route app/me route/data route/next-data ui/react-key ui/banner]} (om/props this)]
-      (dom/div #js {:key react-key}
+    (let [{:keys [app/route app/me route/data route/next-data ui/banner]} (om/props this)]
+      (dom/div nil
         (when (and banner
                    (not (signed-in? me))
                    (contains? banner-routes (::r/handler route)))
           (banner))
         (desktop-menu (assoc me :react-key "desktop-menu"))
-        (u/transition-group #js {:transitionName "loading" :transitionEnterTimeout 200 :transitionLeaveTimeout 200}
+        (u/transition-group #js {:transitionName "loading"
+                                 :transitionEnterTimeout 1000
+                                 :transitionLeaveTimeout 100}
           (if (df/loading? (get next-data :ui/fetch-state))
-            (loading nil)))
+            (loading {:key "load-bar"})))
         (if route
           ((u/route->factory route) data))
         (footer {:react-key "footer"})))))

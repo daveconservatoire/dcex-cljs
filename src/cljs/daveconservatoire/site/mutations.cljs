@@ -8,11 +8,12 @@
             [om.next :as om]
             [om.util :as omu]))
 
-(defn update-page [{:keys [state]} {:keys [route route/data]}]
-  (let [reconciler (some-> dc/app deref :reconciler)
-        root (om/class->any reconciler ui/Root)]
-    (om/set-query! root {:params {:route/data data}})
-    (swap! state assoc :app/route route)))
+(defn update-page [{:keys [state] :as env} {:keys [route route/data] :as params}]
+  (if-let [reconciler (some-> dc/app deref :reconciler)]
+    (let [root (om/class->any reconciler ui/Root)]
+      (om/set-query! root {:params {:route/data data}})
+      (swap! state assoc :app/route route))
+    (js/setTimeout #(update-page env params) 10)))
 
 (defmethod m/mutate 'app/set-route
   [{:keys [state reconciler] :as env} _ route]

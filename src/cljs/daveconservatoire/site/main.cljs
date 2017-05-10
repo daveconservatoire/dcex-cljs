@@ -1,10 +1,10 @@
 (ns daveconservatoire.site.main
-  (:require [daveconservatoire.site.ui :as ui]
-            [untangled.client.core :as uc]
+  (:require [untangled.client.core :as uc]
+            [daveconservatoire.site.ui :as ui]
             [daveconservatoire.site.core :refer [app]]
-            [daveconservatoire.site.routes :as r :refer [routes]]
-            [pushy.core :as pushy]
             [daveconservatoire.site.mutations]
+            [daveconservatoire.site.routes :as r]
+            [pushy.core :as pushy]
             [om.next :as om]))
 
 (defn set-page! [match]
@@ -16,4 +16,4 @@
 
 (pushy/start! history)
 
-(reset! app (uc/mount @app ui/Root "app-container"))
+(swap! app uc/mount ui/Root "app-container")

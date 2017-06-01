@@ -176,8 +176,8 @@
                           (dom/div #js {:key "done" :className "alert alert-success masterymsg"}
                             (dom/strong nil "Well done! ")
                             "You've mastered this skill - time to move on to something new")))
-                      (dom/div #js {:id "problem-and-answer" :className "framework-khan-exercises"}
-                        (dom/div #js {:id "problemarea"}
+                      (dom/div #js {:id "problem-and-answer" :className "framework-khan-exercises row-fluid"}
+                        (dom/div #js {:id "problemarea" :className "span9"}
                           (dom/div #js {:id "workarea"}
                             (dom/div #js {:id "problem-type-or-description"}
                               (dom/div #js {:className "problem"}
@@ -187,7 +187,7 @@
                                               :onClick   #(play-sound props)}
                                     "Play Again")))))
                           (dom/div #js {:id "hintsarea"}))
-                        (dom/div #js {:id "answer_area_wrap"}
+                        (dom/div #js {:id "answer_area_wrap" :className "span3"}
                           (dom/div #js {:id "answer_area"}
                             (dom/form #js {:id "answerform" :name "answerform" :onSubmit #(do
                                                                                            (check-answer)

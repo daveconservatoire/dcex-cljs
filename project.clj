@@ -9,8 +9,8 @@
   :test-paths ["test/server"]
   :source-paths ["src/cljs" "src/site" "src/server"]
 
-  :dependencies [[org.clojure/clojure "1.9.0-alpha14" :scope "provided"]
-                 [org.clojure/clojurescript "1.9.494" :scope "provided"]
+  :dependencies [[org.clojure/clojure "1.9.0-alpha13" :scope "provided"]
+                 [org.clojure/clojurescript "1.9.293" :scope "provided"]
                  [org.clojure/core.async "0.3.442"]
                  [org.omcljs/om "1.0.0-alpha47" :exclusions [cljsjs/react-dom cljsjs/react]]
                  [cljsjs/react-with-addons "15.2.1-0"]

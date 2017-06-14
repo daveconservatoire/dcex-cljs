@@ -41,8 +41,7 @@
 (defn start-thread [this]
   (go
     (<! (require-disqus (-> (om/props this) ::shortname)))
-    (let [d (Disqus)
-          props (om/props this)
+    (let [props (om/props this)
           props (cond-> props
                   (gstr/isEmpty (::url props)) (assoc ::url (current-url)))
           props (-> props (rename-keys prop-map) clj->js)
@@ -53,7 +52,7 @@
                                  (str "#!newthread"))]
                      (gobj/extend (gobj/get t "page") props)
                      (gobj/set (gobj/get t "page") "url" url)))]
-      (.reset d (js-obj "reload" true "config" config)))))
+      (js/window.DISQUS.reset (js-obj "reload" true "config" config)))))
 
 (om/defui ^:once DisqusThread
   Object

@@ -1351,6 +1351,11 @@
                    (not (signed-in? me))
                    (contains? banner-routes (::r/handler route)))
           (banner))
+        (u/transition-group #js {:transitionName "loading"
+                                 :transitionEnterTimeout 1000
+                                 :transitionLeaveTimeout 100}
+          (if (df/loading? (get next-data :ui/fetch-state))
+            (loading {:key "load-bar"})))
         (desktop-menu (assoc me :react-key "desktop-menu"))
         (if route
           ((u/route->factory route) data))

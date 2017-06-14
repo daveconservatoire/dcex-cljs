@@ -4,7 +4,7 @@
   :license {:name "Eclipse Public License"
             :url  "http://www.eclipse.org/legal/epl-v10.html"}
 
-  :clean-targets ^{:protect false} ["resources/public/devcards" "resources/public/site" "target"]
+  :clean-targets ^{:protect false} ["resources/public/devcards" "resources/public/site-min" "resources/public/site" "target"]
 
   :test-paths ["test/server"]
   :source-paths ["src/cljs" "src/site" "src/server"]
@@ -30,7 +30,7 @@
 
   :figwheel {:open-file-command "open-in-intellij"}
 
-  :prep-tasks [["cljsbuild" "once" "server" "site-min"]]
+  :prep-tasks [["clean"] ["cljsbuild" "once" "server" "site-min"]]
 
   :profiles {:dev {:source-paths ["src/devcards" "src/cljs" "src/site" "script" "src/server" "src/dev"]
                    :dependencies [[navis/untangled-spec "0.3.9" :scope "test"]

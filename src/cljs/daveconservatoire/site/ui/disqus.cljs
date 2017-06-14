@@ -36,7 +36,7 @@
 
 (defn current-url [] js/window.location.href)
 
-(defn Disqus [] js/window.DISQUS)
+(defn Disqus [] (gobj/get js/window "DISQUS"))
 
 (defn start-thread [this]
   (go
@@ -52,7 +52,7 @@
                                  (str "#!newthread"))]
                      (gobj/extend (gobj/get t "page") props)
                      (gobj/set (gobj/get t "page") "url" url)))]
-      (js/window.DISQUS.reset (js-obj "reload" true "config" config)))))
+      (.reset (Disqus) (js-obj "reload" true "config" config)))))
 
 (om/defui ^:once DisqusThread
   Object

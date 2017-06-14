@@ -1,12 +1,17 @@
 (ns daveconservatoire.site.mutations
   (:require [untangled.client.mutations :as m]
             [untangled.client.data-fetch :as df]
+            [cljsjs.nprogress]
             [daveconservatoire.site.routes :as r]
             [daveconservatoire.site.ui :as ui]
             [daveconservatoire.site.ui.util :as uiu]
             [daveconservatoire.site.core :as dc]
             [om.next :as om]
             [om.util :as omu]))
+
+(js/NProgress.configure #js {:minimum 0.4
+                             :trickleSpeed 100
+                             :showSpinner false})
 
 (defn update-page [{:keys [state] :as env} {:keys [route route/data] :as params}]
   (if-let [reconciler (some-> dc/app deref :reconciler)]
@@ -28,6 +33,7 @@
                       :route/data norm-query}]
        (if data-query
          (do
+           (js/NProgress.start)
            (swap! state assoc :app/route-swap page-data)
            (om/transact! reconciler [`(untangled/load {:query         [{:route/data ~data-query}]
                                                        :target        [:route/next-data]
@@ -41,6 +47,7 @@
    (fn []
      (swap! state assoc :route/data (get @state :route/next-data))
      (update-page env (get @state :app/route-swap))
+     (js/NProgress.done)
      (if (map? (get @state :route/data))
        (let [pairs (filter (fn [[k _]] (omu/ident? k)) (get @state :route/data))]
          (if (seq pairs)

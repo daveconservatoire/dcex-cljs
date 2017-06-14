@@ -20,7 +20,8 @@
                  [kibu/pushy "0.3.6"]
                  [org.clojure/test.check "0.9.0"]
                  [com.rpl/specter "0.9.3"]
-                 [com.cognitect/transit-cljs "0.8.239"]]
+                 [com.cognitect/transit-cljs "0.8.239"]
+                 [cljsjs/nprogress "0.2.0-1"]]
 
   :plugins [[lein-cljsbuild "1.1.4"]
             [lein-doo "0.1.6"]]

@@ -1345,17 +1345,12 @@
     (remove-watch (some-> (om/get-reconciler this) :config :state) :auth-state-detector))
 
   (render [this]
-    (let [{:keys [app/route app/me route/data route/next-data ui/banner]} (om/props this)]
+    (let [{:keys [app/route app/me route/data ui/banner]} (om/props this)]
       (dom/div nil
         (when (and banner
                    (not (signed-in? me))
                    (contains? banner-routes (::r/handler route)))
           (banner))
-        (u/transition-group #js {:transitionName "loading"
-                                 :transitionEnterTimeout 1000
-                                 :transitionLeaveTimeout 100}
-          (if (df/loading? (get next-data :ui/fetch-state))
-            (loading {:key "load-bar"})))
         (desktop-menu (assoc me :react-key "desktop-menu"))
         (if route
           ((u/route->factory route) data))

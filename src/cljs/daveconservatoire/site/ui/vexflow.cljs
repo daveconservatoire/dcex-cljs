@@ -32,13 +32,13 @@
   (js/Vex.Flow.Formatter.FormatAndDraw ctx stave (clj->js notes)))
 
 (def backend-renderer
-  {nil  1
+  {nil       1
    ::canvas  1
    ::svg     3
    ::raphael 2})
 
 (def backend-element
-  {nil  dom/canvas
+  {nil       dom/canvas
    ::canvas  dom/canvas
    ::svg     dom/div
    ::raphael dom/div})

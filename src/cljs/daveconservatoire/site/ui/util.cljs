@@ -71,7 +71,8 @@
       (some-> props vals first))))
 
 (s/fdef route-prop
-  :args (s/cat :component om/component?
+  :args (s/cat :component (s/or :component om/component?
+                                :props map?)
                :target (s/tuple keyword? keyword?))
   :ret any?)
 

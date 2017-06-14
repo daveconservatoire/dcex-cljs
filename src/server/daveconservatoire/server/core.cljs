@@ -50,7 +50,7 @@
 (ex/use app (compression))
 (ex/use app (.static express "resources/public"))
 (ex/use app (session #js {:secret            (get settings :session-secret)
-                          :store             (RedisStore. #js {})
+                          :store             (RedisStore. #js {:url (gobj/getValueByKeys nodejs/process #js ["env" "REDIS_URL"])})
                           :resave            true
                           :saveUninitialized false
                           :cookie            #js {}}))

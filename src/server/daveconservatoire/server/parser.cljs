@@ -262,7 +262,8 @@
     (go
       (try
         (done nil (<? (passport-sign-in {::ps/db     connection
-                                         ::ps/schema schema} (js->clj profile :keywordize-keys true))))
+                                         ::ps/schema schema}
+                                        (js->clj profile :keywordize-keys true))))
         (catch :default e
           (done e))))))
 

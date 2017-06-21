@@ -28,7 +28,8 @@
 
   :min-lein-version "2.6.0"
 
-  :figwheel {:open-file-command "open-in-intellij"}
+  :figwheel {:open-file-command "open-in-intellij"
+             :css-dirs ["resources/public/css"]}
 
   :prep-tasks [["clean"] ["cljsbuild" "once" "server" "site-min"]]
 

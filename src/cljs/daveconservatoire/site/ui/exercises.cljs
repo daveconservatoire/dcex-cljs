@@ -192,7 +192,7 @@
                             (dom/form #js {:id "answerform" :name "answerform" :onSubmit #(do
                                                                                            (check-answer)
                                                                                            (.preventDefault %))}
-                              (dom/div #js {:className "info-box" :id "answercontent" :style #js {:marginLeft 200}}
+                              (dom/div #js {:className "info-box" :id "answercontent"}
                                 (dom/span #js {:className "info-box-header"}
                                   "Answer")
                                 (dom/div #js {:className "fancy-scrollbar" :id "solutionarea"}

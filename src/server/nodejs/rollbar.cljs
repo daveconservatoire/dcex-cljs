@@ -1,6 +1,6 @@
 (ns nodejs.rollbar
   (:require [cljs.nodejs :as nodejs]
-            [cljs.spec :as s]))
+            [cljs.spec.alpha :as s]))
 
 (s/def ::access-token string?)
 

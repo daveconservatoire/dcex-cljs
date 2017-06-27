@@ -4,10 +4,8 @@
             [om.util :as omu]
             [goog.string :as gstr]
             [goog.dom :as gdom]
-            [cljs.spec :as s]
+            [cljs.spec.alpha :as s]
             [cljs.core.async :as async :refer [chan]]))
-
-(def transition-group (js/React.createFactory js/React.addons.CSSTransitionGroup))
 
 (defn html-attr-merge [a b]
   (cond

@@ -3,7 +3,7 @@
             [om.dom :as dom]
             [untangled.client.core :as uc]
             [untangled.client.mutations :as um]
-            [cljs.spec :as s]
+            [cljs.spec.alpha :as s]
             [daveconservatoire.audio.core :as audio]
             [daveconservatoire.site.ui.vexflow :as vf]
             [daveconservatoire.site.ui.util :as u]))
@@ -169,13 +169,10 @@
                       (if-not (completed? props)
                         (progress-bar {::progress-value streak-count
                                        ::progress-total ex-total-questions}))
-                      (u/transition-group #js {:transitionName         "ex-complete"
-                                               :transitionEnterTimeout 200
-                                               :transitionLeaveTimeout 200}
-                        (if (completed? props)
-                          (dom/div #js {:key "done" :className "alert alert-success masterymsg"}
-                            (dom/strong nil "Well done! ")
-                            "You've mastered this skill - time to move on to something new")))
+                      (if (completed? props)
+                        (dom/div #js {:key "done" :className "alert alert-success masterymsg"}
+                          (dom/strong nil "Well done! ")
+                          "You've mastered this skill - time to move on to something new"))
                       (dom/div #js {:id "problem-and-answer" :className "framework-khan-exercises"}
                         (dom/div #js {:id "problemarea"}
                           (dom/div #js {:id "workarea"}

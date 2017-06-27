@@ -5,7 +5,7 @@
             [cljs.core.async :refer [chan <!]]
             [goog.dom :as gdom]
             [daveconservatoire.site.ui.util :as u]
-            [cljs.spec :as s]))
+            [cljs.spec.alpha :as s]))
 
 (s/def ::width pos-int?)
 (s/def ::height pos-int?)

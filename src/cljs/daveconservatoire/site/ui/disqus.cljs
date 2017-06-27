@@ -4,7 +4,7 @@
             [cljs.core.async :refer [<!]]
             [om.next :as om]
             [om.dom :as dom]
-            [cljs.spec :as s]
+            [cljs.spec.alpha :as s]
             [clojure.set :refer [rename-keys]]
             [goog.string :as gstr]
             [goog.object :as gobj]))

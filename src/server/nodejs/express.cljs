@@ -1,6 +1,6 @@
 (ns nodejs.express
   (:refer-clojure :exclude [get])
-  (:require [cljs.spec :as s]
+  (:require [cljs.spec.alpha :as s]
             [cljs.reader :refer [read-string]]
             [goog.object :as gobj]))
 

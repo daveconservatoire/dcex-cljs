@@ -22,7 +22,7 @@
                                        (merge info))
                              ident (om/ident class state)
                              r (om/get-reconciler this)]
-                         (om/transact! r ident [`(ui/set-props ~state)])))
+                         (om/transact! r ident [`(untangled.client.mutations/set-props ~state)])))
 
     (render [this]
             (let [{:keys [exercice]} (om/props this)]

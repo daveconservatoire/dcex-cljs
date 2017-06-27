@@ -12,7 +12,7 @@
             [om.next :as om :include-macros true]
             [daveconservatoire.audio.core :as audio]
             [clojure.string :as str]
-            [cljs.spec :as s]))
+            [cljs.spec.alpha :as s]))
 
 (deftest test-play-piano
   (is (= 1 1)))

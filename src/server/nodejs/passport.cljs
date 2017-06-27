@@ -1,6 +1,6 @@
 (ns nodejs.passport
   (:require [cljs.nodejs :as nodejs]
-            [cljs.spec :as s]))
+            [cljs.spec.alpha :as s]))
 
 (defonce passport (nodejs/require "passport"))
 

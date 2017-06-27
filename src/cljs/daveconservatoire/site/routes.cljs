@@ -1,5 +1,5 @@
 (ns daveconservatoire.site.routes
-  (:require [cljs.spec :as s]
+  (:require [cljs.spec.alpha :as s]
             [pushy.core :as pushy]
             [bidi.bidi :as bidi]
             [untangled.client.core :as uc]))

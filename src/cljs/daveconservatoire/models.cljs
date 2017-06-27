@@ -1,5 +1,5 @@
 (ns daveconservatoire.models
-  (:require [cljs.spec :as s]))
+  (:require [cljs.spec.alpha :as s]))
 
 (s/def :db/id pos-int?)
 (s/def :db/table keyword?)

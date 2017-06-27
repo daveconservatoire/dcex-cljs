@@ -4,7 +4,7 @@
             [cljs.core.async :refer [chan <! put! promise-chan]]
             [cljs.reader :refer [read-string]]
             [cljs.pprint]
-            [cljs.spec :as s]
+            [cljs.spec.alpha :as s]
             [clojure.walk :as walk]
             [cognitect.transit :as ct]
             [common.async :refer-macros [<? go-catch]]

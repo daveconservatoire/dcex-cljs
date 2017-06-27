@@ -2,7 +2,7 @@
   (:require [om.next :as om :include-macros true]
             [goog.events :as gevents]
             [daveconservatoire.support.specs]
-            [cljs.spec :as s]))
+            [cljs.spec.alpha :as s]))
 
 (def KEYS
   {8  :backspace 9 :tab 13 :return 32 :space 37 :left 38 :up 39 :right 40 :down

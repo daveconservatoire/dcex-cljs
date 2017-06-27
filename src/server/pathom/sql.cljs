@@ -7,7 +7,7 @@
             [clojure.walk :as walk]
             [cljs.core.async :refer [<! >! put! close!]]
             [cljs.core.async.impl.protocols :refer [Channel]]
-            [cljs.spec :as s]
+            [cljs.spec.alpha :as s]
             [pathom.core :as p]
             [nodejs.knex :as knex]))
 

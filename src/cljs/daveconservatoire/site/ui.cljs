@@ -12,7 +12,7 @@
             [untangled.client.mutations :as um]
             [untangled.client.data-fetch :as df]
             [untangled.client.impl.data-fetch :as dfi]
-            [cljs.spec :as s]
+            [cljs.spec.alpha :as s]
             [daveconservatoire.site.ui.listeners :as l]
             [clojure.string :as str])
   (:import goog.i18n.DateTimeFormat))
@@ -807,7 +807,7 @@
           set-selected (fn [n]
                          (om/transact! (om/get-reconciler this)
                                        [type id]
-                                       [`(ui/set-props {:ui/selected-index ~n})
+                                       [`(um/set-props {:ui/selected-index ~n})
                                         :route/data :app/route]))]
       (container
         (dom/div #js {:className "row"}
@@ -844,8 +844,8 @@
               ident (om/ident class state)
               r (om/get-reconciler this)]
           (om/set-query! this {:params {:exercise/data (om/get-query class)}})
-          (om/transact! r ident [`(ui/set-props ~state)])
-          (om/transact! r [type id] [`(ui/set-props {:exercise/data ~ident})])))))
+          (om/transact! r ident [`(um/set-props ~state)])
+          (om/transact! r [type id] [`(um/set-props {:exercise/data ~ident})])))))
 
   (render [this]
     (let [{:keys [lesson/topic url/slug exercise/data ph/pagination]} (om/props this)

@@ -4,7 +4,7 @@
             [common.async :refer [go-catch <?]]
             [cljs.core.async :as async :refer [<! >! put! close!]]
             [cljs.core.async.impl.protocols :refer [Channel]]
-            [cljs.spec :as s]))
+            [cljs.spec.alpha :as s]))
 
 (s/def ::reader-map (s/map-of keyword? ::reader))
 (s/def ::reader-seq (s/coll-of ::reader :kind vector?))

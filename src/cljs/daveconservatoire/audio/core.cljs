@@ -6,7 +6,7 @@
             [daveconservatoire.support.specs :as ss]
             [goog.crypt.base64 :as g64]
             [goog.object :as gobj]
-            [cljs.spec :as s]
+            [cljs.spec.alpha :as s]
             [cljs.core.async :as async :refer [chan promise-chan put! close! <! >! alts!]]))
 
 (defonce AudioContext (or js/AudioContext js/webkitAudioContext))

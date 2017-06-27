@@ -1,6 +1,6 @@
 (ns daveconservatoire.support.specs
   (:require-macros [daveconservatoire.support.specs :refer [keys-js]])
-  (:require [cljs.spec :as s]
+  (:require [cljs.spec.alpha :as s]
             [clojure.string :as str]))
 
 (s/def ::uint8-array #(instance? js/Uint8Array %))

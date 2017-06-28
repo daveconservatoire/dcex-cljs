@@ -9,29 +9,34 @@
             [clojure.set :refer [rename-keys]]
             [daveconservatoire.models]
             [pathom.core :as p]
-            [pathom.sql :as ps]))
+            [pathom.sql :as ps]
+            [cljs.spec.alpha :as s]))
+
+(s/def :user-activity/type #{"answer" "mastery" "view"})
 
 ;; DATA
 
 (defn topic-watch-count [{:keys [current-user-id] :as env}]
   (go-catch
-    (let [cmds [[:count [::ps/f :user-view :db/id]]
+    (let [cmds [[:count [::ps/f :user-activity :db/id]]
                 [:from :topic]
                 [:left-join :lesson [::ps/f :lesson :lesson/topic-id] [::ps/f :topic :db/id]]
-                [:left-join :user-view [::knex/call-this
-                                        [:on [::ps/f :user-view/lesson-id] "=" [::ps/f :lesson :db/id]]
-                                        [:on [::ps/f :user-view/user-id] "=" current-user-id]]]
+                [:left-join :user-activity [::knex/call-this
+                                            [:on [::ps/f :user-activity/type] "=" "view"]
+                                            [:on [::ps/f :user-activity/lesson-id] "=" [::ps/f :lesson :db/id]]
+                                            [:on [::ps/f :user-activity/user-id] "=" current-user-id]]]
                 [:where {[::ps/f :topic :db/id] (ps/row-get env :db/id)}]]]
       (-> (ps/cached-query env cmds) <? first vals first js/parseInt))))
 
 (defn topic-ex-answer-count [{:keys [current-user-id] :as env}]
   (go-catch
-    (let [cmds [[:count [::ps/f :ex-answer :db/id]]
+    (let [cmds [[:count [::ps/f :user-activity :db/id]]
                 [:from :topic]
                 [:left-join :lesson [::ps/f :lesson :lesson/topic-id] [::ps/f :topic :db/id]]
-                [:left-join :ex-answer [::knex/call-this
-                                        [:on [::ps/f :ex-answer/lesson-id] "=" [::ps/f :lesson :db/id]]
-                                        [:on [::ps/f :ex-answer/user-id] "=" current-user-id]]]
+                [:left-join :user-activity [::knex/call-this
+                                            [:on [::ps/f :user-activity/type] "=" "answer"]
+                                            [:on [::ps/f :user-activity/lesson-id] "=" [::ps/f :lesson :db/id]]
+                                            [:on [::ps/f :user-activity/user-id] "=" current-user-id]]]
                 [:where {[::ps/f :topic :db/id] (ps/row-get env :db/id)}]]]
       (-> (ps/cached-query env cmds) <? first vals first js/parseInt))))
 
@@ -121,21 +126,24 @@
                                                   (case (ps/row-get env :lesson/type)
                                                     :lesson.type/video
                                                     (go-catch
-                                                      (if (<? (ps/find-by env {:db/table            :user-view
-                                                                               :user-view/lesson-id (ps/row-get env :db/id)
-                                                                               :user-view/user-id   current-user-id}))
+                                                      (if (<? (ps/find-by env {:db/table                :user-activity
+                                                                               :user-activity/type      "view"
+                                                                               :user-activity/lesson-id (ps/row-get env :db/id)
+                                                                               :user-activity/user-id   current-user-id}))
                                                         :lesson.view-state/viewed))
 
                                                     :lesson.type/exercise
                                                     (go-catch
                                                       (or
-                                                        (if (<? (ps/find-by env {:db/table             :ex-mastery
-                                                                                 :ex-mastery/lesson-id (ps/row-get env :db/id)
-                                                                                 :ex-mastery/user-id   current-user-id}))
+                                                        (if (<? (ps/find-by env {:db/table                :user-activity
+                                                                                 :user-activity/type      "mastery"
+                                                                                 :user-activity/lesson-id (ps/row-get env :db/id)
+                                                                                 :user-activity/user-id   current-user-id}))
                                                           :lesson.view-state/mastered)
-                                                        (if (<? (ps/find-by env {:db/table            :ex-answer
-                                                                                 :ex-answer/lesson-id (ps/row-get env :db/id)
-                                                                                 :ex-answer/user-id   current-user-id}))
+                                                        (if (<? (ps/find-by env {:db/table                :user-activity
+                                                                                 :user-activity/type      "answer"
+                                                                                 :user-activity/lesson-id (ps/row-get env :db/id)
+                                                                                 :user-activity/user-id   current-user-id}))
                                                           :lesson.view-state/started)))
                                                     nil)
                                                   nil))
@@ -163,56 +171,32 @@
                        :user/created-at           "joinDate"
                        :user/score                "points"
                        :user/last-activity        "lastActivity"
-                       :user/user-views           (ps/has-many :user-view :user-view/user-id {:sort ["timestamp" "desc"]})
-                       :user/ex-answers           (ps/has-many :ex-answer :ex-answer/user-id {:sort ["timestamp" "desc"]})
-                       :user/ex-masteries         (ps/has-many :ex-mastery :ex-mastery/user-id {:sort ["timestamp" "desc"]})
-                       :user/activity             (fn [env]
-                                                    (go-catch
-                                                      (let [env' (-> (assoc env ::ps/union-selector :db/table))
-                                                            views (<? (ps/row-get env' :user/user-views))
-                                                            answers (<? (ps/row-get env' :user/ex-answers))
-                                                            masteries (<? (ps/row-get env' :user/ex-masteries))
-                                                            limit (get-in env [:ast :params :limit] 50)]
-                                                        (->> (concat views answers masteries)
-                                                             (sort-by :db/timestamp #(* -1 (compare %1 %2)))
-                                                             (take limit)
-                                                             (vec)))))
+                       :user/user-views           (ps/has-many :user-activity :user-activity/user-id {:sort ["timestamp" "desc"] :where {:user-activity/type "view"}})
+                       :user/ex-answers           (ps/has-many :user-activity :user-activity/user-id {:sort ["timestamp" "desc"] :where {:user-activity/type "answer"}})
+                       :user/ex-masteries         (ps/has-many :user-activity :user-activity/user-id {:sort ["timestamp" "desc"] :where {:user-activity/type "mastery"}})
+                       :user/activity             (ps/has-many :user-activity :user-activity/user-id {:sort ["timestamp" "desc"]})
                        :user/lessons-viewed-count (fn [env]
                                                     (let [id (ps/row-get env :db/id)]
-                                                      (ps/count env :user-view [[:where {:user-view/user-id id}]])))
+                                                      (ps/count env :user-activity [[:where {:user-activity/user-id id
+                                                                                             :user-activity/type    "view"}]])))
                        :user/ex-answer-count      (fn [env]
                                                     (go-catch
                                                       (let [id (ps/row-get env :db/id)]
-                                                        (+ (<? (ps/count env :ex-answer [[:where {:ex-answer/user-id id}]]))
-                                                           (<? (ps/count env :ex-mastery [[:where {:ex-mastery/user-id id}]]))))))}}
+                                                        (<? (ps/count env :user-activity [[:where-in :user-activity/type ["answer" "mastery"]]
+                                                                                          [:and-where {:user-activity/user-id id}]])))))}}
 
-     {::ps/table      :user-view
-      ::ps/table-name "UserVideoView"
-      ::ps/fields     {:db/id               "id"
-                       :db/timestamp        "timestamp"
-                       :user-view/user-id   "userId"
-                       :user-view/lesson-id "lessonId"
-                       :user-view/status    "status"
-                       :user-view/position  "position"
-                       :user-view/user      (ps/has-one :user :user-view/user-id)
-                       :user-view/lesson    (ps/has-one :lesson :user-view/lesson-id)
-                       :activity/lesson     (ps/has-one :lesson :user-view/lesson-id)}}
-
-     {::ps/table      :ex-answer
-      ::ps/table-name "UserExerciseAnswer"
-      ::ps/fields     {:db/id               "id"
-                       :db/timestamp        "timestamp"
-                       :ex-answer/user-id   "userId"
-                       :ex-answer/lesson-id "exerciseId"
-                       :activity/lesson     (ps/has-one :lesson :ex-answer/lesson-id)}}
-
-     {::ps/table      :ex-mastery
-      ::ps/table-name "UserExSingleMastery"
-      ::ps/fields     {:db/id                "id"
-                       :db/timestamp         "timestamp"
-                       :ex-mastery/user-id   "userId"
-                       :ex-mastery/lesson-id "exerciseId"
-                       :activity/lesson      (ps/has-one :lesson :ex-mastery/lesson-id)}}]))
+     {::ps/table      :user-activity
+      ::ps/table-name "UserActivity"
+      ::ps/fields     {:db/id                   "id"
+                       :db/timestamp            "timestamp"
+                       :user-activity/user-id   "userId"
+                       :user-activity/lesson-id "lessonId"
+                       :user-activity/status    "status"
+                       :user-activity/position  "position"
+                       :user-activity/type      "type"
+                       :user-activity/user      (ps/has-one :user :user-activity/user-id)
+                       :user-activity/lesson    (ps/has-one :lesson :user-activity/lesson-id)
+                       :activity/lesson         (ps/has-one :lesson :user-activity/lesson-id)}}]))
 
 (defn current-timestamp []
   (js/Math.round (/ (.getTime (js/Date.)) 1000)))
@@ -240,10 +224,9 @@
 (defn consume-guest-tx [{:keys [http-request current-user-id] :as env}]
   (go-catch
     (let [guest-tx (ex/session-get http-request :guest-tx)
-          score (atom 0)]
+          score    (atom 0)]
       (doseq [{:keys [guest-tx/increase-score] :as tx} guest-tx
-              :let [tx (assoc tx :ex-answer/user-id current-user-id
-                                 :ex-mastery/user-id current-user-id)]]
+              :let [tx (assoc tx :user-activity/user-id current-user-id)]]
         (swap! score (partial + increase-score))
         (<! (ps/save env tx)))
       (let [user (<? (ps/find-by env {:db/table :user :db/id current-user-id}))]
@@ -267,14 +250,15 @@
         (catch :default e
           (done e))))))
 
-(defn hit-video-view [env {:keys [:user-view/user-id :user-view/lesson-id] :as view}]
+(defn hit-video-view [env {:user-activity/keys [user-id lesson-id] :as view}]
   (go-catch
-    (let [last-view (<? (ps/find-by env {:db/table          :user-view
-                                         :user-view/user-id user-id
-                                         ::ps/query         [[:orderBy :db/timestamp "desc"]]}))]
-      (if (not= lesson-id (:user-view/lesson-id last-view))
-        (<? (ps/save env (assoc view :db/table :user-view
-                                     :db/timestamp (current-timestamp))))))))
+    (let [last-view (<? (ps/find-by env {:db/table              :user-activity
+                                         :user-activity/user-id user-id
+                                         ::ps/query             [[:orderBy :db/timestamp "desc"]]}))]
+      (when (not= lesson-id (:user-activity/lesson-id last-view))
+        (<? (ps/save env (assoc view :db/table :user-activity
+                                     :db/timestamp (current-timestamp)
+                                     :user-activity/type "view")))))))
 
 (defn conj-vec [v x]
   (conj (or v []) x))
@@ -284,18 +268,19 @@
   (go-catch
     (let [lesson (<? (ps/find-by env {:db/table :lesson
                                       :url/slug slug}))
-          answer {:db/table                :ex-answer
+          answer {:db/table                :user-activity
                   :db/timestamp            (current-timestamp)
-                  :ex-answer/lesson-id     (:db/id lesson)
+                  :user-activity/type      "answer"
+                  :user-activity/lesson-id (:db/id lesson)
                   :guest-tx/increase-score 1}]
       (if current-user-id
         (let [user (<? (ps/find-by env {:db/table :user :db/id current-user-id}))]
           (ps/save env (update user :user/score inc))
-          (ps/save env (assoc answer :ex-answer/user-id current-user-id)))
+          (ps/save env (assoc answer :user-activity/user-id current-user-id)))
 
         ; save for guest
         (ex/session-update! http-request :guest-tx
-          #(conj-vec % answer)))
+                            #(conj-vec % answer)))
       true)))
 
 (defn compute-ex-answer-master [{:keys [current-user-id http-request] :as env}
@@ -303,22 +288,24 @@
   (go-catch
     (let [lesson (<? (ps/find-by env {:db/table :lesson
                                       :url/slug slug}))
-          answer {:db/table                :ex-mastery
+          answer {:db/table                :user-activity
                   :db/timestamp            (current-timestamp)
-                  :ex-mastery/lesson-id    (:db/id lesson)
+                  :user-activity/type      "mastery"
+                  :user-activity/lesson-id (:db/id lesson)
                   :guest-tx/increase-score 100}]
       (if current-user-id
         (let [user (<? (ps/find-by env {:db/table :user :db/id current-user-id}))]
-          (if (zero? (<? (ps/count env :ex-mastery [[:where {:ex-mastery/user-id   current-user-id
-                                                             :ex-mastery/lesson-id (:db/id lesson)}]])))
+          (if (zero? (<? (ps/count env :user-activity [[:where {:user-activity/user-id   current-user-id
+                                                                :user-activity/type      "mastery"
+                                                                :user-activity/lesson-id (:db/id lesson)}]])))
             (do
               (<? (ps/save env (update user :user/score (partial + 100))))
-              (<? (ps/save env (assoc answer :ex-mastery/user-id current-user-id))))
+              (<? (ps/save env (assoc answer :user-activity/user-id current-user-id))))
             (<? (ps/save env (update user :user/score inc)))))
 
         ; save for guest
         (ex/session-update! http-request :guest-tx
-          #(conj-vec % answer)))
+                            #(conj-vec % answer)))
       true)))
 
 ;; ROOT READS
@@ -342,9 +329,9 @@
    :app/courses    #(ps/sql-table-node (-> (ast-sort % "homepage_order")
                                            (assoc ::ps/union-selector :course/home-type)) :course)
    :app/me         #(if-let [id (:current-user-id %)]
-                     (ps/sql-first-node (assoc % ::ps/table :user)
-                                        [[:where {:id id}]])
-                     (p/continue-with-reader % guest-user-reader))})
+                      (ps/sql-first-node (assoc % ::ps/table :user)
+                                         [[:where {:id id}]])
+                      (p/continue-with-reader % guest-user-reader))})
 
 (def root-reader
   [root-endpoints p/placeholder-node #(vector :error :not-found)])
@@ -363,8 +350,8 @@
    (fn []
      (go
        (when current-user-id
-         (<? (hit-video-view env {:user-view/user-id   current-user-id
-                                  :user-view/lesson-id id}))
+         (<? (hit-video-view env {:user-activity/user-id   current-user-id
+                                  :user-activity/lesson-id id}))
          nil)))})
 
 (defmethod mutate 'user/update
@@ -390,3 +377,16 @@
           ::ps/query-cache (atom {})
           ::ps/schema schema) tx)
       (p/read-chan-values)))
+
+(comment
+  (go
+    (let [env (assoc (daveconservatoire.server.core/api-env {})
+                ::p/reader root-reader
+                ::ps/query-cache (atom {})
+                ::ps/schema schema)]
+      (try
+        (-> (ps/count env :user-activity [[:where-in :user-activity/type ["answer" "mastery"]]
+                                          [:and-where {:user-activity/user-id 2}]])
+            <? js/console.log)
+        (catch :default e
+          (js/console.log "ERROR" e))))))

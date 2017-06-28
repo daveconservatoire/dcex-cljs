@@ -803,12 +803,12 @@
     (let [{:keys [db/id lesson/topic lesson/type lesson/playlist-items ui/selected-index
                   ph/pagination]} (om/props this)
           selected-index (or selected-index 0)
-          item (nth (vec playlist-items) selected-index)
-          set-selected (fn [n]
-                         (om/transact! (om/get-reconciler this)
-                                       [type id]
-                                       [`(um/set-props {:ui/selected-index ~n})
-                                        :route/data :app/route]))]
+          item           (nth (vec playlist-items) selected-index)
+          set-selected   (fn [n]
+                           (om/transact! (om/get-reconciler this)
+                                         [type id]
+                                         [`(um/set-props {:ui/selected-index ~n})
+                                          :route/data :app/route]))]
       (container
         (dom/div #js {:className "row"}
           (dom/div #js {:className "span3"}
@@ -842,7 +842,7 @@
         (let [state (-> (uc/initial-state class props)
                         (merge info))
               ident (om/ident class state)
-              r (om/get-reconciler this)]
+              r     (om/get-reconciler this)]
           (om/set-query! this {:params {:exercise/data (om/get-query class)}})
           (om/transact! r ident [`(um/set-props ~state)])
           (om/transact! r [type id] [`(um/set-props {:exercise/data ~ident})])))))
@@ -893,14 +893,14 @@
 (defmethod r/route->component ::r/lesson [_] LessonPage)
 
 (def activity-icon
-  {:user-view  "icon-facetime-video"
-   :ex-answer  "icon-list-alt"
-   :ex-mastery "icon-star-empty"})
+  {"view"    "icon-facetime-video"
+   "answer"  "icon-list-alt"
+   "mastery" "icon-star-empty"})
 
 (def activity-label
-  {:user-view  "Watched"
-   :ex-answer  "Practiced"
-   :ex-mastery "Mastered"})
+  {"view"    "Watched"
+   "answer"  "Practiced"
+   "mastery" "Mastered"})
 
 (om/defui ^:once ProfileRecentActivity
   static om/IQuery
@@ -952,11 +952,11 @@
   (let [{:keys [user/about ui/tmp-about]} (om/props this)]
     (modal #:ui.modal {:title   "Update your Profile"
                        :onClose #(do
-                                  (um/set-value! this :ui/editing-info? false)
-                                  (um/set-value! this :ui/tmp-about about))
+                                   (um/set-value! this :ui/editing-info? false)
+                                   (um/set-value! this :ui/tmp-about about))
                        :onSave  #(do
-                                  (om/transact! this `[(user/update {:user/about ~tmp-about})])
-                                  (um/set-value! this :ui/editing-info? false))}
+                                   (om/transact! this `[(user/update {:user/about ~tmp-about})])
+                                   (um/set-value! this :ui/editing-info? false))}
       (dom/form #js {:id "user-form" :action "profile/update" :method "post"}
         (dom/div #js {:id "user-form_es_" :className "errorSummary" :style #js {:display "none"}}
           (dom/p nil
@@ -1073,14 +1073,14 @@
 
 (om/defui ^:once ProfileActivity
   static om/IQuery
-  (query [_] [:db/table :db/id :db/timestamp {:activity/lesson [:lesson/title :url/slug]}])
+  (query [_] [:db/id :db/table :user-activity/type :db/timestamp {:activity/lesson [:lesson/title :url/slug]}])
 
   static om/Ident
   (ident [_ props] (u/model-ident props))
 
   Object
   (render [this]
-    (let [{:keys [activity/lesson db/timestamp db/table] :as props} (om/props this)
+    (let [{:keys [activity/lesson db/timestamp user-activity/type] :as props} (om/props this)
           {:keys [new-streak?]} (om/get-computed this)
           {:keys [lesson/title url/slug]} lesson]
       (dom/tr #js {:key (pr-str (u/model-ident props))}
@@ -1088,9 +1088,9 @@
           (if new-streak?
             (format-time timestamp "EEEE ddo MMMM yyyy")))
         (dom/td nil
-          (dom/i #js {:className (activity-icon table)}))
+          (dom/i #js {:className (activity-icon type)}))
         (dom/td nil
-          (dom/strong #js {} (str (activity-label table) ": "))
+          (dom/strong #js {} (str (activity-label type) ": "))
           (link {::r/handler ::r/lesson ::r/params {::r/slug slug}}
             title))))))
 
@@ -1335,7 +1335,7 @@
                  (let [{:app/keys [route]} n]
                    (if (or (not= (:app/route o) route)
                            (not= (:app/me o) (:app/me n)))
-                     (let [comp (some-> route r/route->component)
+                     (let [comp      (some-> route r/route->component)
                            auth-req? (if (implements? IRequireAuth comp)
                                        (auth-required? comp) false)]
                        (when (and auth-req? (= (auth-state n) ::guest))

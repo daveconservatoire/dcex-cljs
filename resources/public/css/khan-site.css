@@ -116,6 +116,60 @@
     width: 100%;
 }
 
+.simple-button.orange:focus, .simple-button.warning:focus, .simple-button.orange:hover, .simple-button.warning:hover {
+    border-bottom-color: #983e03;
+}
+
+.simple-button.orange:hover, .simple-button.warning:hover, .simple-button.orange:active, .simple-button.warning:active, .simple-button.orange.active, .simple-button.warning.active, .simple-button.orange.disabled, .simple-button.warning.disabled, .simple-button.orange[disabled], .simple-button.warning[disabled] {
+    color: #ffffff;
+    background-color: #c04f03;
+}
+
+.simple-button.orange:focus, .simple-button.warning:focus, .simple-button.orange:hover, .simple-button.warning:hover {
+    border-bottom-color: #983e03;
+}
+
+.simple-button.orange:hover, .simple-button.warning:hover, .simple-button.orange:active, .simple-button.warning:active, .simple-button.orange.active, .simple-button.warning.active, .simple-button.orange.disabled, .simple-button.warning.disabled, .simple-button.orange[disabled], .simple-button.warning[disabled] {
+    color: #ffffff;
+    background-color: #c04f03;
+}
+
+.simple-button.orange, .simple-button.warning {
+    border: 1px solid #d45704;
+    color: #ffffff;
+    text-shadow: none;
+    background-color: #d55704;
+    background-image: -moz-linear-gradient(top, #e35d04, #c04f03);
+    background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#e35d04), to(#c04f03));
+    background-image: -webkit-linear-gradient(top, #e35d04, #c04f03);
+    background-image: -o-linear-gradient(top, #e35d04, #c04f03);
+    background-image: linear-gradient(to bottom, #e35d04, #c04f03);
+    background-repeat: repeat-x;
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ffe35d04', endColorstr='#ffc04f03', GradientType=0);
+    border-color: #c04f03 #c04f03 #753002;
+    border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
+    filter: progid:DXImageTransform.Microsoft.gradient(enabled = false);
+    color: #ffffff !important;
+}
+
+.simple-button.orange, .simple-button.warning {
+    border: 1px solid #d45704;
+    color: #ffffff;
+    text-shadow: none;
+    background-color: #d55704;
+    background-image: -moz-linear-gradient(top, #e35d04, #c04f03);
+    background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#e35d04), to(#c04f03));
+    background-image: -webkit-linear-gradient(top, #e35d04, #c04f03);
+    background-image: -o-linear-gradient(top, #e35d04, #c04f03);
+    background-image: linear-gradient(to bottom, #e35d04, #c04f03);
+    background-repeat: repeat-x;
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ffe35d04', endColorstr='#ffc04f03', GradientType=0);
+    border-color: #c04f03 #c04f03 #753002;
+    border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
+    filter: progid:DXImageTransform.Microsoft.gradient(enabled = false);
+    color: #ffffff !important;
+}
+
 .simple-button.green:hover, .simple-button.primary:hover, .simple-button.green:active, .simple-button.primary:active, .simple-button.green.active, .simple-button.primary.active, .simple-button.green.disabled, .simple-button.primary.disabled, .simple-button.green[disabled], .simple-button.primary[disabled] {
     color: #ffffff;
     background-color: #719807;
@@ -267,4 +321,24 @@
     -o-transition: box-shadow ease-in-out 0.15s;
     transition: box-shadow ease-in-out 0.15s;
     -webkit-appearance: none;
+}
+
+.info-box .info-box-header, .info-box .info-box-subheader {
+    color: #777;
+    display: block;
+    font-size: 18px;
+    line-height: 100%;
+    margin-bottom: 10px;
+    font-weight: bold;
+    text-shadow: 0 1px 0 #fff;
+}
+
+input.simple-button {
+    /* Inputs (specificically buttons) don't obey padding in some cases */
+
+    line-height: 15px;
+}
+
+#hintsarea {
+    margin-left: 50px;
 }

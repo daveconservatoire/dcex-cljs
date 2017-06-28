@@ -1,6 +1,7 @@
 (ns daveconservatoire.site.ui.exercises
   (:require [om.next :as om :include-macros true]
             [om.dom :as dom]
+            [common.template :as template]
             [untangled.client.core :as uc]
             [untangled.client.mutations :as um]
             [cljs.spec.alpha :as s]
@@ -20,6 +21,9 @@
 (s/def ::option (s/cat :value string? :label string?))
 (s/def ::options (s/or :text #{::option-type-text}
                        :select (s/+ (s/spec ::option))))
+
+(s/def ::hints (s/coll-of ::template/fragment))
+(s/def ::hints-used nat-int?)
 
 (s/def ::ex-props (s/keys :req [::options]))
 (s/def ::ex-answer (s/nilable string?))
@@ -88,20 +92,27 @@
   static om/Ident
   (ident [_ props] (u/model-ident props)))
 
+(defmethod um/mutate 'dcex/request-hint
+  [{:keys [state ref]} _ _]
+  {:action
+   (fn []
+     (swap! state update-in (conj ref ::hints-used) inc))})
+
 (defmethod um/mutate 'dcex/check-answer
   [{:keys [state ref]} _ _]
   {:action
    (fn []
-     (let [{:keys [::ex-answer ::correct-answer ::streak-count ::class ::last-error] :as props} (get-in @state ref)]
+     (let [{::keys [ex-answer correct-answer streak-count class last-error] :as props} (get-in @state ref)]
        (if (= ex-answer correct-answer)
          (let [next-streak (inc streak-count)
-               new-props (if last-error
-                           (assoc props ::streak-count next-streak
-                                        ::last-error false)
-                           (new-round class
-                             (merge props
-                               {::streak-count next-streak
-                                ::ex-answer    nil})))]
+               new-props   (if last-error
+                             (assoc props ::streak-count next-streak
+                                          ::last-error false)
+                             (new-round class
+                               (merge props
+                                      {::streak-count next-streak
+                                       ::hints-used   0
+                                       ::ex-answer    nil})))]
            (swap! state assoc-in ref new-props)
            (play-sound new-props))
          (swap! state update-in ref assoc ::streak-count 0 ::last-error true))))
@@ -141,6 +152,7 @@
   (initial-state [_ _] {::ex-answer          nil
                         ::ex-total-questions 10
                         ::streak-count       0
+                        ::hints-used         0
                         ::play-notes         play-notes})
 
   static om/IQuery
@@ -148,13 +160,13 @@
 
   Object
   (render [this]
-    (let [{:keys [::options ::ex-answer ::ex-total-questions
-                  ::streak-count ::notes] :as props} (om/props this)
+    (let [{::keys [options ex-answer ex-total-questions streak-count notes hints hints-used]
+           :as    props} (om/props this)
           [opt-type _] (s/conform ::options options)
-          parent (om/parent this)
+          parent       (om/parent this)
           check-answer #(do
-                         (om/transact! parent `[(dcex/check-answer)
-                                                (untangled/load {:query [{:app/me ~(om/get-query UserScore)}] :marker false})]))]
+                          (om/transact! parent `[(dcex/check-answer)
+                                                 (untangled/load {:query [{:app/me ~(om/get-query UserScore)}] :marker false})]))]
       (s/assert ::ex-props props)
       (dom/div #js {:className "lesson-content"}
         (dom/div #js {:className "single-exercise visited-no-recolor"
@@ -183,12 +195,14 @@
                                   (dom/a #js {:className "btn_primary"
                                               :onClick   #(play-sound props)}
                                     "Play Again")))))
-                          (dom/div #js {:id "hintsarea"}))
+                          (dom/div #js {:id "hintsarea"}
+                            (for [[hint i] (map vector (take hints-used hints) (range))]
+                              (dom/p #js {:key i} (template/translate hint props)))))
                         (dom/div #js {:id "answer_area_wrap"}
                           (dom/div #js {:id "answer_area"}
                             (dom/form #js {:id "answerform" :name "answerform" :onSubmit #(do
-                                                                                           (check-answer)
-                                                                                           (.preventDefault %))}
+                                                                                            (check-answer)
+                                                                                            (.preventDefault %))}
                               (dom/div #js {:className "info-box" :id "answercontent"}
                                 (dom/span #js {:className "info-box-header"}
                                   "Answer")
@@ -206,17 +220,36 @@
                                           (dom/label nil
                                             (dom/button #js {:type    "button"
                                                              :onClick #(do
-                                                                        (um/set-string! parent ::ex-answer :value value)
-                                                                        (check-answer))}
+                                                                         (um/set-string! parent ::ex-answer :value value)
+                                                                         (check-answer))}
                                               label)))))))
                                 (if (contains? #{:text} opt-type)
                                   (dom/div #js {:className "answer-buttons"}
                                     (dom/div #js {:className "check-answer-wrapper"}
                                       (dom/input #js {:className "simple-button green" :type "button" :value "Check Answer"
                                                       :onClick   check-answer}))
-                                    (dom/input #js {:className "simple-button green" :id "next-question-button" :name "correctnextbutton" :style #js {:display "none"} :type "button" :value "Correct! Next Question..."})
+                                    (dom/input #js {:className "simple-button green"
+                                                    :id        "next-question-button"
+                                                    :name      "correctnextbutton"
+                                                    :style     #js {:display "none"}
+                                                    :type      "button"
+                                                    :value     "Correct! Next Question..."})
                                     (dom/div #js {:id "positive-reinforcement" :style #js {:display "none"}}
-                                      (dom/img #js {:src "/images/face-smiley.png"}))))))))
+                                      (dom/img #js {:src "/images/face-smiley.png"})))))
+
+                              (if (> (count hints) 0)
+                                (dom/div #js {:className "info-box hint-box"}
+                                  (dom/span #js {:className "info-box-header"}
+                                    "Need help?")
+                                  (dom/div #js {:id "get-hint-button-container"}
+                                    (dom/input #js {:className "simple-button orange full-width"
+                                                    :type      "button"
+                                                    :disabled  (= (count hints) hints-used)
+                                                    :onClick   #(om/transact! parent `[(dcex/request-hint)])
+                                                    :value     (if (zero? hints-used)
+                                                                 "I'd like a hint"
+                                                                 (str "I'd like another hint (" (- (count hints) hints-used) " hints left)"))}))
+                                  (dom/span #js {:id "hint-remainder"}))))))
                         (dom/div #js {:style #js {:clear "both"}})))))))))))))
 
 (def exercise (om/factory Exercise))
@@ -229,9 +262,9 @@
 
 (defn vary-pitch [{:keys [::pitch ::variation ::direction]}]
   (let [direction (or direction [-1 1])
-        a (descriptor->value pitch)
-        b (+ a (* (descriptor->value variation)
-                  (descriptor->value direction)))]
+        a         (descriptor->value pitch)
+        b         (+ a (* (descriptor->value variation)
+                          (descriptor->value direction)))]
     [a b]))
 
 (s/fdef vary-pitch
@@ -290,7 +323,7 @@
   (new-round [_ props]
     (let [[a b :as notes] (vary-pitch props)
           distance (- b a)
-          octave? (zero? (mod distance 8))]
+          octave?  (zero? (mod distance 8))]
       (assoc props
         ::notes notes
         ::correct-answer (if octave? "yes" "no"))))
@@ -328,7 +361,10 @@
       (merge
         (uc/initial-state Exercise nil)
         {::name    "reading-music"
-         ::options ::option-type-text}
+         ::options ::option-type-text
+         ::hints   ["Does this note sit on a line or in a space?"
+                    "\"FACE in the space\" and \"Every Green Bus Drives Fast\""
+                    ["This note is " ::correct-answer]]}
         props)))
 
   static om/Ident
@@ -340,10 +376,10 @@
   static IExercise
   (new-round [_ props]
     (let [{::keys [read-note-order read-note]} props
-          pos (rand-int-new (count read-note-order) read-note)
-          note (get read-note-order pos)
+          pos    (rand-int-new (count read-note-order) read-note)
+          note   (get read-note-order pos)
           octave (if (> pos 4) 4 3)
-          notes [(str note octave)]]
+          notes  [(str note octave)]]
       (assoc props
         ::read-note pos
         ::notes notes
@@ -404,8 +440,6 @@
   {"major" audio/MAJOR-TRIAD
    "minor" audio/MINOR-TRIAD})
 
-
-
 (om/defui ^:once ChordType
   static uc/InitialAppState
   (initial-state [this props]
@@ -430,7 +464,7 @@
 
   static IExercise
   (new-round [_ props]
-    (let [type (rand-nth ["major" "minor"])
+    (let [type      (rand-nth ["major" "minor"])
           base-note (descriptor->value ["C3" ".." "F3"])]
       (assoc props
         ::notes (audio/chord base-note (type->arrengement type))
@@ -477,10 +511,10 @@
         (uc/initial-state Exercise nil)
         {::name       "rhythm-reading"
          ::options    [["0" "A"] ["1" "B"] ["2" "C"] ["3" "D"]]
-         ::play-notes (let [last-play (atom [])
+         ::play-notes (let [last-play       (atom [])
                             time-multiplier 0.7]
                         (fn [notes]
-                          (let [time (audio/current-time)
+                          (let [time  (audio/current-time)
                                 nodes (map #(update % ::audio/duration (partial * time-multiplier)) (prepare-notes notes))
                                 metro (map #(update % ::audio/duration (partial * time-multiplier)) (prepare-notes rhytm-metronome))]
                             (run! audio/stop @last-play)
@@ -497,13 +531,13 @@
   static IExercise
   (new-round [_ props]
     (let [rhytms (partition 4 (take 16 (random-bars)))
-          idx (rand-int 4)
-          notes (->> (nth rhytms idx)
-                     (map ::vf/notes)
-                     (flatten)
-                     (map (comp #(vector "B4" %)
-                                duration->seconds
-                                ::vf/duration)))]
+          idx    (rand-int 4)
+          notes  (->> (nth rhytms idx)
+                      (map ::vf/notes)
+                      (flatten)
+                      (map (comp #(vector "B4" %)
+                                 duration->seconds
+                                 ::vf/duration)))]
       (assoc props
         ::rhytms rhytms
         ::notes notes

@@ -118,14 +118,14 @@
          (swap! state update-in ref assoc ::streak-count 0 ::last-error true))))
 
    :remote
-   (let [{::keys [name streak-count ex-total-questions]} (get-in @state ref)]
+   (let [{::keys [name streak-count ex-total-questions hints-used]} (get-in @state ref)]
      (cond
        (= streak-count ex-total-questions)
-       (-> (om/query->ast `[(exercise/score-master {:url/slug ~name})])
+       (-> (om/query->ast `[(exercise/score-master {:url/slug ~name ::hints-used ~hints-used})])
            :children first)
 
        (> streak-count 0)
-       (-> (om/query->ast `[(exercise/score {:url/slug ~name})])
+       (-> (om/query->ast `[(exercise/score {:url/slug ~name ::hints-used ~hints-used})])
            :children first)))})
 
 (defn int-in [min max] (+ min (rand-int (- max min))))

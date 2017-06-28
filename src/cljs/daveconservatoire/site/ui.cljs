@@ -10,8 +10,6 @@
             [daveconservatoire.site.ui.disqus :as dq]
             [untangled.client.core :as uc]
             [untangled.client.mutations :as um]
-            [untangled.client.data-fetch :as df]
-            [untangled.client.impl.data-fetch :as dfi]
             [cljs.spec.alpha :as s]
             [daveconservatoire.site.ui.listeners :as l]
             [clojure.string :as str])

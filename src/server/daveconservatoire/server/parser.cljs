@@ -22,10 +22,10 @@
                 [:from :topic]
                 [:left-join :lesson [::ps/f :lesson :lesson/topic-id] [::ps/f :topic :db/id]]
                 [:left-join :user-activity [::knex/call-this
-                                            [:on [::ps/f :user-activity/type] "=" "view"]
                                             [:on [::ps/f :user-activity/lesson-id] "=" [::ps/f :lesson :db/id]]
                                             [:on [::ps/f :user-activity/user-id] "=" current-user-id]]]
-                [:where {[::ps/f :topic :db/id] (ps/row-get env :db/id)}]]]
+                [:where {[::ps/f :topic :db/id] (ps/row-get env :db/id)
+                         [::ps/f :user-activity/type] "view"}]]]
       (-> (ps/cached-query env cmds) <? first vals first js/parseInt))))
 
 (defn topic-ex-answer-count [{:keys [current-user-id] :as env}]
@@ -34,7 +34,18 @@
                 [:from :topic]
                 [:left-join :lesson [::ps/f :lesson :lesson/topic-id] [::ps/f :topic :db/id]]
                 [:left-join :user-activity [::knex/call-this
-                                            [:on [::ps/f :user-activity/type] "=" "answer"]
+                                            [:on [::ps/f :user-activity/lesson-id] "=" [::ps/f :lesson :db/id]]
+                                            [:on [::ps/f :user-activity/user-id] "=" current-user-id]]]
+                [:where {[::ps/f :topic :db/id] (ps/row-get env :db/id)
+                         [::ps/f :user-activity/type] "answer"}]]]
+      (-> (ps/cached-query env cmds) <? first vals first js/parseInt))))
+
+(defn topic-activity-count [{:keys [current-user-id] :as env}]
+  (go-catch
+    (let [cmds [[:count [::ps/f :user-activity :db/id]]
+                [:from :topic]
+                [:left-join :lesson [::ps/f :lesson :lesson/topic-id] [::ps/f :topic :db/id]]
+                [:left-join :user-activity [::knex/call-this
                                             [:on [::ps/f :user-activity/lesson-id] "=" [::ps/f :lesson :db/id]]
                                             [:on [::ps/f :user-activity/user-id] "=" current-user-id]]]
                 [:where {[::ps/f :topic :db/id] (ps/row-get env :db/id)}]]]
@@ -43,8 +54,7 @@
 (defn topic-started? [{:keys [current-user-id] :as env}]
   (if current-user-id
     (go-catch
-      (or (> (<? (topic-watch-count env)) 0)
-          (> (<? (topic-ex-answer-count env)) 0)))
+      (> (<? (topic-activity-count env)) 0))
     false))
 
 (def schema

@@ -103,7 +103,6 @@
   {:action
    (fn []
      (let [{::keys [ex-answer correct-answer streak-count class last-error] :as props} (get-in @state ref)]
-       (js/console.log ex-answer)
        (if (and ex-answer (not= ex-answer "") )
          (if (= ex-answer correct-answer)
            (let [next-streak (inc streak-count)
@@ -337,11 +336,17 @@
 
 (def notes-treble
   {::read-note-order  ["E" "F" "G" "A" "B" "C" "D" "E" "F"]
-   ::read-note-prefix "trebleclefimages"})
+   ::read-note-prefix "trebleclefimages"
+   ::hints            ["Does this note sit on a line or in a space?"
+                       "\"FACE in the space\" and \"Every Green Bus Drives Fast\""
+                       ["This note is " ::correct-answer]]})
 
 (def notes-bass
   {::read-note-order  ["G" "A" "B" "C" "D" "E" "F" "G" "A"]
-   ::read-note-prefix "bassclefimages"})
+   ::read-note-prefix "bassclefimages"
+   ::hints            ["Does this note sit on a line or in a space?"
+                       "\"All Cows Eat Grass\" and \"Good Boys Deserve Fresh Apples\""
+                       ["This note is " ::correct-answer]]})
 
 (def notes-grand-staff
   {::read-note-order  ["G" "A" "B" "C" "D" "E" "F" "G" "A" "B" #_"TREBLE" "D" "E" "F" "G" "A" "B" "C" "D" "E" "F" "C"]
@@ -363,10 +368,7 @@
       (merge
         (uc/initial-state Exercise nil)
         {::name    "reading-music"
-         ::options ::option-type-text
-         ::hints   ["Does this note sit on a line or in a space?"
-                    "\"FACE in the space\" and \"Every Green Bus Drives Fast\""
-                    ["This note is " ::correct-answer]]}
+         ::options ::option-type-text}
         props)))
 
   static om/Ident

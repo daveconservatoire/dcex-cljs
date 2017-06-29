@@ -902,20 +902,20 @@
 
 (om/defui ^:once ProfileRecentActivity
   static om/IQuery
-  (query [_] [:db/id :db/table :db/timestamp {:activity/lesson [:lesson/title :url/slug]}])
+  (query [_] [:db/id :db/table :db/timestamp :user-activity/type {:activity/lesson [:lesson/title :url/slug]}])
 
   static om/Ident
   (ident [_ props] (u/model-ident props))
 
   Object
   (render [this]
-    (let [{:keys [db/table activity/lesson]} (om/props this)
+    (let [{:keys [activity/lesson user-activity/type]} (om/props this)
           {:keys [lesson/title url/slug]} lesson]
       (dom/tr nil
         (dom/td nil
-          (dom/i #js {:className (activity-icon table)}))
+          (dom/i #js {:className (activity-icon type)}))
         (dom/td nil
-          (dom/strong #js {} (str (activity-label table) ": "))
+          (dom/strong #js {} (str (activity-label type) ": "))
           (link {::r/handler ::r/lesson ::r/params {::r/slug slug}}
             title))))))
 

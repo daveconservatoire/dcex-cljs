@@ -103,9 +103,11 @@
   {:action
    (fn []
      (let [{::keys [ex-answer correct-answer streak-count class last-error] :as props} (get-in @state ref)]
-       (if (= ex-answer correct-answer)
-         (let [next-streak (inc streak-count)
-               new-props   (if last-error
+       (js/console.log ex-answer)
+       (if (and ex-answer (not= ex-answer "") )
+         (if (= ex-answer correct-answer)
+           (let [next-streak (inc streak-count)
+                 new-props (if last-error
                              (assoc props ::streak-count next-streak
                                           ::last-error false)
                              (new-round class
@@ -113,9 +115,9 @@
                                       {::streak-count next-streak
                                        ::hints-used   0
                                        ::ex-answer    nil})))]
-           (swap! state assoc-in ref new-props)
-           (play-sound new-props))
-         (swap! state update-in ref assoc ::streak-count 0 ::last-error true))))
+             (swap! state assoc-in ref new-props)
+             (play-sound new-props))
+           (swap! state update-in ref assoc ::streak-count 0 ::last-error true)))))
 
    :remote
    (let [{::keys [name streak-count ex-total-questions hints-used]} (get-in @state ref)]

@@ -436,6 +436,46 @@
             (dom/span #js {:key i}
               (dom/img #js {:src (str "/img/rhythmimages/" note ".jpg")}))))))))
 
+(def uk-symbols {"semibreve"                   4
+                 "minim"                       2
+                 "crochet"                     1
+                 "dotted minim"                3
+                 "dotted semibreve"            6
+                 "minim tied to a crochet"     3
+                 "semibreve tied to a minim"   6
+                 "semibreve tied to a crochet" 5})
+
+
+(om/defui ^:once Quiz
+  static uc/InitialAppState
+  (initial-state [this props]
+    (new-round this
+      (merge
+        (uc/initial-state Exercise nil)
+        {::name    "uk-note-names"
+         ::options ::option-type-text}
+        props)))
+
+  static om/Ident
+  (ident [_ props] [:exercise/by-name (::name props)])
+
+  static om/IQuery
+  (query [_] '[*])
+
+  static IExercise
+  (new-round [_ props]
+    (let [sym (rand-nth (keys (get props ::quiz-map)))]
+      (assoc props
+        ::quiz-question sym
+        ::notes []
+        ::correct-answer (str (get (get props ::quiz-map) sym)))))
+
+  Object
+  (render [this]
+    (let [{:keys [::quiz-question] :as props} (om/props this)]
+      (exercise props
+        (dom/p #js {:key "p"} (str "For how many beats does a " quiz-question " last?"))))))
+
 (def type->arrengement
   {"major" audio/MAJOR-TRIAD
    "minor" audio/MINOR-TRIAD})
@@ -803,3 +843,8 @@
    ::class Intervals
    ::props {::intervals [12 7 4 5 9 2 11]
             ::direction -1}})
+
+(defmethod slug->exercise "euro-names" [name]
+  {::name  name
+   ::class Quiz
+   ::props {::quiz-map uk-symbols}})

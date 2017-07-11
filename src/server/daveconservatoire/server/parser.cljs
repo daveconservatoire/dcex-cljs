@@ -339,6 +339,8 @@
                                        [[:where {:urltitle (p/ast-key-id (:ast %))}]])
    :lesson/by-slug #(ps/sql-first-node (assoc % ::ps/table :lesson ::ps/union-selector :lesson/type)
                                        [[:where {:urltitle (p/ast-key-id (:ast %))}]])
+   :lesson/search  #(ps/sql-table-node (-> (assoc-in % [:ast :params :where] [[::ps/f :lesson :lesson/title] "like" (str "%" (get-in % [:ast :params :lesson/title]) "%")]))
+                                       :lesson)
    :app/courses    #(ps/sql-table-node (-> (ast-sort % "homepage_order")
                                            (assoc ::ps/union-selector :course/home-type)) :course)
    :app/me         #(if-let [id (:current-user-id %)]
@@ -401,5 +403,16 @@
         (-> (ps/count env :user-activity [[:where-in :user-activity/type ["answer" "mastery"]]
                                           [:and-where {:user-activity/user-id 2}]])
             <? js/console.log)
+        (catch :default e
+          (js/console.log "ERROR" e)))))
+
+  (go
+    (let [env (assoc (daveconservatoire.server.core/api-env {})
+                ::p/reader root-reader
+                ::ps/query-cache (atom {})
+                ::ps/schema schema)]
+      (try
+        (-> (parse env '[({:lesson/search [:lesson/title]} {:lesson/title "bass"})])
+            <? println)
         (catch :default e
           (js/console.log "ERROR" e))))))

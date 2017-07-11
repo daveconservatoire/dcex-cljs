@@ -170,7 +170,9 @@
         limit (or limit 50)]
     (sql-node (assoc env ::table table)
               (cond-> [[:limit limit]]
-                where (conj [:where where])
+                where (conj (if (vector? where)
+                              (vec (concat [:where] where))
+                              [:where where]) )
                 sort (conj (concat [:orderBy] (ensure-list sort)))))))
 
 (defn record->map [record fields]

@@ -104,30 +104,31 @@
   {:action
    (fn []
      (let [{::keys [ex-answer correct-answer streak-count class last-error] :as props} (get-in @state ref)]
-       (if (and ex-answer (not= ex-answer "") )
+       (if (and ex-answer (not= ex-answer ""))
          (if (= ex-answer correct-answer)
            (let [next-streak (inc streak-count)
-                 new-props (if last-error
-                             (assoc props ::streak-count next-streak
-                                          ::last-error false)
-                             (new-round class
-                               (merge props
-                                      {::streak-count next-streak
-                                       ::hints-used   0
-                                       ::ex-answer    nil})))]
+                 new-props   (if last-error
+                               (assoc props ::streak-count next-streak
+                                            ::last-error false)
+                               (new-round class
+                                 (merge props
+                                        {::streak-count next-streak
+                                         ::hints-used   0
+                                         ::ex-answer    nil})))]
              (swap! state assoc-in ref new-props)
              (play-sound new-props))
            (swap! state update-in ref assoc ::streak-count 0 ::last-error true)))))
 
    :remote
-   (let [{::keys [name streak-count ex-total-questions hints-used]} (get-in @state ref)]
+   (let [{::keys [name streak-count ex-total-questions hints-used] :as entry} (get-in @state ref)]
+     (js/console.log "saving" entry)
      (cond
        (= streak-count ex-total-questions)
-       (-> (om/query->ast `[(exercise/score-master {:url/slug ~name ::hints-used ~hints-used})])
+       (-> (om/query->ast `[(exercise/score-master {:url/slug ~name :user-activity/hints-used ~hints-used})])
            :children first)
 
        (> streak-count 0)
-       (-> (om/query->ast `[(exercise/score {:url/slug ~name ::hints-used ~hints-used})])
+       (-> (om/query->ast `[(exercise/score {:url/slug ~name :user-activity/hints-used ~hints-used})])
            :children first)))})
 
 (defn int-in [min max] (+ min (rand-int (- max min))))

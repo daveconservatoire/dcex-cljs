@@ -24,7 +24,7 @@
                 [:left-join :user-activity [::knex/call-this
                                             [:on [::ps/f :user-activity/lesson-id] "=" [::ps/f :lesson :db/id]]
                                             [:on [::ps/f :user-activity/user-id] "=" current-user-id]]]
-                [:where {[::ps/f :topic :db/id] (ps/row-get env :db/id)
+                [:where {[::ps/f :topic :db/id]       (ps/row-get env :db/id)
                          [::ps/f :user-activity/type] "view"}]]]
       (-> (ps/cached-query env cmds) <? first vals first js/parseInt))))
 
@@ -36,7 +36,7 @@
                 [:left-join :user-activity [::knex/call-this
                                             [:on [::ps/f :user-activity/lesson-id] "=" [::ps/f :lesson :db/id]]
                                             [:on [::ps/f :user-activity/user-id] "=" current-user-id]]]
-                [:where {[::ps/f :topic :db/id] (ps/row-get env :db/id)
+                [:where {[::ps/f :topic :db/id]       (ps/row-get env :db/id)
                          [::ps/f :user-activity/type] "answer"}]]]
       (-> (ps/cached-query env cmds) <? first vals first js/parseInt))))
 
@@ -197,16 +197,17 @@
 
      {::ps/table      :user-activity
       ::ps/table-name "UserActivity"
-      ::ps/fields     {:db/id                   "id"
-                       :db/timestamp            "timestamp"
-                       :user-activity/user-id   "userId"
-                       :user-activity/lesson-id "lessonId"
-                       :user-activity/status    "status"
-                       :user-activity/position  "position"
-                       :user-activity/type      "type"
-                       :user-activity/user      (ps/has-one :user :user-activity/user-id)
-                       :user-activity/lesson    (ps/has-one :lesson :user-activity/lesson-id)
-                       :activity/lesson         (ps/has-one :lesson :user-activity/lesson-id)}}]))
+      ::ps/fields     {:db/id                    "id"
+                       :db/timestamp             "timestamp"
+                       :user-activity/user-id    "userId"
+                       :user-activity/lesson-id  "lessonId"
+                       :user-activity/status     "status"
+                       :user-activity/position   "position"
+                       :user-activity/type       "type"
+                       :user-activity/user       (ps/has-one :user :user-activity/user-id)
+                       :user-activity/lesson     (ps/has-one :lesson :user-activity/lesson-id)
+                       :user-activity/hints-used "countHints"
+                       :activity/lesson          (ps/has-one :lesson :user-activity/lesson-id)}}]))
 
 (defn current-timestamp []
   (js/Math.round (/ (.getTime (js/Date.)) 1000)))
@@ -274,15 +275,16 @@
   (conj (or v []) x))
 
 (defn compute-ex-answer [{:keys [current-user-id http-request] :as env}
-                         {:keys [url/slug]}]
+                         {:keys [url/slug user-activity/hints-used]}]
   (go-catch
     (let [lesson (<? (ps/find-by env {:db/table :lesson
                                       :url/slug slug}))
-          answer {:db/table                :user-activity
-                  :db/timestamp            (current-timestamp)
-                  :user-activity/type      "answer"
-                  :user-activity/lesson-id (:db/id lesson)
-                  :guest-tx/increase-score 1}]
+          answer {:db/table                 :user-activity
+                  :db/timestamp             (current-timestamp)
+                  :user-activity/type       "answer"
+                  :user-activity/lesson-id  (:db/id lesson)
+                  :user-activity/hints-used hints-used
+                  :guest-tx/increase-score  1}]
       (if current-user-id
         (let [user (<? (ps/find-by env {:db/table :user :db/id current-user-id}))]
           (ps/save env (update user :user/score inc))
@@ -294,15 +296,16 @@
       true)))
 
 (defn compute-ex-answer-master [{:keys [current-user-id http-request] :as env}
-                                {:keys [url/slug]}]
+                                {:keys [url/slug user-activity/hints-used]}]
   (go-catch
     (let [lesson (<? (ps/find-by env {:db/table :lesson
                                       :url/slug slug}))
-          answer {:db/table                :user-activity
-                  :db/timestamp            (current-timestamp)
-                  :user-activity/type      "mastery"
-                  :user-activity/lesson-id (:db/id lesson)
-                  :guest-tx/increase-score 100}]
+          answer {:db/table                 :user-activity
+                  :db/timestamp             (current-timestamp)
+                  :user-activity/type       "mastery"
+                  :user-activity/lesson-id  (:db/id lesson)
+                  :user-activity/hints-used hints-used
+                  :guest-tx/increase-score  100}]
       (if current-user-id
         (let [user (<? (ps/find-by env {:db/table :user :db/id current-user-id}))]
           (if (zero? (<? (ps/count env :user-activity [[:where {:user-activity/user-id   current-user-id

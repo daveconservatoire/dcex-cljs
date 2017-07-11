@@ -9,6 +9,7 @@
             [daveconservatoire.site.ui.portal :refer [portal]]
             [daveconservatoire.site.ui.disqus :as dq]
             [untangled.client.core :as uc]
+            [untangled.client.data-fetch :as df]
             [untangled.client.mutations :as um]
             [cljs.spec.alpha :as s]
             [daveconservatoire.site.ui.listeners :as l]
@@ -1236,17 +1237,39 @@
 
 (om/defui ^:once HomePage
   static uc/InitialAppState
-  (initial-state [_ _] {:app/courses []})
+  (initial-state [_ _] {:app/courses []
+                        :lesson/search nil
+                        :ui/search-text ""})
 
   static om/IQuery
-  (query [_] [{:app/courses (om/get-query HomeCourse)}])
+  (query [_] [{:app/courses (om/get-query HomeCourse)}
+              {:lesson/search (om/get-query LessonCell)}
+              :ui/search-text])
 
   Object
   (render [this]
-    (let [{:keys [app/courses]} (om/props this)]
+    (let [{:keys [app/courses lesson/search ui/search-text]} (om/props this)]
       (dom/div nil
         (hero {:react-key "hero"})
         (homeboxes {:react-key "homeboxes"})
+        (dom/div nil
+          (dom/div #js {:className "banner"}
+            (dom/div #js {:className "container intro_wrapper"}
+              (dom/div #js {:className "inner_content"}
+                (dom/div #js {:className "pad30"})
+                (dom/h1 #js {:className "title"} "Search")
+                (dom/form #js {:onSubmit #(do
+                                            (.preventDefault %)
+                                            (df/load (om/get-reconciler this) :lesson/search LessonCell {:params  {:lesson/title search-text}
+                                                                                                         :target  [:route/data :lesson/search]
+                                                                                                         :refresh [:lesson/search]}))}
+                  (dom/input #js {:value    (or search-text "")
+                                  :onChange #(om/transact! this `[(app/set-route-data {:ui/search-text ~(.. % -target -value)})])})
+                  (dom/button #js {:type "submit"} "Do Search!")))))
+          (dom/div #js {:className "container wrapper"}
+            (dom/div #js {:className "tab-content"}
+              (dom/div #js {:className "tab-pane active"}
+                (map lesson-cell search)))))
         (map home-course courses)))))
 
 (defmethod r/route->component ::r/home [_] HomePage)
@@ -1353,3 +1376,7 @@
         (if route
           ((u/route->factory route) data))
         (footer {:react-key "footer"})))))
+
+(comment
+  (-> @daveconservatoire.site.core/app :reconciler :config :state deref
+      js/console.log))

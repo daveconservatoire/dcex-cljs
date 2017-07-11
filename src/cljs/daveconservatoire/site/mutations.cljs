@@ -20,6 +20,12 @@
       (swap! state assoc :app/route route))
     (js/setTimeout #(update-page env params) 10)))
 
+(defmethod m/mutate 'app/set-route-data
+  [{:keys [state]} _ data]
+  {:action
+   (fn []
+     (swap! state update :route/data merge data))})
+
 (defmethod m/mutate 'app/set-route
   [{:keys [state reconciler] :as env} _ route]
   {:action

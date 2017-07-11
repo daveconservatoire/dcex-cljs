@@ -339,8 +339,9 @@
                                        [[:where {:urltitle (p/ast-key-id (:ast %))}]])
    :lesson/by-slug #(ps/sql-first-node (assoc % ::ps/table :lesson ::ps/union-selector :lesson/type)
                                        [[:where {:urltitle (p/ast-key-id (:ast %))}]])
-   :lesson/search  #(ps/sql-table-node (-> (assoc-in % [:ast :params :where] [[::ps/f :lesson :lesson/title] "like" (str "%" (get-in % [:ast :params :lesson/title]) "%")]))
-                                       :lesson)
+   :lesson/search  #(if-let [search (get-in % [:ast :params :lesson/title])]
+                      (ps/sql-table-node (-> (assoc-in % [:ast :params :where] [[::ps/f :lesson :lesson/title] "like" (str "%" search "%")]))
+                                         :lesson))
    :app/courses    #(ps/sql-table-node (-> (ast-sort % "homepage_order")
                                            (assoc ::ps/union-selector :course/home-type)) :course)
    :app/me         #(if-let [id (:current-user-id %)]

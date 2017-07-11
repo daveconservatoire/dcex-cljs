@@ -1,5 +1,4 @@
-(ns user
-  (:require [figwheel-sidecar.repl-api :as ra]))
+(use 'figwheel-sidecar.repl-api)
 
-(ra/start-figwheel! "devcards" "site" "server-dev")
-(ra/cljs-repl)
+(start-figwheel! "site" "server-dev")
+(cljs-repl)

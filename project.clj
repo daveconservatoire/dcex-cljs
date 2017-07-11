@@ -19,7 +19,9 @@
                  [org.clojure/test.check "0.9.0"]
                  [com.rpl/specter "0.9.3"]
                  [com.cognitect/transit-cljs "0.8.239"]
-                 [cljsjs/nprogress "0.2.0-1"]]
+                 [cljsjs/nprogress "0.2.0-1"]
+
+                 [figwheel-sidecar "0.5.10"]]
 
   :plugins [[lein-cljsbuild "1.1.4"]
             [lein-doo "0.1.6"]]
@@ -33,7 +35,6 @@
 
   :profiles {:dev {:source-paths ["src/devcards" "src/cljs" "src/site" "script" "src/server" "src/dev"]
                    :dependencies [[navis/untangled-spec "0.3.9" :scope "test"]
-                                  [figwheel-sidecar "0.5.4-4" :exclusions [clj-time joda-time org.clojure/tools.reader] :scope "test"]
                                   [binaryage/devtools "0.7.0" :exclusions [cljsjs/react]]
                                   [devcards "0.2.1-4" :exclusions [org.omcljs/om cljsjs/react cljsjs/react-dom]]
                                   [lein-doo "0.1.6" :scope "test"]]}}

@@ -96,7 +96,8 @@
   [{:keys [state ref]} _ _]
   {:action
    (fn []
-     (swap! state update-in (conj ref ::hints-used) inc))})
+     (swap! state #(-> (update-in % (conj ref ::hints-used) inc)
+                       (assoc-in (conj ref ::streak-count) 0))))})
 
 (defmethod um/mutate 'dcex/check-answer
   [{:keys [state ref]} _ _]

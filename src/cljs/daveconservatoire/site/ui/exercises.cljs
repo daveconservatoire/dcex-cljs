@@ -120,8 +120,7 @@
            (swap! state update-in ref assoc ::streak-count 0 ::last-error true)))))
 
    :remote
-   (let [{::keys [name streak-count ex-total-questions hints-used] :as entry} (get-in @state ref)]
-     (js/console.log "saving" entry)
+   (let [{::keys [name streak-count ex-total-questions hints-used]} (get-in @state ref)]
      (cond
        (= streak-count ex-total-questions)
        (-> (om/query->ast `[(exercise/score-master {:url/slug ~name :user-activity/hints-used ~hints-used})])

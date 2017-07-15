@@ -29,7 +29,7 @@
   :min-lein-version "2.6.0"
 
   :figwheel {:open-file-command "open-in-intellij"
-             :css-dirs ["resources/public/css"]}
+             :css-dirs          ["resources/public/css"]}
 
   :prep-tasks [["clean"] ["cljsbuild" "once" "server" "site-min"]]
 
@@ -102,6 +102,7 @@
                                :parallel-build true
                                :target         :nodejs
                                :optimizations  :simple
+                               :static-fns     true
                                :source-map     "target/server/dcserver.js.map"}}
 
                {:id           "server-test"

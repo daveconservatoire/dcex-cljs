@@ -78,7 +78,10 @@
   (and (vector? value)
        (= (first value) name)))
 
-(defn translate-args [{:keys [::schema] :as env} cmds]
+(s/def ::field-variant
+  (s/cat :variant #{::f} :table (s/? keyword?) :field qualified-keyword?))
+
+(defn translate-args [{:keys [::schema]} cmds]
   (let [{:keys [::translate-index]} schema]
     (walk/prewalk
       (fn [x]
@@ -90,13 +93,11 @@
               v)
             x)
 
-          (variant? x ::f)
-          (let [v (second x)
-                x (if (and (= 2 (cljs.core/count x))
-                           (qualified-keyword? v))
-                    [(first x) (keyword (namespace v)) v]
-                    x)]
-            (str/join "." (translate-args env (rest x))))
+          (s/valid? ::field-variant x)
+          (let [{:keys [table field]} (s/conform ::field-variant x)
+                table (or table (keyword (namespace field)))
+                {::keys [table-name fields]} (get schema table)]
+            (str table-name "." (get fields field)))
 
           :else
           x))

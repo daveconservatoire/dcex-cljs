@@ -100,6 +100,7 @@
                                :output-dir     "target/server"
                                :asset-path     "target/server"
                                :parallel-build true
+                               :language-in    :ecmascript5
                                :target         :nodejs
                                :optimizations  :simple
                                :static-fns     true

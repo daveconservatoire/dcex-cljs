@@ -23,7 +23,7 @@
 
                  [figwheel-sidecar "0.5.10"]]
 
-  :plugins [[lein-cljsbuild "1.1.6"]
+  :plugins [[lein-cljsbuild "1.1.4"]
             [lein-doo "0.1.6"]]
 
   :min-lein-version "2.6.0"

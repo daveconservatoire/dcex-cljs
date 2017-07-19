@@ -66,8 +66,8 @@
       children)))
 
 (s/fdef button
-  :args (s/cat :props (s/keys :opt [::button-color])
-               :children (s/* ::component)))
+        :args (s/cat :props (s/keys :opt [::button-color])
+                     :children (s/* ::component)))
 
 (defn link [props & children]
   (apply dom/a (u/props->html props) children))
@@ -163,11 +163,21 @@
         (dom/div #js {:className "navbar-inner"}
           (dom/div #js {:className "container"}
             (dom/div #js {:className "row"}
-              (dom/div #js {:className "span12"}
+              (dom/div #js {:className "span6"}
                 (dom/div #js {:className "copyright" :style #js {:paddingTop 10}}
                   "© Dave Conservatoire 2016. The videos and exercises on this site are available under a "
                   (dom/a #js {:href "http://creativecommons.org/licenses/by-nc-sa/3.0/", :target "_blank"}
-                    "CC BY-NC-SA Licence") ".")))))))))
+                    "CC BY-NC-SA Licence") "."))
+              (dom/div #js {:className "span6"}
+                (dom/span #js {:id "socialmediaicons"}
+                  (dom/a #js {:href "http://www.youtube.com/daveconservatoire", :target "_blank"}
+                    (dom/img #js {:className "socialicon", :src "/img/socialicons/youtube.png"}))
+                  (dom/a #js {:href "http://www.twitter.com/dconservatoire", :target "_blank"}
+                    (dom/img #js {:className "socialicon", :src "/img/socialicons/twitter.png"}))
+                  (dom/a #js {:href "http://www.facebook.com/daveconservatoire", :target "_blank"}
+                    (dom/img #js {:className "socialicon", :src "/img/socialicons/facebook.png"}))
+                  (dom/a #js {:href "https://plus.google.com/113803255247330342246", :rel "publisher", :target "_blank"}
+                    (dom/img #js {:className "socialicon", :src "/img/socialicons/gplus.png"})))))))))))
 
 (def footer (om/factory Footer))
 
@@ -245,18 +255,31 @@
                   (button {:react-key "btn-1" ::r/handler ::r/donate, ::button-color "orange"} "Donate")
                   (button {:react-key "btn-2" ::r/handler ::r/tuition, ::button-color "redorange"} "Personal Tuition")
                   (button {:react-key "btn-3" ::r/handler ::r/contact, ::button-color "red"} "Contact")
-                  (dom/form #js {:onSubmit #(do
-                                              (.preventDefault %)
-                                              (df/load (om/get-reconciler this) :lesson/search LessonCell {:params  {:lesson/title search-text}
-                                                                                                           :target  [:route/data :lesson/search]
-                                                                                                           :refresh [:lesson/search]}))}
-                    (dom/input #js {:value    (or search-text "")
-                                    :onChange #(om/transact! this `[(app/set-route-data {:ui/search-text ~(.. % -target -value)})])})
-                    (dom/button #js {:type "submit"} "Do Search!")
-                    #_ (dom/div #js {:className "container wrapper"}
-                         (dom/div #js {:className "tab-content"}
-                           (dom/div #js {:className "tab-pane active"}
-                             (map lesson-cell search)))))
+                  (dom/form #js {:className "navbar-form"
+                                 :onSubmit  #(do
+                                               (.preventDefault %)
+                                               (df/load (om/get-reconciler this) :lesson/search LessonCell {:params  {:lesson/title search-text}
+                                                                                                            :target  [:route/data :lesson/search]
+                                                                                                            :refresh [:lesson/search]}))}
+                    (dom/div #js {:style #js {:width    "80%"
+                                              :position "relative"}}
+                      (dom/div #js {:style #js {:background "#fff"
+                                                :border     "1px solid #ccc"
+                                                :width      "100%"
+                                                :height     "200px"
+                                                :position   "absolute"
+                                                :boxSizing  "border-box"
+                                                :top        30
+                                                :zIndex     "10"}})
+                      (dom/input #js {:value       (or search-text "")
+                                      :style       #js {:boxSizing "border-box"
+                                                        :width     "100%"}
+                                      :placeholder "Search"
+                                      :onChange    #(om/transact! this `[(app/set-route-data {:ui/search-text ~(.. % -target -value)})])}))
+                    #_(dom/div #js {:className "container wrapper"}
+                        (dom/div #js {:className "tab-content"}
+                          (dom/div #js {:className "tab-pane active"}
+                            (map lesson-cell search)))))
                   (if (signed-in? props)
                     (user-menu-status this)
                     (if (> score 0)
@@ -267,15 +290,7 @@
                         score " unclaimed points. Login to save your progress")
                       (button {:react-key "btn-4" ::r/handler ::r/login :className "loginbutton", ::button-color "red"}
                         "Login")))
-                  (dom/span #js {:id "socialmediaicons"}
-                    (dom/a #js {:href "http://www.youtube.com/daveconservatoire", :target "_blank"}
-                      (dom/img #js {:className "socialicon", :src "/img/socialicons/youtube.png"}))
-                    (dom/a #js {:href "http://www.twitter.com/dconservatoire", :target "_blank"}
-                      (dom/img #js {:className "socialicon", :src "/img/socialicons/twitter.png"}))
-                    (dom/a #js {:href "http://www.facebook.com/daveconservatoire", :target "_blank"}
-                      (dom/img #js {:className "socialicon", :src "/img/socialicons/facebook.png"}))
-                    (dom/a #js {:href "https://plus.google.com/113803255247330342246", :rel "publisher", :target "_blank"}
-                      (dom/img #js {:className "socialicon", :src "/img/socialicons/gplus.png"}))))))))))))
+                  )))))))))
 
 (def desktop-menu (om/factory DesktopMenu))
 
@@ -571,7 +586,7 @@
                         (= slug (om/get-computed this :ui/topic-slug)))]
       (nav-item {::selected? selected? ::icon (if started? "icon-adjust")
                  ::r/handler ::r/topic ::r/params {::r/slug slug}}
-        title))))
+                title))))
 
 (def topic-side-bar-link (om/factory TopicSideBarLink))
 
@@ -668,7 +683,7 @@
           selected? (u/current-uri-slug? ::r/lesson slug)]
       (nav-item {::r/handler ::r/lesson ::r/params {::r/slug slug}
                  ::selected? selected?}
-        title))))
+                title))))
 
 (def lesson-topic-menu-item (om/factory LessonTopicMenuItem))
 
@@ -818,12 +833,12 @@
     (let [{:keys [db/id lesson/topic lesson/type lesson/playlist-items ui/selected-index
                   ph/pagination]} (om/props this)
           selected-index (or selected-index 0)
-          item           (nth (vec playlist-items) selected-index)
-          set-selected   (fn [n]
-                           (om/transact! (om/get-reconciler this)
-                                         [type id]
-                                         [`(um/set-props {:ui/selected-index ~n})
-                                          :route/data :app/route]))]
+          item (nth (vec playlist-items) selected-index)
+          set-selected (fn [n]
+                         (om/transact! (om/get-reconciler this)
+                                       [type id]
+                                       [`(um/set-props {:ui/selected-index ~n})
+                                        :route/data :app/route]))]
       (container
         (dom/div #js {:className "row"}
           (dom/div #js {:className "span3"}
@@ -857,7 +872,7 @@
         (let [state (-> (uc/initial-state class props)
                         (merge info))
               ident (om/ident class state)
-              r     (om/get-reconciler this)]
+              r (om/get-reconciler this)]
           (om/set-query! this {:params {:exercise/data (om/get-query class)}})
           (om/transact! r ident [`(um/set-props ~state)])
           (om/transact! r [type id] [`(um/set-props {:exercise/data ~ident})])))))
@@ -940,28 +955,28 @@
 
 (defn modal [{:ui.modal/keys [title onClose onSave]} & children]
   (portal {:append-to "body"}
-    (dom/div #js {:style #js {:position   "absolute"
-                              :left       0
-                              :top        0
-                              :background "rgba(0, 0, 0, 0.5)"
-                              :width      "100vw"
-                              :height     "100vh"}}
-      (dom/div #js {:id "myModal" :className "modal hide fade in" :tabIndex "-1" :role "dialog" :style #js {:display "block"}}
-        (dom/div #js {:className "modal-header"}
-          (dom/button #js {:type "button" :className "close" :onClick #(if onClose (onClose))}
-            "×")
-          (dom/h3 #js {:id "myModalLabel"}
-            title))
-        (dom/div #js {:className "modal-body"}
-          (apply dom/div nil children)
-          (dom/div #js {:className "row buttons"})
-          (dom/div #js {:className "modal-footer"}
-            (dom/button #js {:className "btn"
-                             :onClick   #(if onClose (onClose))}
-              "Close")
-            (dom/button #js {:className "btn btn-primary"
-                             :onClick   #(if onSave (onSave))}
-              "Save")))))))
+          (dom/div #js {:style #js {:position   "absolute"
+                                    :left       0
+                                    :top        0
+                                    :background "rgba(0, 0, 0, 0.5)"
+                                    :width      "100vw"
+                                    :height     "100vh"}}
+            (dom/div #js {:id "myModal" :className "modal hide fade in" :tabIndex "-1" :role "dialog" :style #js {:display "block"}}
+              (dom/div #js {:className "modal-header"}
+                (dom/button #js {:type "button" :className "close" :onClick #(if onClose (onClose))}
+                  "×")
+                (dom/h3 #js {:id "myModalLabel"}
+                  title))
+              (dom/div #js {:className "modal-body"}
+                (apply dom/div nil children)
+                (dom/div #js {:className "row buttons"})
+                (dom/div #js {:className "modal-footer"}
+                  (dom/button #js {:className "btn"
+                                   :onClick   #(if onClose (onClose))}
+                    "Close")
+                  (dom/button #js {:className "btn btn-primary"
+                                   :onClick   #(if onSave (onSave))}
+                    "Save")))))))
 
 (defn user-info-modal [this]
   (let [{:keys [user/about ui/tmp-about]} (om/props this)]
@@ -972,27 +987,27 @@
                        :onSave  #(do
                                    (om/transact! this `[(user/update {:user/about ~tmp-about})])
                                    (um/set-value! this :ui/editing-info? false))}
-      (dom/form #js {:id "user-form" :action "profile/update" :method "post"}
-        (dom/div #js {:id "user-form_es_" :className "errorSummary" :style #js {:display "none"}}
-          (dom/p nil
-            "Please fix the following input errors:")
-          (dom/ul nil
-            (dom/li nil
-              "dummy")))
-        (dom/label #js {:htmlFor "User_biog"}
-          (dom/h3 nil
-            "About you") "Who are you? What are your musical goals? What instruments do you play? "
-          (dom/br nil)
-          "(max. 160 characters)"
-          (dom/br nil)
-          (dom/br nil))
-        (dom/textarea #js {:size      "60"
-                           :maxLength "160"
-                           :id        "User_biog"
-                           :value     (or tmp-about about)
-                           :onChange  #(um/set-string! this :ui/tmp-about :event %)
-                           :style     #js {:zIndex "auto" :position "relative" :lineHeight "20px" :fontSize 14 :transition "none" :background "none 0% 0% / auto repeat scroll padding-box border-box rgb(255 255 255)"}})
-        (dom/div #js {:className "errorMessage" :id "User_biog_em_" :style #js {:display "none"}})))))
+           (dom/form #js {:id "user-form" :action "profile/update" :method "post"}
+             (dom/div #js {:id "user-form_es_" :className "errorSummary" :style #js {:display "none"}}
+               (dom/p nil
+                 "Please fix the following input errors:")
+               (dom/ul nil
+                 (dom/li nil
+                   "dummy")))
+             (dom/label #js {:htmlFor "User_biog"}
+               (dom/h3 nil
+                 "About you") "Who are you? What are your musical goals? What instruments do you play? "
+               (dom/br nil)
+               "(max. 160 characters)"
+               (dom/br nil)
+               (dom/br nil))
+             (dom/textarea #js {:size      "60"
+                                :maxLength "160"
+                                :id        "User_biog"
+                                :value     (or tmp-about about)
+                                :onChange  #(um/set-string! this :ui/tmp-about :event %)
+                                :style     #js {:zIndex "auto" :position "relative" :lineHeight "20px" :fontSize 14 :transition "none" :background "none 0% 0% / auto repeat scroll padding-box border-box rgb(255 255 255)"}})
+             (dom/div #js {:className "errorMessage" :id "User_biog_em_" :style #js {:display "none"}})))))
 
 (om/defui ^:once ProfileDashboard
   static om/Ident
@@ -1264,12 +1279,6 @@
       (dom/div nil
         (hero {:react-key "hero"})
         (homeboxes {:react-key "homeboxes"})
-        (dom/div nil
-          (dom/div #js {:className "banner"}
-            (dom/div #js {:className "container intro_wrapper"}
-              (dom/div #js {:className "inner_content"}
-                (dom/div #js {:className "pad30"})
-                (dom/h1 #js {:className "title"} "Search")))))
         (map home-course courses)))))
 
 (defmethod r/route->component ::r/home [_] HomePage)
@@ -1310,7 +1319,7 @@
         (dom/div #js {:className "span4"}
           (link {::r/handler ::r/login :className "btn btn-primary" :style #js {:marginTop 43}}
             (dom/h2 nil
-              "Click to Subscribe!")))))))
+                    "Click to Subscribe!")))))))
 
 (defn banner-personal-tuition []
   (dom/div #js {:className "dropdown-notification text-center visible-desktop", :id "patreonbanner"}
@@ -1323,7 +1332,7 @@
         (dom/div #js {:className "span4"}
           (link {::r/handler ::r/tuition :className "btn btn-primary" :style #js {:marginTop 43}}
             (dom/h2 nil
-              "Find out more!")))))))
+                    "Find out more!")))))))
 
 (def banner-routes #{::r/topic ::r/lesson})
 
@@ -1356,7 +1365,7 @@
                  (let [{:app/keys [route]} n]
                    (if (or (not= (:app/route o) route)
                            (not= (:app/me o) (:app/me n)))
-                     (let [comp      (some-> route r/route->component)
+                     (let [comp (some-> route r/route->component)
                            auth-req? (if (implements? IRequireAuth comp)
                                        (auth-required? comp) false)]
                        (when (and auth-req? (= (auth-state n) ::guest))
@@ -1366,8 +1375,8 @@
     (remove-watch (some-> (om/get-reconciler this) :config :state) :auth-state-detector))
 
   (render [this]
-    (let [{:keys [app/route app/me route/data ui/banner]} (om/props this)]
-      (dom/div nil
+    (let [{:keys [app/route app/me route/data ui/banner ui/react-key]} (om/props this)]
+      (dom/div #js {:key react-key}
         (when (and banner
                    (not (signed-in? me))
                    (contains? banner-routes (::r/handler route)))

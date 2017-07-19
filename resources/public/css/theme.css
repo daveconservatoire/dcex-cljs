@@ -269,6 +269,7 @@ background-color:#bf1e2d;; border:0; color:#ffffff;
 }
 
 
+
 .profilemenudd {
 	width: 100%;
 }
@@ -1949,7 +1950,18 @@ border:0px solid #34495E;
 .navbuttons {
 	margin-top:17px;
 	margin-left: 30px;
+	display: flex;
+	align-items: center;
 }
+
+.navbar-form {
+  flex:1;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+}
+
+
 
 /*-----------------------------------------------------------------------------------*/
 /*	08: MEDIA QUERIES

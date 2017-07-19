@@ -64,9 +64,12 @@
 
 (def progress-bar (om/factory ProgressBar))
 
+(defn answer-label [{::keys [correct-answer options]}]
+  (-> (into {} options) (get correct-answer)))
+
 (s/fdef progress-bar
-  :args (s/cat :props (s/keys :opt [::progress-total ::progress-value]))
-  :ret ::react-component)
+        :args (s/cat :props (s/keys :opt [::progress-total ::progress-value]))
+        :ret ::react-component)
 
 (defn note->node [note]
   {::audio/node-gen (->> note audio/semitone->note (get @audio/*sound-library*))})
@@ -143,8 +146,8 @@
                  (int-in (audio/note->semitone a) (audio/note->semitone b)))))))
 
 (s/fdef descriptor->value
-  :args (s/cat :desc ::value-descriptor)
-  :ret ::audio/semitone)
+        :args (s/cat :desc ::value-descriptor)
+        :ret ::audio/semitone)
 
 (defn completed? [{:keys [::ex-total-questions ::streak-count]}]
   (>= streak-count ex-total-questions))
@@ -165,7 +168,8 @@
     (let [{::keys [options ex-answer ex-total-questions streak-count notes hints hints-used]
            :as    props} (om/props this)
           [opt-type _] (s/conform ::options options)
-          parent       (om/parent this)
+          parent (om/parent this)
+          hints (hints props)
           check-answer #(do
                           (om/transact! parent `[(dcex/check-answer)
                                                  (untangled/load {:query [{:app/me ~(om/get-query UserScore)}] :marker false})]))]
@@ -199,7 +203,7 @@
                                     "Play Again")))))
                           (dom/div #js {:id "hintsarea"}
                             (for [[hint i] (map vector (take hints-used hints) (range))]
-                              (dom/p #js {:key i} (template/translate hint props)))))
+                              (dom/p #js {:key i} hint))))
                         (dom/div #js {:id "answer_area_wrap"}
                           (dom/div #js {:id "answer_area"}
                             (dom/form #js {:id "answerform" :name "answerform" :onSubmit #(do
@@ -259,19 +263,19 @@
 (defn rand-direction [] (rand-nth [1 -1]))
 
 (s/fdef rand-direction
-  :args (s/cat)
-  :ret #{-1 1})
+        :args (s/cat)
+        :ret #{-1 1})
 
 (defn vary-pitch [{:keys [::pitch ::variation ::direction]}]
   (let [direction (or direction [-1 1])
-        a         (descriptor->value pitch)
-        b         (+ a (* (descriptor->value variation)
-                          (descriptor->value direction)))]
+        a (descriptor->value pitch)
+        b (+ a (* (descriptor->value variation)
+                  (descriptor->value direction)))]
     [a b]))
 
 (s/fdef vary-pitch
-  :args (s/cat :data (s/keys :req [::pitch ::variation]))
-  :ret (s/tuple ::audio/semitone ::audio/semitone))
+        :args (s/cat :data (s/keys :req [::pitch ::variation]))
+        :ret (s/tuple ::audio/semitone ::audio/semitone))
 
 (om/defui ^:once PitchDetection
   static uc/InitialAppState
@@ -312,7 +316,11 @@
         {::name      "identify-octaves"
          ::options   [["yes" "Yes"] ["no" "No"]]
          ::pitch     ["C3" ".." "B5"]
-         ::variation [3 5 6 7 8 9 12 15 16]}
+         ::variation [3 5 6 7 8 9 15 16 12 12 12 12 12 12 12]
+         ::hints     (fn [props]
+                       ["Does this sound like two flavours of the same thing?"
+                        "Can you sing the notes between the two pitches?  Do they make a complete scale?"
+                        (str "The answer is " (get props ::correct-answer))])}
         props)))
 
   static om/Ident
@@ -325,7 +333,7 @@
   (new-round [_ props]
     (let [[a b :as notes] (vary-pitch props)
           distance (- b a)
-          octave?  (zero? (mod distance 8))]
+          octave? (= (js/Math.abs distance) 12)]
       (assoc props
         ::notes notes
         ::correct-answer (if octave? "yes" "no"))))
@@ -338,20 +346,26 @@
 (def notes-treble
   {::read-note-order  ["E" "F" "G" "A" "B" "C" "D" "E" "F"]
    ::read-note-prefix "trebleclefimages"
-   ::hints            ["Does this note sit on a line or in a space?"
-                       "\"FACE in the space\" and \"Every Green Bus Drives Fast\""
-                       ["This note is " ::correct-answer]]})
+   ::hints            (fn [props]
+                        ["Does this note sit on a line or in a space?"
+                         "\"FACE in the space\" and \"Every Green Bus Drives Fast\""
+                         (str "This note is " (get props ::correct-answer))])})
 
 (def notes-bass
   {::read-note-order  ["G" "A" "B" "C" "D" "E" "F" "G" "A"]
    ::read-note-prefix "bassclefimages"
-   ::hints            ["Does this note sit on a line or in a space?"
-                       "\"All Cows Eat Grass\" and \"Good Boys Deserve Fresh Apples\""
-                       ["This note is " ::correct-answer]]})
+   ::hints            (fn [props]
+                        ["Does this note sit on a line or in a space?"
+                         "\"All Cows Eat Grass\" and \"Good Boys Deserve Fresh Apples\""
+                         (str "This note is " (get props ::correct-answer))])})
 
 (def notes-grand-staff
   {::read-note-order  ["G" "A" "B" "C" "D" "E" "F" "G" "A" "B" #_"TREBLE" "D" "E" "F" "G" "A" "B" "C" "D" "E" "F" "C"]
-   ::read-note-prefix "grandstaffimages"})
+   ::read-note-prefix "grandstaffimages"
+   ::hints            (fn [props]
+                        ["Identify if the note belongs to treble clef or the bass clef."
+                         "The treble clef is the upper staff, the bass clef is the lower staff."
+                         (str "This note is " (get props ::correct-answer))])})
 
 (defn rand-int-new [n old]
   "Generate a new random number like rand-int, if number is equals to `old` a new
@@ -369,8 +383,7 @@
       (merge
         (uc/initial-state Exercise nil)
         {::name    "reading-music"
-         ::options ::option-type-text}
-        props)))
+         ::options ::option-type-text} props)))
 
   static om/Ident
   (ident [_ props] [:exercise/by-name (::name props)])
@@ -381,10 +394,10 @@
   static IExercise
   (new-round [_ props]
     (let [{::keys [read-note-order read-note]} props
-          pos    (rand-int-new (count read-note-order) read-note)
-          note   (get read-note-order pos)
+          pos (rand-int-new (count read-note-order) read-note)
+          note (get read-note-order pos)
           octave (if (> pos 4) 4 3)
-          notes  [(str note octave)]]
+          notes [(str note octave)]]
       (assoc props
         ::read-note pos
         ::notes notes
@@ -509,7 +522,7 @@
 
   static IExercise
   (new-round [_ props]
-    (let [type      (rand-nth ["major" "minor"])
+    (let [type (rand-nth ["major" "minor"])
           base-note (descriptor->value ["C3" ".." "F3"])]
       (assoc props
         ::notes (audio/chord base-note (type->arrengement type))
@@ -548,6 +561,8 @@
 
 (def rhytm-metronome (flatten1 (repeat 5 [["high" 1] ["low" 1] ["low" 1] ["low" 1]])))
 
+
+
 (om/defui ^:once RhythmReading
   static uc/InitialAppState
   (initial-state [this props]
@@ -556,15 +571,19 @@
         (uc/initial-state Exercise nil)
         {::name       "rhythm-reading"
          ::options    [["0" "A"] ["1" "B"] ["2" "C"] ["3" "D"]]
-         ::play-notes (let [last-play       (atom [])
+         ::play-notes (let [last-play (atom [])
                             time-multiplier 0.7]
                         (fn [notes]
-                          (let [time  (audio/current-time)
+                          (let [time (audio/current-time)
                                 nodes (map #(update % ::audio/duration (partial * time-multiplier)) (prepare-notes notes))
                                 metro (map #(update % ::audio/duration (partial * time-multiplier)) (prepare-notes rhytm-metronome))]
                             (run! audio/stop @last-play)
                             (reset! last-play (concat (audio/play-sequence metro {::audio/time time})
-                                                      (audio/play-sequence nodes {::audio/time (+ time (* 4 time-multiplier))}))))))}
+                                                      (audio/play-sequence nodes {::audio/time (+ time (* 4 time-multiplier))}))))))
+         ::hints      (fn [props]
+                        ["Choose one bar and really focus on listening to that when the music plays."
+                         "Clap along with the version you chose as the music plays. "
+                         (str "The correct version is " (answer-label props))])}
         props)))
 
   static om/Ident
@@ -576,13 +595,13 @@
   static IExercise
   (new-round [_ props]
     (let [rhytms (partition 4 (take 16 (random-bars)))
-          idx    (rand-int 4)
-          notes  (->> (nth rhytms idx)
-                      (map ::vf/notes)
-                      (flatten)
-                      (map (comp #(vector "B4" %)
-                                 duration->seconds
-                                 ::vf/duration)))]
+          idx (rand-int 4)
+          notes (->> (nth rhytms idx)
+                     (map ::vf/notes)
+                     (flatten)
+                     (map (comp #(vector "B4" %)
+                                duration->seconds
+                                ::vf/duration)))]
       (assoc props
         ::rhytms rhytms
         ::notes notes

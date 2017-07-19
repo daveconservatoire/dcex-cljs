@@ -218,17 +218,21 @@
 (defn signed-in? [me]
   (boolean (:user/name me)))
 
+(declare LessonCell lesson-cell)
+
 (om/defui ^:once DesktopMenu
   static om/Ident
   (ident [_ props]
     (u/model-ident props))
 
   static om/IQuery
-  (query [_] [:db/id :db/table :user/name :user/score])
+  (query [_] [:db/id :db/table :user/name :user/score
+              {:lesson/search (om/get-query LessonCell)}
+              :ui/search-text])
 
   Object
   (render [this]
-    (let [{:keys [user/score] :as props} (om/props this)]
+    (let [{:keys [user/score lesson/search ui/search-text] :as props} (om/props this)]
       (dom/div #js {:className "header hidden-phone"}
         (dom/div #js {:className "navbar"}
           (dom/div #js {:className "navbar-inner"}
@@ -241,6 +245,18 @@
                   (button {:react-key "btn-1" ::r/handler ::r/donate, ::button-color "orange"} "Donate")
                   (button {:react-key "btn-2" ::r/handler ::r/tuition, ::button-color "redorange"} "Personal Tuition")
                   (button {:react-key "btn-3" ::r/handler ::r/contact, ::button-color "red"} "Contact")
+                  (dom/form #js {:onSubmit #(do
+                                              (.preventDefault %)
+                                              (df/load (om/get-reconciler this) :lesson/search LessonCell {:params  {:lesson/title search-text}
+                                                                                                           :target  [:route/data :lesson/search]
+                                                                                                           :refresh [:lesson/search]}))}
+                    (dom/input #js {:value    (or search-text "")
+                                    :onChange #(om/transact! this `[(app/set-route-data {:ui/search-text ~(.. % -target -value)})])})
+                    (dom/button #js {:type "submit"} "Do Search!")
+                    #_ (dom/div #js {:className "container wrapper"}
+                         (dom/div #js {:className "tab-content"}
+                           (dom/div #js {:className "tab-pane active"}
+                             (map lesson-cell search)))))
                   (if (signed-in? props)
                     (user-menu-status this)
                     (if (> score 0)
@@ -1237,18 +1253,14 @@
 
 (om/defui ^:once HomePage
   static uc/InitialAppState
-  (initial-state [_ _] {:app/courses []
-                        :lesson/search nil
-                        :ui/search-text ""})
+  (initial-state [_ _] {:app/courses []})
 
   static om/IQuery
-  (query [_] [{:app/courses (om/get-query HomeCourse)}
-              {:lesson/search (om/get-query LessonCell)}
-              :ui/search-text])
+  (query [_] [{:app/courses (om/get-query HomeCourse)}])
 
   Object
   (render [this]
-    (let [{:keys [app/courses lesson/search ui/search-text]} (om/props this)]
+    (let [{:keys [app/courses]} (om/props this)]
       (dom/div nil
         (hero {:react-key "hero"})
         (homeboxes {:react-key "homeboxes"})
@@ -1257,19 +1269,7 @@
             (dom/div #js {:className "container intro_wrapper"}
               (dom/div #js {:className "inner_content"}
                 (dom/div #js {:className "pad30"})
-                (dom/h1 #js {:className "title"} "Search")
-                (dom/form #js {:onSubmit #(do
-                                            (.preventDefault %)
-                                            (df/load (om/get-reconciler this) :lesson/search LessonCell {:params  {:lesson/title search-text}
-                                                                                                         :target  [:route/data :lesson/search]
-                                                                                                         :refresh [:lesson/search]}))}
-                  (dom/input #js {:value    (or search-text "")
-                                  :onChange #(om/transact! this `[(app/set-route-data {:ui/search-text ~(.. % -target -value)})])})
-                  (dom/button #js {:type "submit"} "Do Search!")))))
-          (dom/div #js {:className "container wrapper"}
-            (dom/div #js {:className "tab-content"}
-              (dom/div #js {:className "tab-pane active"}
-                (map lesson-cell search)))))
+                (dom/h1 #js {:className "title"} "Search")))))
         (map home-course courses)))))
 
 (defmethod r/route->component ::r/home [_] HomePage)

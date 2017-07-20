@@ -168,8 +168,8 @@
     (let [{::keys [options ex-answer ex-total-questions streak-count notes hints hints-used]
            :as    props} (om/props this)
           [opt-type _] (s/conform ::options options)
-          parent (om/parent this)
-          hints (hints props)
+          parent       (om/parent this)
+          hints        (if hints (hints props) [])
           check-answer #(do
                           (om/transact! parent `[(dcex/check-answer)
                                                  (untangled/load {:query [{:app/me ~(om/get-query UserScore)}] :marker false})]))]
@@ -268,9 +268,9 @@
 
 (defn vary-pitch [{:keys [::pitch ::variation ::direction]}]
   (let [direction (or direction [-1 1])
-        a (descriptor->value pitch)
-        b (+ a (* (descriptor->value variation)
-                  (descriptor->value direction)))]
+        a         (descriptor->value pitch)
+        b         (+ a (* (descriptor->value variation)
+                          (descriptor->value direction)))]
     [a b]))
 
 (s/fdef vary-pitch
@@ -333,7 +333,7 @@
   (new-round [_ props]
     (let [[a b :as notes] (vary-pitch props)
           distance (- b a)
-          octave? (= (js/Math.abs distance) 12)]
+          octave?  (= (js/Math.abs distance) 12)]
       (assoc props
         ::notes notes
         ::correct-answer (if octave? "yes" "no"))))
@@ -394,10 +394,10 @@
   static IExercise
   (new-round [_ props]
     (let [{::keys [read-note-order read-note]} props
-          pos (rand-int-new (count read-note-order) read-note)
-          note (get read-note-order pos)
+          pos    (rand-int-new (count read-note-order) read-note)
+          note   (get read-note-order pos)
           octave (if (> pos 4) 4 3)
-          notes [(str note octave)]]
+          notes  [(str note octave)]]
       (assoc props
         ::read-note pos
         ::notes notes
@@ -522,7 +522,7 @@
 
   static IExercise
   (new-round [_ props]
-    (let [type (rand-nth ["major" "minor"])
+    (let [type      (rand-nth ["major" "minor"])
           base-note (descriptor->value ["C3" ".." "F3"])]
       (assoc props
         ::notes (audio/chord base-note (type->arrengement type))
@@ -571,10 +571,10 @@
         (uc/initial-state Exercise nil)
         {::name       "rhythm-reading"
          ::options    [["0" "A"] ["1" "B"] ["2" "C"] ["3" "D"]]
-         ::play-notes (let [last-play (atom [])
+         ::play-notes (let [last-play       (atom [])
                             time-multiplier 0.7]
                         (fn [notes]
-                          (let [time (audio/current-time)
+                          (let [time  (audio/current-time)
                                 nodes (map #(update % ::audio/duration (partial * time-multiplier)) (prepare-notes notes))
                                 metro (map #(update % ::audio/duration (partial * time-multiplier)) (prepare-notes rhytm-metronome))]
                             (run! audio/stop @last-play)
@@ -595,13 +595,13 @@
   static IExercise
   (new-round [_ props]
     (let [rhytms (partition 4 (take 16 (random-bars)))
-          idx (rand-int 4)
-          notes (->> (nth rhytms idx)
-                     (map ::vf/notes)
-                     (flatten)
-                     (map (comp #(vector "B4" %)
-                                duration->seconds
-                                ::vf/duration)))]
+          idx    (rand-int 4)
+          notes  (->> (nth rhytms idx)
+                      (map ::vf/notes)
+                      (flatten)
+                      (map (comp #(vector "B4" %)
+                                 duration->seconds
+                                 ::vf/duration)))]
       (assoc props
         ::rhytms rhytms
         ::notes notes

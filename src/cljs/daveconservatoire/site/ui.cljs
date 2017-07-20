@@ -31,6 +31,9 @@
         (.format date)
         (clojure.string/replace #"(\d+)o" #(ordinal-suffix (second %))))))
 
+(defn get-load-query [comp]
+  (conj (om/get-query comp) :ui/fetch-state))
+
 (s/def ::component om/component?)
 (s/def ::button-color #{"yellow" "orange" "redorange" "red"})
 
@@ -230,6 +233,24 @@
 
 (declare LessonCell lesson-cell)
 
+(om/defui ^:once PopupSearchResult
+  static om/IQuery
+  (query [_] [:db/id :db/table :lesson/title :youtube/id :lesson/type :url/slug])
+
+  static om/Ident
+  (ident [_ props] (u/model-ident props))
+
+  Object
+  (render [this]
+    (let [{:keys [lesson/title url/slug] :as lesson} (om/props this)]
+      (dom/div #js {:style #js {:marginBottom 10}}
+        (link {::r/handler ::r/lesson ::r/params {::r/slug slug}
+               :style      #js {:display "flex"}}
+          (dom/img #js {:src (u/lesson-thumbnail-url lesson) :key "img" :style #js {:height 56}})
+          (dom/p #js {:key "p" :style #js {:marginLeft 5 :textAlign "left"}} title))))))
+
+(def popup-search-result (om/factory PopupSearchResult))
+
 (om/defui ^:once DesktopMenu
   static om/Ident
   (ident [_ props]
@@ -237,7 +258,7 @@
 
   static om/IQuery
   (query [_] [:db/id :db/table :user/name :user/score
-              {:lesson/search (om/get-query LessonCell)}
+              {:lesson/search (get-load-query LessonCell)}
               :ui/search-text])
 
   Object
@@ -258,28 +279,37 @@
                   (dom/form #js {:className "navbar-form"
                                  :onSubmit  #(do
                                                (.preventDefault %)
-                                               (df/load (om/get-reconciler this) :lesson/search LessonCell {:params  {:lesson/title search-text}
-                                                                                                            :target  [:route/data :lesson/search]
-                                                                                                            :refresh [:lesson/search]}))}
+                                               (df/load this :lesson/search PopupSearchResult {:params  {:lesson/title search-text}
+                                                                                               :target  (conj (om/get-ident this) :lesson/search)
+                                                                                               :refresh [:lesson/search]}))}
+                    (dom/button #js {:type "submit" :style #js {:display "none"}})
                     (dom/div #js {:style #js {:width    "80%"
                                               :position "relative"}}
                       (dom/div #js {:style #js {:background "#fff"
                                                 :border     "1px solid #ccc"
                                                 :width      "100%"
-                                                :height     "200px"
+                                                :maxHeight  "600px"
                                                 :position   "absolute"
                                                 :boxSizing  "border-box"
-                                                :top        30
-                                                :zIndex     "10"}})
+                                                :top        28
+                                                :overflow   "auto"
+                                                :zIndex     "10"}}
+                        (if (df/loading? (:ui/fetch-state search))
+                          "Loading..."
+                          (map popup-search-result search)))
+
                       (dom/input #js {:value       (or search-text "")
                                       :style       #js {:boxSizing "border-box"
+                                                        :border    "1px solid #ccc"
                                                         :width     "100%"}
                                       :placeholder "Search"
-                                      :onChange    #(om/transact! this `[(app/set-route-data {:ui/search-text ~(.. % -target -value)})])}))
-                    #_(dom/div #js {:className "container wrapper"}
-                        (dom/div #js {:className "tab-content"}
-                          (dom/div #js {:className "tab-pane active"}
-                            (map lesson-cell search)))))
+                                      :onChange    #(do
+                                                      (um/set-string! this :ui/search-text :event %)
+                                                      (let [txt (.. % -target -value)]
+                                                        (if (> (count txt) 2)
+                                                          (df/load this :lesson/search PopupSearchResult {:params  {:lesson/title txt}
+                                                                                                          :target  (conj (om/get-ident this) :lesson/search)})
+                                                          (um/set-value! this :lesson/search []))))})))
                   (if (signed-in? props)
                     (user-menu-status this)
                     (if (> score 0)
@@ -289,8 +319,7 @@
                         (dom/i #js {:className "icon-exclamation-sign icon-white" :style #js {:marginRight 5}})
                         score " unclaimed points. Login to save your progress")
                       (button {:react-key "btn-4" ::r/handler ::r/login :className "loginbutton", ::button-color "red"}
-                        "Login")))
-                  )))))))))
+                        "Login"))))))))))))
 
 (def desktop-menu (om/factory DesktopMenu))
 
@@ -833,12 +862,12 @@
     (let [{:keys [db/id lesson/topic lesson/type lesson/playlist-items ui/selected-index
                   ph/pagination]} (om/props this)
           selected-index (or selected-index 0)
-          item (nth (vec playlist-items) selected-index)
-          set-selected (fn [n]
-                         (om/transact! (om/get-reconciler this)
-                                       [type id]
-                                       [`(um/set-props {:ui/selected-index ~n})
-                                        :route/data :app/route]))]
+          item           (nth (vec playlist-items) selected-index)
+          set-selected   (fn [n]
+                           (om/transact! (om/get-reconciler this)
+                                         [type id]
+                                         [`(um/set-props {:ui/selected-index ~n})
+                                          :route/data :app/route]))]
       (container
         (dom/div #js {:className "row"}
           (dom/div #js {:className "span3"}
@@ -872,7 +901,7 @@
         (let [state (-> (uc/initial-state class props)
                         (merge info))
               ident (om/ident class state)
-              r (om/get-reconciler this)]
+              r     (om/get-reconciler this)]
           (om/set-query! this {:params {:exercise/data (om/get-query class)}})
           (om/transact! r ident [`(um/set-props ~state)])
           (om/transact! r [type id] [`(um/set-props {:exercise/data ~ident})])))))
@@ -1365,7 +1394,7 @@
                  (let [{:app/keys [route]} n]
                    (if (or (not= (:app/route o) route)
                            (not= (:app/me o) (:app/me n)))
-                     (let [comp (some-> route r/route->component)
+                     (let [comp      (some-> route r/route->component)
                            auth-req? (if (implements? IRequireAuth comp)
                                        (auth-required? comp) false)]
                        (when (and auth-req? (= (auth-state n) ::guest))
@@ -1388,4 +1417,4 @@
 
 (comment
   (-> @daveconservatoire.site.core/app :reconciler :config :state deref
-      js/console.log))
+      :lesson/by-id (get 256)))

@@ -42,7 +42,7 @@
         (l/simple-listener
           (assoc comp
             ::l/event "keydown"
-            ::l/on-trigger (l/handle-key-event
+            ::l/on-trigger (l/handle-key-events
                              {:down (fn [e]
                                       (.preventDefault e)
                                       (om/transact! this `[(cursor/move-down ~(assoc props :item-count (count children)))]))

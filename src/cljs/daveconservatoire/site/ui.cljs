@@ -309,7 +309,7 @@
                             (om/computed search-cursor
                               {::cursor/children search
                                ::cursor/factory  popup-search-result
-                               ::l/target (fn [_] (gobj/get this "search-input"))}))))
+                               ::l/target        #(gobj/get this "search-input")}))))
 
                       (dom/input #js {:value       (or search-text "")
                                       :style       #js {:boxSizing "border-box"
@@ -328,7 +328,11 @@
                                                                                                           :target               (conj (om/get-ident this) :lesson/search-swap)
                                                                                                           :post-mutation        'search/swap
                                                                                                           :post-mutation-params {:ref (om/get-ident this)}})
-                                                          (um/set-value! this :lesson/search []))))})))
+                                                          (um/set-value! this :lesson/search []))))})
+                      (l/simple-listener {::l/target     #(gobj/get this "search-input")
+                                          ::l/event      "keydown"
+                                          ::l/on-trigger (l/handle-key-events
+                                                           {:escape #(um/set-value! this :lesson/search [])})})))
                   (if (signed-in? props)
                     (user-menu-status this)
                     (if (> score 0)

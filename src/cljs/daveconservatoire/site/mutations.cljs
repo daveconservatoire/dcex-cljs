@@ -74,6 +74,12 @@
 (defn update-ref [{:keys [state ref]} data]
   (swap! state update-in ref merge data))
 
+(defmethod m/mutate 'search/swap
+  [{:keys [state]} _ {:keys [ref]}]
+  (swap! state assoc-in
+         (conj ref :lesson/search)
+         (get-in @state (conj ref :lesson/search-swap))))
+
 (defmethod m/mutate 'user/update
   [env _ data]
   {:action #(update-ref env data)

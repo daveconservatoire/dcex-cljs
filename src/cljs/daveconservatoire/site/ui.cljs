@@ -8,6 +8,7 @@
             [daveconservatoire.site.ui.youtube-player :as ytp]
             [daveconservatoire.site.ui.portal :refer [portal]]
             [daveconservatoire.site.ui.disqus :as dq]
+            [daveconservatoire.site.ui.cursor :as cursor]
             [untangled.client.core :as uc]
             [untangled.client.data-fetch :as df]
             [untangled.client.mutations :as um]
@@ -242,28 +243,39 @@
 
   Object
   (render [this]
-    (let [{:keys [lesson/title url/slug] :as lesson} (om/props this)]
+    (let [{:keys [lesson/title url/slug] :as lesson} (om/props this)
+          {::cursor/keys [selected?]} (om/get-computed lesson)]
       (dom/div #js {:style #js {:marginBottom 10}}
         (link {::r/handler ::r/lesson ::r/params {::r/slug slug}
-               :style      #js {:display "flex"}}
+               :style      (cond-> {:display "flex"}
+                             selected? (merge {:background "#00c"})
+                             true clj->js)}
           (dom/img #js {:src (u/lesson-thumbnail-url lesson) :key "img" :style #js {:height 56}})
           (dom/p #js {:key "p" :style #js {:marginLeft 5 :textAlign "left"}} title))))))
 
 (def popup-search-result (om/factory PopupSearchResult))
 
 (om/defui ^:once DesktopMenu
+  static uc/InitialAppState
+  (initial-state [_ _]
+    {:db/id (om/tempid) :db/table :user :ui/fetch-state {}})
+
   static om/Ident
   (ident [_ props]
     (u/model-ident props))
 
   static om/IQuery
   (query [_] [:db/id :db/table :user/name :user/score
-              {:lesson/search (get-load-query LessonCell)}
+              {:lesson/search (om/get-query LessonCell)}
+              {:lesson/search-swap [:ui/fetch-state]}
+              {'[:ui/search-cursor _] (om/get-query cursor/VerticalCursor)}
               :ui/search-text])
 
   Object
   (render [this]
-    (let [{:keys [user/score lesson/search ui/search-text] :as props} (om/props this)]
+    (let [{:keys    [user/score lesson/search lesson/search-swap]
+           :ui/keys [search-cursor search-text]
+           :as      props} (om/props this)]
       (dom/div #js {:className "header hidden-phone"}
         (dom/div #js {:className "navbar"}
           (dom/div #js {:className "navbar-inner"}
@@ -277,11 +289,7 @@
                   (button {:react-key "btn-2" ::r/handler ::r/tuition, ::button-color "redorange"} "Personal Tuition")
                   (button {:react-key "btn-3" ::r/handler ::r/contact, ::button-color "red"} "Contact")
                   (dom/form #js {:className "navbar-form"
-                                 :onSubmit  #(do
-                                               (.preventDefault %)
-                                               (df/load this :lesson/search PopupSearchResult {:params  {:lesson/title search-text}
-                                                                                               :target  (conj (om/get-ident this) :lesson/search)
-                                                                                               :refresh [:lesson/search]}))}
+                                 :onSubmit  #(.preventDefault %)}
                     (dom/button #js {:type "submit" :style #js {:display "none"}})
                     (dom/div #js {:style #js {:width    "80%"
                                               :position "relative"}}
@@ -294,21 +302,32 @@
                                                 :top        28
                                                 :overflow   "auto"
                                                 :zIndex     "10"}}
-                        (if (df/loading? (:ui/fetch-state search))
-                          "Loading..."
-                          (map popup-search-result search)))
+                        (if (df/loading? (:ui/fetch-state search-swap))
+                          "Loading...")
+                        (if (> (count search) 0)
+                          (cursor/vertical-cursor
+                            (om/computed search-cursor
+                              {::cursor/children search
+                               ::cursor/factory  popup-search-result
+                               ::l/target (fn [_] (gobj/get this "search-input"))}))))
 
                       (dom/input #js {:value       (or search-text "")
                                       :style       #js {:boxSizing "border-box"
                                                         :border    "1px solid #ccc"
                                                         :width     "100%"}
+                                      :key         "search-input"
+                                      :ref         (fn [el]
+                                                     (when el
+                                                       (gobj/set this "search-input" (dom/node el))))
                                       :placeholder "Search"
-                                      :onChange    #(do
+                                      :onInput     #(do
                                                       (um/set-string! this :ui/search-text :event %)
                                                       (let [txt (.. % -target -value)]
                                                         (if (> (count txt) 2)
-                                                          (df/load this :lesson/search PopupSearchResult {:params  {:lesson/title txt}
-                                                                                                          :target  (conj (om/get-ident this) :lesson/search)})
+                                                          (df/load this :lesson/search PopupSearchResult {:params               {:lesson/title txt}
+                                                                                                          :target               (conj (om/get-ident this) :lesson/search-swap)
+                                                                                                          :post-mutation        'search/swap
+                                                                                                          :post-mutation-params {:ref (om/get-ident this)}})
                                                           (um/set-value! this :lesson/search []))))})))
                   (if (signed-in? props)
                     (user-menu-status this)
@@ -809,7 +828,7 @@
             (dom/div #js {:className "lesson-content"}
               (dom/div #js {:className "vendor"}
                 (ytp/youtube-player (om/computed {:videoId id}
-                                                 {:on-state-change #(if %2 (report-video-play this))})))
+                                      {:on-state-change #(if %2 (report-video-play this))})))
               (if-not (str/blank? description)
                 (dom/div #js {:className "well"} description))
               (dom/h3 nil "Any Questions?")
@@ -1369,11 +1388,12 @@
   static uc/InitialAppState
   (initial-state [_ _]
     (let [route (r/current-handler)]
-      {:app/route    nil
-       :ui/banner    (rand-nth [banner-subscribe banner-personal-tuition])
-       :ui/react-key (random-uuid)
-       :route/data   (r/route->initial-state route)
-       :app/me       {:db/id 0 :db/table :user :ui/fetch-state {}}}))
+      {:app/route        nil
+       :ui/banner        (rand-nth [banner-subscribe banner-personal-tuition])
+       :ui/react-key     (random-uuid)
+       :route/data       (r/route->initial-state route)
+       :ui/search-cursor (uc/get-initial-state cursor/VerticalCursor {:ui/cursor-name "search-popup"})
+       :app/me           (uc/get-initial-state DesktopMenu {})}))
 
   static om/IQueryParams
   (params [_]
@@ -1382,6 +1402,7 @@
   static om/IQuery
   (query [_]
     [:app/route :ui/react-key :ui/banner
+     {:ui/search-cursor (om/get-query cursor/VerticalCursor)}
      {:app/me (om/get-query DesktopMenu)}
      {:route/next-data [:clean :ui/fetch-state]}
      {:route/data '?route/data}])
@@ -1417,4 +1438,4 @@
 
 (comment
   (-> @daveconservatoire.site.core/app :reconciler :config :state deref
-      :lesson/by-id (get 256)))
+      js/console.log))

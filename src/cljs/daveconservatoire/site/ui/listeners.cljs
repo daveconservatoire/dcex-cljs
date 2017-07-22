@@ -21,13 +21,17 @@
         key-table (if (.-shiftKey e) KEYS_SHIFT KEYS)]
     (get key-table code)))
 
-(defn event [props] (get props :event "click"))
+(defn event [props] (get props ::event "click"))
 
 (defn handle-event [owner e]
   (if-let [f (-> (om/props owner) ::on-trigger)]
     (f e)))
 
-(defn event-target [props] (get props ::target js/document))
+(defn event-target [props]
+  (let [target (get props ::target js/document)]
+    (if (fn? target)
+      (target props)
+      target)))
 
 (defn key? [e key]
   (let [code (.-keyCode e)]
@@ -56,11 +60,12 @@
 
 (def simple-listener (om/factory SimpleListener))
 
-(s/def ::event any?)
+(s/def ::js-event any?)
 
 (s/def ::on-trigger
-  (s/fspec :args (s/cat :event ::event)))
+  (s/fspec :args (s/cat :event ::js-event)))
 
 (s/fdef simple-listener
-  :args (s/cat :props (s/keys :req [::on-trigger]))
+  :args (s/cat :props (s/keys :req [::on-trigger]
+                              :opt [::event ::target]))
   :ret :om.next/component)

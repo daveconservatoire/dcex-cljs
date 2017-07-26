@@ -15,7 +15,12 @@
             [cljs.spec.alpha :as s]
             [daveconservatoire.site.ui.listeners :as l]
             [clojure.string :as str])
-  (:import goog.i18n.DateTimeFormat))
+  (:import goog.i18n.DateTimeFormat
+           goog.async.Debouncer))
+
+(defn debounce [f interval]
+  (let [dbnc (Debouncer. f interval)]
+    (fn [& args] (.apply (.-fire dbnc) dbnc (to-array args)))))
 
 (defn ordinal-suffix [i]
   (let [j (mod i 10)
@@ -255,6 +260,15 @@
 
 (def popup-search-result (om/factory PopupSearchResult))
 
+(def update-search
+  (debounce
+    (fn [this txt]
+      (df/load this :lesson/search PopupSearchResult {:params               {:lesson/title txt}
+                                                      :target               (conj (om/get-ident this) :lesson/search-swap)
+                                                      :post-mutation        'search/swap
+                                                      :post-mutation-params {:ref (om/get-ident this)}}))
+    400))
+
 (om/defui ^:once DesktopMenu
   static uc/InitialAppState
   (initial-state [_ _]
@@ -324,10 +338,7 @@
                                                       (um/set-string! this :ui/search-text :event %)
                                                       (let [txt (.. % -target -value)]
                                                         (if (> (count txt) 2)
-                                                          (df/load this :lesson/search PopupSearchResult {:params               {:lesson/title txt}
-                                                                                                          :target               (conj (om/get-ident this) :lesson/search-swap)
-                                                                                                          :post-mutation        'search/swap
-                                                                                                          :post-mutation-params {:ref (om/get-ident this)}})
+                                                          (update-search this txt)
                                                           (um/set-value! this :lesson/search []))))})
                       (l/simple-listener {::l/target     #(gobj/get this "search-input")
                                           ::l/event      "keydown"

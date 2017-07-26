@@ -54,6 +54,6 @@
                             (if (= i selected-index)
                               (om/computed x {::selected? true})
                               x)))
-             (map factory))))))
+             (map-indexed (fn [i x] (dom/div #js {:onMouseOver #(m/set-value! this :ui/selected-index i)} (factory x)))))))))
 
 (def vertical-cursor (om/factory VerticalCursor))

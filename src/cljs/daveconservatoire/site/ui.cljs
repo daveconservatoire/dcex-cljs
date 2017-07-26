@@ -309,12 +309,12 @@
                                               :position "relative"}}
                       (dom/div #js {:style #js {:background "#fff"
                                                 :border     "1px solid #ccc"
+                                                :display    "flex"
                                                 :width      "100%"
                                                 :maxHeight  "600px"
                                                 :position   "absolute"
                                                 :boxSizing  "border-box"
                                                 :top        28
-                                                :overflow   "auto"
                                                 :zIndex     "10"}}
                         (if (df/loading? (:ui/fetch-state search-swap))
                           "Loading...")

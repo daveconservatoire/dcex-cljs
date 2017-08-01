@@ -317,7 +317,7 @@
                   (dom/form #js {:className "navbar-form"
                                  :onSubmit  #(.preventDefault %)}
                     (dom/button #js {:type "submit" :style #js {:display "none"}})
-                    (dom/div #js {:style #js {:width    "100%"
+                    (dom/div #js {:style #js {:width    "80%"
                                               :position "relative"}}
                       (dom/div #js {:style #js {:background "#fff"
                                                 :border     "1px solid #ccc"
@@ -409,7 +409,7 @@
                   (dom/form #js {:className "navbar-form"
                                  :onSubmit  #(.preventDefault %)}
                     (dom/button #js {:type "submit" :style #js {:display "none"}})
-                    (dom/div #js {:style #js {:width    "80%"
+                    (dom/div #js {:style #js {:width    "100%"
                                               :position "relative"}}
                       (dom/div #js {:style #js {:background "#fff"
                                                 :border     "1px solid #ccc"

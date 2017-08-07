@@ -1155,10 +1155,12 @@
     (modal #:ui.modal {:title   "Update your Profile"
                        :onClose #(do
                                    (um/set-value! this :ui/editing-info? false)
-                                   (um/set-value! this :ui/tmp-about about))
+                                   (um/set-value! this :ui/tmp-about about)
+                                   (om/transact! this [:ui/editing-info?]))
                        :onSave  #(do
                                    (om/transact! this `[(user/update {:user/about ~tmp-about})])
-                                   (um/set-value! this :ui/editing-info? false))}
+                                   (um/set-value! this :ui/editing-info? false)
+                                   (om/transact! this [:ui/editing-info?]))}
       (dom/form #js {:id "user-form" :action "profile/update" :method "post"}
         (dom/div #js {:id "user-form_es_" :className "errorSummary" :style #js {:display "none"}}
           (dom/p nil
@@ -1205,7 +1207,9 @@
                   (user-info-modal this))
                 (dom/a #js {:href        "#myModal"
                             :role        "button"
-                            :onClick     #(um/set-value! this :ui/editing-info? true)
+                            :onClick     #(do
+                                            (um/set-value! this :ui/editing-info? true)
+                                            (om/transact! this [:ui/editing-info?]))
                             :className   "btn dc-btn-red pull-right"
                             :data-toggle "modal"}
                   "Update your info")

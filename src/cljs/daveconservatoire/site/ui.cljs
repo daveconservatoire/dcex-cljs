@@ -75,8 +75,8 @@
       children)))
 
 (s/fdef button
-        :args (s/cat :props (s/keys :opt [::button-color])
-                     :children (s/* ::component)))
+  :args (s/cat :props (s/keys :opt [::button-color])
+               :children (s/* ::component)))
 
 (defn button-block [props & children]
   (let [{:keys [::button-color]
@@ -87,8 +87,8 @@
       children)))
 
 (s/fdef button-block
-        :args (s/cat :props (s/keys :opt [::button-color])
-                     :children (s/* ::component)))
+  :args (s/cat :props (s/keys :opt [::button-color])
+               :children (s/* ::component)))
 
 (defn link [props & children]
   (apply dom/a (u/props->html props) children))
@@ -310,7 +310,7 @@
                 (dom/img #js {:src "/img/dclogo3.png" :alt "Dave Conservatoire" :key "logo"}))
               (dom/div #js {:className "navbar"}
                 (dom/div #js {:className "navbuttons"}
-                  (button {:react-key "btn-0" ::r/handler ::r/about, ::button-color "yellow" } "About")
+                  (button {:react-key "btn-0" ::r/handler ::r/about, ::button-color "yellow"} "About")
                   (button {:react-key "btn-1" ::r/handler ::r/donate, ::button-color "orange"} "Donate")
                   (button {:react-key "btn-2" ::r/handler ::r/tuition, ::button-color "redorange"} "Personal Tuition")
                   (button {:react-key "btn-3" ::r/handler ::r/contact, ::button-color "red"} "Contact")
@@ -333,9 +333,9 @@
                         (if (> (count search) 0)
                           (cursor/vertical-cursor
                             (om/computed search-cursor
-                              {::cursor/children search
-                               ::cursor/factory  popup-search-result
-                               ::l/target        #(gobj/get this "search-input")}))))
+                                         {::cursor/children search
+                                          ::cursor/factory  popup-search-result
+                                          ::l/target        #(gobj/get this "search-input")}))))
 
                       (dom/input #js {:value       (or search-text "")
                                       :style       #js {:boxSizing "border-box"
@@ -355,7 +355,10 @@
                       (l/simple-listener {::l/target     #(gobj/get this "search-input")
                                           ::l/event      "keydown"
                                           ::l/on-trigger (l/handle-key-events
-                                                           {:escape #(um/set-value! this :lesson/search [])})})))
+                                                           {:escape #(um/set-value! this :lesson/search [])
+                                                            :return #(let [{:keys [url/slug]} (nth search (:ui/selected-index search-cursor))]
+                                                                       (om/transact! this `[(app/set-route ~{::r/handler ::r/lesson
+                                                                                                             ::r/params  {::r/slug slug}})]))})})))
                   (if (signed-in? props)
                     (user-menu-status this)
                     (if (> score 0)
@@ -398,7 +401,7 @@
                 (dom/span #js {:className "icon-bar"})
                 (dom/span #js {:className "icon-bar"})
                 (dom/span #js {:className "icon-bar"}))
-              (dom/a #js {:className "brand mobilenav" :href "http://daveconservatoire.org" }
+              (dom/a #js {:className "brand mobilenav" :href "http://daveconservatoire.org"}
                 (dom/span #js {:className "mobiledc"} "Dave Conservatoire"))
               (dom/div #js {:className "nav-collapse navbar-responsive-collapse collapse" :id "mainfoldout" :style #js {:height "100%" :zindex 1000}}
                 (dom/ul #js {:className "nav"}
@@ -452,14 +455,12 @@
                     (user-menu-status this)
                     (if (> score 0)
                       (button-block {:className  "btn btn-success loginbutton"
-                               :react-key  "btn-4"
-                               ::r/handler ::r/login}
-                        (dom/i #js {:className "icon-exclamation-sign icon-white" :style #js {:marginRight 5}})
-                        score " unclaimed points. Login to save your progress")
+                                     :react-key  "btn-4"
+                                     ::r/handler ::r/login}
+                                    (dom/i #js {:className "icon-exclamation-sign icon-white" :style #js {:marginRight 5}})
+                                    score " unclaimed points. Login to save your progress")
                       (button-block {:react-key "btn-4" ::r/handler ::r/login :className "loginbutton", ::button-color "red"}
-                        "Login")))))
-
-
+                                    "Login")))))
 
               )))))))
 
@@ -757,7 +758,7 @@
                         (= slug (om/get-computed this :ui/topic-slug)))]
       (nav-item {::selected? selected? ::icon (if started? "icon-adjust")
                  ::r/handler ::r/topic ::r/params {::r/slug slug}}
-                title))))
+        title))))
 
 (def topic-side-bar-link (om/factory TopicSideBarLink))
 
@@ -854,7 +855,7 @@
           selected? (u/current-uri-slug? ::r/lesson slug)]
       (nav-item {::r/handler ::r/lesson ::r/params {::r/slug slug}
                  ::selected? selected?}
-                title))))
+        title))))
 
 (def lesson-topic-menu-item (om/factory LessonTopicMenuItem))
 
@@ -951,7 +952,7 @@
             (dom/div #js {:className "lesson-content"}
               (dom/div #js {:className "vendor"}
                 (ytp/youtube-player (om/computed {:videoId id}
-                                      {:on-state-change #(if %2 (report-video-play this))})))
+                                                 {:on-state-change #(if %2 (report-video-play this))})))
               (if-not (str/blank? description)
                 (dom/div #js {:className "well"} description))
               (dom/h3 nil "Any Questions?")
@@ -1126,28 +1127,28 @@
 
 (defn modal [{:ui.modal/keys [title onClose onSave]} & children]
   (portal {:append-to "body"}
-          (dom/div #js {:style #js {:position   "absolute"
-                                    :left       0
-                                    :top        0
-                                    :background "rgba(0, 0, 0, 0.5)"
-                                    :width      "100vw"
-                                    :height     "100vh"}}
-            (dom/div #js {:id "myModal" :className "modal hide fade in" :tabIndex "-1" :role "dialog" :style #js {:display "block"}}
-              (dom/div #js {:className "modal-header"}
-                (dom/button #js {:type "button" :className "close" :onClick #(if onClose (onClose))}
-                  "×")
-                (dom/h3 #js {:id "myModalLabel"}
-                  title))
-              (dom/div #js {:className "modal-body"}
-                (apply dom/div nil children)
-                (dom/div #js {:className "row buttons"})
-                (dom/div #js {:className "modal-footer"}
-                  (dom/button #js {:className "btn"
-                                   :onClick   #(if onClose (onClose))}
-                    "Close")
-                  (dom/button #js {:className "btn btn-primary"
-                                   :onClick   #(if onSave (onSave))}
-                    "Save")))))))
+    (dom/div #js {:style #js {:position   "absolute"
+                              :left       0
+                              :top        0
+                              :background "rgba(0, 0, 0, 0.5)"
+                              :width      "100vw"
+                              :height     "100vh"}}
+      (dom/div #js {:id "myModal" :className "modal hide fade in" :tabIndex "-1" :role "dialog" :style #js {:display "block"}}
+        (dom/div #js {:className "modal-header"}
+          (dom/button #js {:type "button" :className "close" :onClick #(if onClose (onClose))}
+            "×")
+          (dom/h3 #js {:id "myModalLabel"}
+            title))
+        (dom/div #js {:className "modal-body"}
+          (apply dom/div nil children)
+          (dom/div #js {:className "row buttons"})
+          (dom/div #js {:className "modal-footer"}
+            (dom/button #js {:className "btn"
+                             :onClick   #(if onClose (onClose))}
+              "Close")
+            (dom/button #js {:className "btn btn-primary"
+                             :onClick   #(if onSave (onSave))}
+              "Save")))))))
 
 (defn user-info-modal [this]
   (let [{:keys [user/about ui/tmp-about]} (om/props this)]
@@ -1158,27 +1159,27 @@
                        :onSave  #(do
                                    (om/transact! this `[(user/update {:user/about ~tmp-about})])
                                    (um/set-value! this :ui/editing-info? false))}
-           (dom/form #js {:id "user-form" :action "profile/update" :method "post"}
-             (dom/div #js {:id "user-form_es_" :className "errorSummary" :style #js {:display "none"}}
-               (dom/p nil
-                 "Please fix the following input errors:")
-               (dom/ul nil
-                 (dom/li nil
-                   "dummy")))
-             (dom/label #js {:htmlFor "User_biog"}
-               (dom/h3 nil
-                 "About you") "Who are you? What are your musical goals? What instruments do you play? "
-               (dom/br nil)
-               "(max. 160 characters)"
-               (dom/br nil)
-               (dom/br nil))
-             (dom/textarea #js {:size      "60"
-                                :maxLength "160"
-                                :id        "User_biog"
-                                :value     (or tmp-about about)
-                                :onChange  #(um/set-string! this :ui/tmp-about :event %)
-                                :style     #js {:zIndex "auto" :position "relative" :lineHeight "20px" :fontSize 14 :transition "none" :background "none 0% 0% / auto repeat scroll padding-box border-box rgb(255 255 255)"}})
-             (dom/div #js {:className "errorMessage" :id "User_biog_em_" :style #js {:display "none"}})))))
+      (dom/form #js {:id "user-form" :action "profile/update" :method "post"}
+        (dom/div #js {:id "user-form_es_" :className "errorSummary" :style #js {:display "none"}}
+          (dom/p nil
+            "Please fix the following input errors:")
+          (dom/ul nil
+            (dom/li nil
+              "dummy")))
+        (dom/label #js {:htmlFor "User_biog"}
+          (dom/h3 nil
+            "About you") "Who are you? What are your musical goals? What instruments do you play? "
+          (dom/br nil)
+          "(max. 160 characters)"
+          (dom/br nil)
+          (dom/br nil))
+        (dom/textarea #js {:size      "60"
+                           :maxLength "160"
+                           :id        "User_biog"
+                           :value     (or tmp-about about)
+                           :onChange  #(um/set-string! this :ui/tmp-about :event %)
+                           :style     #js {:zIndex "auto" :position "relative" :lineHeight "20px" :fontSize 14 :transition "none" :background "none 0% 0% / auto repeat scroll padding-box border-box rgb(255 255 255)"}})
+        (dom/div #js {:className "errorMessage" :id "User_biog_em_" :style #js {:display "none"}})))))
 
 (om/defui ^:once ProfileDashboard
   static om/Ident
@@ -1490,7 +1491,7 @@
         (dom/div #js {:className "span4"}
           (link {::r/handler ::r/login :className "btn btn-primary" :style #js {:marginTop 43}}
             (dom/h2 nil
-                    "Click to Subscribe!")))))))
+              "Click to Subscribe!")))))))
 
 (defn banner-personal-tuition []
   (dom/div #js {:className "dropdown-notification text-center visible-desktop", :id "patreonbanner"}
@@ -1503,7 +1504,7 @@
         (dom/div #js {:className "span4"}
           (link {::r/handler ::r/tuition :className "btn btn-primary" :style #js {:marginTop 43}}
             (dom/h2 nil
-                    "Find out more!")))))))
+              "Find out more!")))))))
 
 (def banner-routes #{::r/topic ::r/lesson})
 

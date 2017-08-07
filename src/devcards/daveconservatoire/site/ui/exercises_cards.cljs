@@ -2,7 +2,7 @@
   (:require [devcards.core :as dc :include-macros true :refer-macros [dom-node defcard deftest]]
             [cljs.test :refer-macros [is are run-tests async testing]]
             [daveconservatoire.site.ui.exercises :as ex]
-            [untangled.client.core :as uc]
+            [fulcro.client.core :as uc]
             [om.next :as om]
             [om.dom :as dom])
   (:require-macros [daveconservatoire.site.ui.exercises-cards :refer [defex]]))
@@ -22,7 +22,7 @@
                                        (merge info))
                              ident (om/ident class state)
                              r (om/get-reconciler this)]
-                         (om/transact! r ident [`(untangled.client.mutations/set-props ~state)])))
+                         (om/transact! r ident [`(fulcro.client.mutations/set-props ~state)])))
 
     (render [this]
             (let [{:keys [exercice]} (om/props this)]

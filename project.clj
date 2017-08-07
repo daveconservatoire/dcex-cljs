@@ -13,7 +13,7 @@
                  [org.clojure/clojurescript "1.9.660" :scope "provided"]
                  [org.clojure/core.async "0.3.442"]
                  [org.omcljs/om "1.0.0-beta1"]
-                 [awkay/untangled "1.0.0-SNAPSHOT"]
+                 [fulcrologic/fulcro "1.0.0-beta7-SNAPSHOT"]
                  [bidi "2.0.9"]
                  [kibu/pushy "0.3.6"]
                  [org.clojure/test.check "0.9.0"]
@@ -34,7 +34,7 @@
   :prep-tasks [["clean"] ["cljsbuild" "once" "server" "site-min"]]
 
   :profiles {:dev {:source-paths ["src/devcards" "src/cljs" "src/site" "script" "src/server" "src/dev"]
-                   :dependencies [[navis/untangled-spec "0.3.9" :scope "test"]
+                   :dependencies [[fulcrologic/fulcro-spec "1.0.0-beta5"]
                                   [binaryage/devtools "0.7.0" :exclusions [cljsjs/react]]
                                   [devcards "0.2.1-4" :exclusions [org.omcljs/om cljsjs/react cljsjs/react-dom]]
                                   [lein-doo "0.1.6" :scope "test"]]}}

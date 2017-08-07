@@ -2,8 +2,8 @@
   (:require [om.next :as om :include-macros true]
             [om.dom :as dom]
             [common.template :as template]
-            [untangled.client.core :as uc]
-            [untangled.client.mutations :as um]
+            [fulcro.client.core :as uc]
+            [fulcro.client.mutations :as um]
             [cljs.spec.alpha :as s]
             [daveconservatoire.audio.core :as audio]
             [daveconservatoire.site.ui.vexflow :as vf]
@@ -172,7 +172,7 @@
           hints        (if hints (hints props) [])
           check-answer #(do
                           (om/transact! parent `[(dcex/check-answer)
-                                                 (untangled/load {:query [{:app/me ~(om/get-query UserScore)}] :marker false})]))]
+                                                 (fulcro/load {:query [{:app/me ~(om/get-query UserScore)}] :marker false})]))]
       (s/assert ::ex-props props)
       (dom/div #js {:className "lesson-content"}
         (dom/div #js {:className "single-exercise visited-no-recolor"

@@ -2,7 +2,7 @@
   (:require [cljs.spec.alpha :as s]
             [pushy.core :as pushy]
             [bidi.bidi :as bidi]
-            [untangled.client.core :as uc]))
+            [fulcro.client.core :as uc]))
 
 (defprotocol IRouteMiddleware
   (remote-query [this route]))

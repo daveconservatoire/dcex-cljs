@@ -1,5 +1,5 @@
 (ns daveconservatoire.site.main
-  (:require [untangled.client.core :as uc]
+  (:require [fulcro.client.core :as uc]
             [daveconservatoire.site.ui :as ui]
             [daveconservatoire.site.core :refer [app]]
             [daveconservatoire.site.mutations]

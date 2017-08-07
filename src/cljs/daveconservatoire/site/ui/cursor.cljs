@@ -3,8 +3,8 @@
             [om.dom :as dom]
             [daveconservatoire.site.ui.listeners :as l]
             [goog.object :as gobj]
-            [untangled.client.core :as uc]
-            [untangled.client.mutations :as m]))
+            [fulcro.client.core :as fulcro]
+            [fulcro.client.mutations :as m]))
 
 (defn next-up [selected-index item-count]
   (-> (if (= 0 selected-index)
@@ -31,7 +31,7 @@
          (next-down selected-index item-count)))
 
 (om/defui ^:once VerticalCursor
-  static uc/InitialAppState
+  static fulcro/InitialAppState
   (initial-state [_ props]
     (merge {:ui/selected-index 0
             :ui/cursor-name    "default"}

@@ -1,6 +1,6 @@
 (ns daveconservatoire.site.mutations
-  (:require [untangled.client.mutations :as m]
-            [untangled.client.data-fetch :as df]
+  (:require [fulcro.client.mutations :as m]
+            [fulcro.client.data-fetch :as df]
             [cljsjs.nprogress]
             [daveconservatoire.site.routes :as r]
             [daveconservatoire.site.ui :as ui]
@@ -9,9 +9,9 @@
             [om.next :as om]
             [om.util :as omu]))
 
-(js/NProgress.configure #js {:minimum 0.4
+(js/NProgress.configure #js {:minimum      0.4
                              :trickleSpeed 100
-                             :showSpinner false})
+                             :showSpinner  false})
 
 (defn update-page [{:keys [state] :as env} {:keys [route route/data] :as params}]
   (if-let [reconciler (some-> dc/app deref :reconciler)]
@@ -30,20 +30,20 @@
   [{:keys [state reconciler] :as env} _ route]
   {:action
    (fn []
-     (let [comp (r/route->component route)
+     (let [comp       (r/route->component route)
            data-query (if (implements? r/IRouteMiddleware comp)
                         (r/remote-query comp route)
                         (om/get-query comp))
            norm-query (uiu/normalize-route-data-query data-query)
-           page-data {:route      route
-                      :route/data norm-query}]
+           page-data  {:route      route
+                       :route/data norm-query}]
        (if data-query
          (do
            (js/NProgress.start)
            (swap! state assoc :app/route-swap page-data)
-           (om/transact! reconciler [`(untangled/load {:query         [{:route/data ~data-query}]
-                                                       :target        [:route/next-data]
-                                                       :post-mutation fetch/complete-set-route})])
+           (om/transact! reconciler [`(fulcro/load {:query         [{:route/data ~data-query}]
+                                                    :target        [:route/next-data]
+                                                    :post-mutation fetch/complete-set-route})])
            (df/load reconciler :app/me ui/DesktopMenu {:marker false}))
          (update-page env page-data))))})
 

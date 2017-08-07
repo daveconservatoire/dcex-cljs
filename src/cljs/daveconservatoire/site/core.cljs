@@ -1,5 +1,5 @@
 (ns daveconservatoire.site.core
-  (:require [untangled.client.core :as uc]
+  (:require [fulcro.client.core :as uc]
             [daveconservatoire.site.routes :as r]
             [om.next :as om]))
 
@@ -7,4 +7,4 @@
   (om/transact! reconciler `[(app/set-route ~(r/current-handler))]))
 
 (defonce app
-  (atom (uc/new-untangled-client :started-callback start-callback)))
+  (atom (uc/new-fulcro-client :started-callback start-callback)))

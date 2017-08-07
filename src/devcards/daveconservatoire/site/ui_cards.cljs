@@ -3,7 +3,7 @@
             [cljs.test :refer-macros [is are run-tests async testing]]
             [daveconservatoire.site.routes :as r]
             [daveconservatoire.site.ui :as ui]
-            [untangled.client.core :as uc]))
+            [fulcro.client.core :as uc]))
 
 (defcard button-cards
   (fn [_ _]
@@ -192,5 +192,5 @@
 (defcard lesson-playlist
   (dom-node
     (fn [_ node]
-      (uc/mount (uc/new-untangled-test-client :initial-state lesson)
+      (uc/mount (uc/new-fulcro-test-client :initial-state lesson)
                 ui/LessonPlaylist node))))

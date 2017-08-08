@@ -13,6 +13,7 @@
             [fulcro.client.data-fetch :as df]
             [fulcro.client.mutations :as um]
             [cljs.spec.alpha :as s]
+            [pushy.core :as pushy]
             [daveconservatoire.site.ui.listeners :as l]
             [clojure.string :as str])
   (:import goog.i18n.DateTimeFormat
@@ -356,9 +357,11 @@
                                           ::l/event      "keydown"
                                           ::l/on-trigger (l/handle-key-events
                                                            {:escape #(um/set-value! this :lesson/search [])
-                                                            :return #(let [{:keys [url/slug]} (nth search (:ui/selected-index search-cursor))]
-                                                                       (om/transact! this `[(app/set-route ~{::r/handler ::r/lesson
-                                                                                                             ::r/params  {::r/slug slug}})]))})})))
+                                                            :return #(let [{:keys [ui/search-cursor lesson/search]} (om/props this)
+                                                                           {:keys [url/slug]} (nth search (:ui/selected-index search-cursor))
+                                                                           path (r/path-for {::r/handler ::r/lesson
+                                                                                             ::r/params  {::r/slug slug}})]
+                                                                       (pushy/set-token! daveconservatoire.site.main/history path))})})))
                   (if (signed-in? props)
                     (user-menu-status this)
                     (if (> score 0)

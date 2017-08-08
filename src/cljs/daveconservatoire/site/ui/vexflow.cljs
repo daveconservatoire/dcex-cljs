@@ -46,8 +46,8 @@
    ::raphael dom/div})
 
 (defn render-score [{:keys [::bars ::width ::height ::clef ::scale ::backend]} container]
-  (let [VF (.. js/Vex -Flow)
-        renderer (VF.Renderer. container (backend-renderer backend))
+  (let [Renderer (gobj/getValueByKeys js/window #js ["Vex" "Flow" "Renderer"])
+        renderer (Renderer. container (backend-renderer backend))
         ctx (.getContext renderer)
         scale (or scale 1)
         bar-size (/ width (count bars) scale)]

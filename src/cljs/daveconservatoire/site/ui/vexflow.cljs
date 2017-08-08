@@ -30,13 +30,14 @@
 
 (defn require-vexflow [] (u/load-external-script "/vendor/vexflow-min.js"))
 
-(defn format-and-draw [ctx stave notes]
-  (js/Vex.Flow.Formatter.FormatAndDraw ctx stave (clj->js notes)))
-
 (defn js-call [obj method & args]
   (if-let [f (gobj/get obj method)]
     (.apply f obj (clj->js args))
     (throw (ex-info (str "Method `" method "` could not be found in " obj) {}))))
+
+(defn format-and-draw [ctx stave notes]
+  (let [f (gobj/getValueByKeys js/window #js ["Vex" "Flow" "Formatter" "FormatAndDraw"])]
+    (f ctx stave (clj->js notes))))
 
 (def backend-renderer
   {nil       1

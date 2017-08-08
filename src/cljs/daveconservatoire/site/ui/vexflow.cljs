@@ -72,7 +72,7 @@
   (componentDidMount [this]
     (go
       (require-vexflow)
-      (<! (wait-for (fn [] (gobj/get js/window "Vex"))))
+      (<! (wait-for (fn [] (gobj/getValueByKeys js/window #js ["Vex" "Flow" "Renderer"]))))
       (let [div (gobj/get this "el")]
         (render-score (om/props this) div))))
 

@@ -33,6 +33,11 @@
 (defn format-and-draw [ctx stave notes]
   (js/Vex.Flow.Formatter.FormatAndDraw ctx stave (clj->js notes)))
 
+(defn js-call [obj method & args]
+  (if-let [f (gobj/get obj method)]
+    (.apply f obj (clj->js args))
+    (throw (ex-info (str "Method `" method "` could not be found in " obj) {}))))
+
 (def backend-renderer
   {nil       1
    ::canvas  1
@@ -47,20 +52,24 @@
 
 (defn render-score [{:keys [::bars ::width ::height ::clef ::scale ::backend]} container]
   (let [Renderer (gobj/getValueByKeys js/window #js ["Vex" "Flow" "Renderer"])
+        Stave (gobj/getValueByKeys js/window #js ["Vex" "Stave"])
+        StaveNote (gobj/getValueByKeys js/window #js ["Vex" "StaveNote"])
         renderer (Renderer. container (backend-renderer backend))
-        ctx (.getContext renderer)
+        ctx (js-call renderer "getContext")
         scale (or scale 1)
         bar-size (/ width (count bars) scale)]
-    (.resize renderer (+ width scale) height)
-    (.setFont ctx "Arial" 10 "")
-    (.setBackgroundFillStyle ctx "#eed")
-    (.scale ctx scale scale)
+    (js-call renderer "resize" (+ width scale) height)
+    (js-call ctx "setFont" "Arial" 10 "")
+    (js-call ctx "setBackgroundFillStyle" "#eed")
+    (js-call ctx "scale" scale scale)
 
     (doseq [[i {:keys [::notes]}] (map vector (range) bars)
-            :let [stave (VF.Stave. (* i bar-size) 0 bar-size)]]
-      (if (and (zero? i) clef) (.addClef stave (name clef)))
-      (.. stave (setContext ctx) (draw))
-      (format-and-draw ctx stave (into [] (map #(VF.StaveNote. (clj->js %))) notes)))))
+            :let [stave (Stave. (* i bar-size) 0 bar-size)]]
+      (if (and (zero? i) clef) (js-call stave "addClef" (name clef)))
+      (doto stave
+        (js-call "setContext" ctx)
+        (js-call "draw"))
+      (format-and-draw ctx stave (into [] (map #(StaveNote. (clj->js %))) notes)))))
 
 (s/fdef render-score
   :args (s/cat :score ::score))

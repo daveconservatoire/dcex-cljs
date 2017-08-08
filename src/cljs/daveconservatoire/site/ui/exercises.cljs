@@ -561,7 +561,8 @@
 
 (def rhytm-metronome (flatten1 (repeat 5 [["high" 1] ["low" 1] ["low" 1] ["low" 1]])))
 
-
+(def rhythm-options
+  {0 "A" 1 "B" 2 "C" 3 "D"})
 
 (om/defui ^:once RhythmReading
   static uc/InitialAppState
@@ -570,7 +571,7 @@
       (merge
         (uc/initial-state Exercise nil)
         {::name       "rhythm-reading"
-         ::options    [["0" "A"] ["1" "B"] ["2" "C"] ["3" "D"]]
+         ::options    (into [] (map (fn [[k v]] [(str k) v])) rhythm-options)
          ::play-notes (let [last-play       (atom [])
                             time-multiplier 0.7]
                         (fn [notes]
@@ -614,8 +615,10 @@
         (dom/p #js {:key "p"} "Listen the sound clip and choose the correct rhythm. You will hear a metronome count in and then the piano will play the rhythm over this.")
         (dom/div #js {:key "scores"}
           (for [[i bars] (map vector (range) rhytms)]
-            (vf/score #::vf {:width 500 :height 110 :clef ::vf/treble :_/react-key (hash bars)
-                             :bars  bars})))))))
+            (dom/div #js {:style #js {:display "flex" :alignItems "center"}}
+              (dom/div #js {:style #js {:fontWeight "bold" :fontSize 23 :width 30}} (get rhythm-options i))
+              (vf/score #::vf {:width 470 :height 110 :clef ::vf/treble :_/react-key (hash bars)
+                               :bars  bars}))))))))
 
 (def INTERVAL-NAMES
   {2  "Major 2nd"

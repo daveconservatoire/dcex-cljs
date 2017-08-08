@@ -52,8 +52,8 @@
 
 (defn render-score [{:keys [::bars ::width ::height ::clef ::scale ::backend]} container]
   (let [Renderer (gobj/getValueByKeys js/window #js ["Vex" "Flow" "Renderer"])
-        Stave (gobj/getValueByKeys js/window #js ["Vex" "Stave"])
-        StaveNote (gobj/getValueByKeys js/window #js ["Vex" "StaveNote"])
+        Stave (gobj/getValueByKeys js/window #js ["Vex" "Flow" "Stave"])
+        StaveNote (gobj/getValueByKeys js/window #js ["Vex" "Flow" "StaveNote"])
         renderer (Renderer. container (backend-renderer backend))
         ctx (js-call renderer "getContext")
         scale (or scale 1)

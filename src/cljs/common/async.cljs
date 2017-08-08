@@ -1,5 +1,5 @@
 (ns common.async
-  (:refer-clojure :exclude [map mapcat filter remove distinct concat take-while drop-while complement keep reduce])
+  (:refer-clojure :exclude [map mapcat filter remove distinct concat take-while drop-while complement keep reduce delay])
   (:require-macros [cljs.core.async.macros :refer [go alt! go-loop]]
                    [common.async :refer [dochan go-catch <? <!expand]])
   (:require [goog.net.Jsonp]
@@ -61,6 +61,11 @@
       c ([x] x)
       (async/timeout msec) (ex-info (str "Timeout " msec "ms") {::timeout msec}))))
 
+(defn delay [ms]
+  (let [c (chan)]
+    (js/setTimeout #(close! c) ms)
+    c))
+
 (defn wait-for
   ([f] (wait-for f 100))
   ([f interval]
@@ -69,6 +74,6 @@
        (if (f)
          (async/close! c)
          (do
-           (<! (async/timeout interval))
+           (<! (delay interval))
            (recur))))
      c)))

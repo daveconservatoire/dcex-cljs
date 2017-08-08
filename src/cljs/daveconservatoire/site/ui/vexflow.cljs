@@ -3,6 +3,7 @@
   (:require [om.next :as om]
             [om.dom :as dom]
             [cljs.core.async :refer [chan <!]]
+            [goog.object :as gobj]
             [goog.dom :as gdom]
             [daveconservatoire.site.ui.util :as u]
             [cljs.spec.alpha :as s]))
@@ -70,17 +71,18 @@
   (componentDidMount [this]
     (go
       (<! (require-vexflow))
-      (let [div (js/ReactDOM.findDOMNode this)]
+      (let [div (gobj/get this "el")]
         (render-score (om/props this) div))))
 
   (componentDidUpdate [this _ _]
-    (let [node (js/ReactDOM.findDOMNode this)]
+    (let [node (gobj/get this "el")]
       (gdom/removeChildren node)
       (render-score (om/props this) node)))
 
   (render [this]
     (let [{::keys [width height backend]} (om/props this)
           el (backend-element backend)]
-      (el #js {:style #js {:width width :height height}}))))
+      (el #js {:style #js {:width width :height height}
+               :ref #(gobj/set this "el" %)}))))
 
 (def score (om/factory Score))

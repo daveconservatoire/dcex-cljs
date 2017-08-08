@@ -60,3 +60,15 @@
     (alt!
       c ([x] x)
       (async/timeout msec) (ex-info (str "Timeout " msec "ms") {::timeout msec}))))
+
+(defn wait-for
+  ([f] (wait-for f 100))
+  ([f interval]
+   (let [c (chan)]
+     (go-loop []
+       (if (f)
+         (async/close! c)
+         (do
+           (<! (async/timeout interval))
+           (recur))))
+     c)))

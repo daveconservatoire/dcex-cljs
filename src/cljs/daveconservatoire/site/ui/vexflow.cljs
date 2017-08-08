@@ -2,6 +2,7 @@
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [om.next :as om]
             [om.dom :as dom]
+            [common.async :refer [wait-for]]
             [cljs.core.async :refer [chan <!]]
             [goog.object :as gobj]
             [goog.dom :as gdom]
@@ -70,7 +71,8 @@
 
   (componentDidMount [this]
     (go
-      (<! (require-vexflow))
+      (require-vexflow)
+      (<! (wait-for (fn [] (gobj/get js/window "Vex"))))
       (let [div (gobj/get this "el")]
         (render-score (om/props this) div))))
 

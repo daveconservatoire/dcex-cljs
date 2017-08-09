@@ -187,7 +187,7 @@
             (dom/div #js {:className "row"}
               (dom/div #js {:className "span6"}
                 (dom/div #js {:className "copyright" :style #js {:paddingTop 10}}
-                  "© Dave Conservatoire 2016. The videos and exercises on this site are available under a "
+                  "© Dave Conservatoire " (str (.getFullYear (js/Date.))) ". The videos and exercises on this site are available under a "
                   (dom/a #js {:href "http://creativecommons.org/licenses/by-nc-sa/3.0/", :target "_blank"}
                     "CC BY-NC-SA Licence") "."))
               (dom/div #js {:className "span6"}
@@ -282,10 +282,91 @@
                                                       :post-mutation-params {:ref (om/get-ident this)}}))
     400))
 
+(defn mobile-menu [this]
+  (let [{:keys    [user/score lesson/search lesson/search-swap]
+         :ui/keys [search-cursor search-text expanded?]
+         :as      props} (om/props this)]
+    (dom/div #js {:className "header visible-phone"}
+      (dom/div #js {:className "navbar"}
+        (dom/div #js {:className "navbar-inner"}
+          (dom/div #js {:className "container"}
+            (dom/a #js {:className "btn btn-navbar collapsed"
+                        :onClick   #(um/set-value! this :ui/expanded? (not expanded?))}
+              (dom/span #js {:className "icon-bar"})
+              (dom/span #js {:className "icon-bar"})
+              (dom/span #js {:className "icon-bar"}))
+            (dom/a #js {:className "brand mobilenav" :href "http://daveconservatoire.org"}
+              (dom/span #js {:className "mobiledc"} "Dave Conservatoire"))
+            (dom/div #js {:className "nav-collapse navbar-responsive-collapse collapse"
+                          :id        "mainfoldout"
+                          :style     (cond-> {:zindex 1000 :transition "all 500ms" :height "0px"}
+                                       expanded? (assoc :height "236px")
+                                       true clj->js)}
+              (dom/ul #js {:className "nav"}
+                (button-block {:react-key "btn-0" ::r/handler ::r/about, ::button-color "yellow"} "About")
+                (button-block {:react-key "btn-1" ::r/handler ::r/donate, ::button-color "orange"} "Donate")
+                (button-block {:react-key "btn-2" ::r/handler ::r/tuition, ::button-color "redorange"} "Personal Tuition")
+                (button-block {:react-key "btn-3" ::r/handler ::r/contact, ::button-color "red"} "Contact")
+                (dom/form #js {:className "navbar-form"
+                               :onSubmit  #(.preventDefault %)}
+                  (dom/button #js {:type "submit" :style #js {:display "none"}})
+                  (dom/div #js {:style #js {:width    "100%"
+                                            :position "relative"}}
+                    (dom/div #js {:style #js {:background "#fff"
+                                              :border     "1px solid #ccc"
+                                              :display    "flex"
+                                              :width      "100%"
+                                              :maxHeight  "600px"
+                                              :position   "absolute"
+                                              :boxSizing  "border-box"
+                                              :top        28
+                                              :zIndex     "10"}}
+                      (if (df/loading? (:ui/fetch-state search-swap))
+                        "Loading...")
+                      (if (> (count search) 0)
+                        (cursor/vertical-cursor
+                          (om/computed search-cursor
+                                       {::cursor/children search
+                                        ::cursor/factory  popup-search-result
+                                        ::l/target        #(gobj/get this "search-input")}))))
+
+                    (dom/input #js {:value       (or search-text "")
+                                    :style       #js {:boxSizing "border-box"
+                                                      :border    "1px solid #ccc"
+                                                      :width     "100%"}
+                                    :key         "search-input"
+                                    :ref         (fn [el]
+                                                   (when el
+                                                     (gobj/set this "search-input" (dom/node el))))
+                                    :placeholder "Search"
+                                    :onInput     #(do
+                                                    (um/set-string! this :ui/search-text :event %)
+                                                    (let [txt (.. % -target -value)]
+                                                      (if (> (count txt) 2)
+                                                        (update-search this txt)
+                                                        (um/set-value! this :lesson/search []))))})
+                    (l/simple-listener {::l/target     #(gobj/get this "search-input")
+                                        ::l/event      "keydown"
+                                        ::l/on-trigger (l/handle-key-events
+                                                         {:escape #(um/set-value! this :lesson/search [])})})))
+                (if (signed-in? props)
+                  (user-menu-status this)
+                  (if (> score 0)
+                    (button-block {:className  "btn btn-success loginbutton"
+                                   :react-key  "btn-4"
+                                   ::r/handler ::r/login}
+                                  (dom/i #js {:className "icon-exclamation-sign icon-white" :style #js {:marginRight 5}})
+                                  score " unclaimed points. Login to save your progress")
+                    (button-block {:react-key "btn-4" ::r/handler ::r/login :className "loginbutton", ::button-color "red"}
+                                  "Login")))))
+
+            ))))))
+
 (om/defui ^:once DesktopMenu
   static uc/InitialAppState
   (initial-state [_ _]
-    {:db/id (om/tempid) :db/table :user :ui/fetch-state {}})
+    {:db/id (om/tempid) :db/table :user :ui/fetch-state {}
+     :ui/expanded? false})
 
   static om/Ident
   (ident [_ props]
@@ -296,178 +377,89 @@
               {:lesson/search (om/get-query LessonCell)}
               {:lesson/search-swap [:ui/fetch-state]}
               {'[:ui/search-cursor _] (om/get-query cursor/VerticalCursor)}
-              :ui/search-text])
+              :ui/search-text :ui/expanded?])
 
   Object
   (render [this]
     (let [{:keys    [user/score lesson/search lesson/search-swap]
            :ui/keys [search-cursor search-text]
            :as      props} (om/props this)]
-      (dom/div #js {:className "header hidden-phone"}
-        (dom/div #js {:className "navbar"}
-          (dom/div #js {:className "navbar-inner"}
-            (dom/div #js {:className "container"}
-              (link {:id "desktopbrand", :className "brand", ::r/handler ::r/home}
-                (dom/img #js {:src "/img/dclogo3.png" :alt "Dave Conservatoire" :key "logo"}))
-              (dom/div #js {:className "navbar"}
-                (dom/div #js {:className "navbuttons"}
-                  (button {:react-key "btn-0" ::r/handler ::r/about, ::button-color "yellow"} "About")
-                  (button {:react-key "btn-1" ::r/handler ::r/donate, ::button-color "orange"} "Donate")
-                  (button {:react-key "btn-2" ::r/handler ::r/tuition, ::button-color "redorange"} "Personal Tuition")
-                  (button {:react-key "btn-3" ::r/handler ::r/contact, ::button-color "red"} "Contact")
-                  (dom/form #js {:className "navbar-form"
-                                 :onSubmit  #(.preventDefault %)}
-                    (dom/button #js {:type "submit" :style #js {:display "none"}})
-                    (dom/div #js {:style #js {:width    "80%"
-                                              :position "relative"}}
-                      (dom/div #js {:style #js {:background "#fff"
-                                                :border     "1px solid #ccc"
-                                                :display    "flex"
-                                                :width      "100%"
-                                                :maxHeight  "600px"
-                                                :position   "absolute"
-                                                :boxSizing  "border-box"
-                                                :top        28
-                                                :zIndex     "10"}}
-                        (if (df/loading? (:ui/fetch-state search-swap))
-                          "Loading...")
-                        (if (> (count search) 0)
-                          (cursor/vertical-cursor
-                            (om/computed search-cursor
-                                         {::cursor/children search
-                                          ::cursor/factory  popup-search-result
-                                          ::l/target        #(gobj/get this "search-input")}))))
+      (dom/div nil
+        (dom/div #js {:className "header hidden-phone"}
+         (dom/div #js {:className "navbar"}
+           (dom/div #js {:className "navbar-inner"}
+             (dom/div #js {:className "container"}
+               (link {:id "desktopbrand", :className "brand", ::r/handler ::r/home}
+                 (dom/img #js {:src "/img/dclogo3.png" :alt "Dave Conservatoire" :key "logo"}))
+               (dom/div #js {:className "navbar"}
+                 (dom/div #js {:className "navbuttons"}
+                   (button {:react-key "btn-0" ::r/handler ::r/about, ::button-color "yellow"} "About")
+                   (button {:react-key "btn-1" ::r/handler ::r/donate, ::button-color "orange"} "Donate")
+                   (button {:react-key "btn-2" ::r/handler ::r/tuition, ::button-color "redorange"} "Personal Tuition")
+                   (button {:react-key "btn-3" ::r/handler ::r/contact, ::button-color "red"} "Contact")
+                   (dom/form #js {:className "navbar-form"
+                                  :onSubmit  #(.preventDefault %)}
+                     (dom/button #js {:type "submit" :style #js {:display "none"}})
+                     (dom/div #js {:style #js {:width    "80%"
+                                               :position "relative"}}
+                       (dom/div #js {:style #js {:background "#fff"
+                                                 :border     "1px solid #ccc"
+                                                 :display    "flex"
+                                                 :width      "100%"
+                                                 :maxHeight  "600px"
+                                                 :position   "absolute"
+                                                 :boxSizing  "border-box"
+                                                 :top        28
+                                                 :zIndex     "10"}}
+                         (if (df/loading? (:ui/fetch-state search-swap))
+                           "Loading...")
+                         (if (> (count search) 0)
+                           (cursor/vertical-cursor
+                             (om/computed search-cursor
+                                          {::cursor/children search
+                                           ::cursor/factory  popup-search-result
+                                           ::l/target        #(gobj/get this "search-input")}))))
 
-                      (dom/input #js {:value       (or search-text "")
-                                      :style       #js {:boxSizing "border-box"
-                                                        :border    "1px solid #ccc"
-                                                        :width     "100%"}
-                                      :key         "search-input"
-                                      :ref         (fn [el]
-                                                     (when el
-                                                       (gobj/set this "search-input" (dom/node el))))
-                                      :placeholder "Search"
-                                      :onInput     #(do
-                                                      (um/set-string! this :ui/search-text :event %)
-                                                      (let [txt (.. % -target -value)]
-                                                        (if (> (count txt) 2)
-                                                          (update-search this txt)
-                                                          (um/set-value! this :lesson/search []))))})
-                      (l/simple-listener {::l/target     #(gobj/get this "search-input")
-                                          ::l/event      "keydown"
-                                          ::l/on-trigger (l/handle-key-events
-                                                           {:escape #(um/set-value! this :lesson/search [])
-                                                            :return #(let [{:keys [ui/search-cursor lesson/search]} (om/props this)
-                                                                           {:keys [url/slug]} (nth search (:ui/selected-index search-cursor))
-                                                                           path (r/path-for {::r/handler ::r/lesson
-                                                                                             ::r/params  {::r/slug slug}})]
-                                                                       (pushy/set-token! daveconservatoire.site.main/history path))})})))
-                  (if (signed-in? props)
-                    (user-menu-status this)
-                    (if (> score 0)
-                      (button {:className  "btn btn-success loginbutton"
-                               :react-key  "btn-4"
-                               ::r/handler ::r/login}
-                        (dom/i #js {:className "icon-exclamation-sign icon-white" :style #js {:marginRight 5}})
-                        score " unclaimed points. Login to save your progress")
-                      (button {:react-key "btn-4" ::r/handler ::r/login :className "loginbutton", ::button-color "red"}
-                        "Login"))))))))))))
+                       (dom/input #js {:value       (or search-text "")
+                                       :style       #js {:boxSizing "border-box"
+                                                         :border    "1px solid #ccc"
+                                                         :width     "100%"}
+                                       :key         "search-input"
+                                       :ref         (fn [el]
+                                                      (when el
+                                                        (gobj/set this "search-input" (dom/node el))))
+                                       :placeholder "Search"
+                                       :onInput     #(do
+                                                       (um/set-string! this :ui/search-text :event %)
+                                                       (let [txt (.. % -target -value)]
+                                                         (if (> (count txt) 2)
+                                                           (update-search this txt)
+                                                           (um/set-value! this :lesson/search []))))})
+                       (l/simple-listener {::l/target     #(gobj/get this "search-input")
+                                           ::l/event      "keydown"
+                                           ::l/on-trigger (l/handle-key-events
+                                                            {:escape #(um/set-value! this :lesson/search [])
+                                                             :return #(let [{:keys [ui/search-cursor lesson/search]} (om/props this)
+                                                                            {:keys [url/slug]} (nth search (:ui/selected-index search-cursor))
+                                                                            path (r/path-for {::r/handler ::r/lesson
+                                                                                              ::r/params  {::r/slug slug}})]
+                                                                        (pushy/set-token! daveconservatoire.site.main/history path))})})))
+                   (if (signed-in? props)
+                     (user-menu-status this)
+                     (if (> score 0)
+                       (button {:className  "btn btn-success loginbutton"
+                                :react-key  "btn-4"
+                                ::r/handler ::r/login}
+                         (dom/i #js {:className "icon-exclamation-sign icon-white" :style #js {:marginRight 5}})
+                         score " unclaimed points. Login to save your progress")
+                       (button {:react-key "btn-4" ::r/handler ::r/login :className "loginbutton", ::button-color "red"}
+                         "Login")))))))))
+
+        (mobile-menu this)))))
 
 (def desktop-menu (om/factory DesktopMenu))
 
-(om/defui ^:once MobileMenu
-  static uc/InitialAppState
-  (initial-state [_ _]
-    {:db/id (om/tempid) :db/table :user :ui/fetch-state {}})
 
-  static om/Ident
-  (ident [_ props]
-    (u/model-ident props))
-
-  static om/IQuery
-  (query [_] [:db/id :db/table :user/name :user/score
-              {:lesson/search (om/get-query LessonCell)}
-              {:lesson/search-swap [:ui/fetch-state]}
-              {'[:ui/search-cursor _] (om/get-query cursor/VerticalCursor)}
-              :ui/search-text])
-
-  Object
-  (render [this]
-    (let [{:keys    [user/score lesson/search lesson/search-swap]
-           :ui/keys [search-cursor search-text]
-           :as      props} (om/props this)]
-      (dom/div #js {:className "header visible-phone"}
-        (dom/div #js {:className "navbar"}
-          (dom/div #js {:className "navbar-inner"}
-            (dom/div #js {:className "container"}
-              (dom/a #js {:className "btn btn-navbar collapsed" :data-toggle "collapse" :data-target "#mainfoldout"}
-                (dom/span #js {:className "icon-bar"})
-                (dom/span #js {:className "icon-bar"})
-                (dom/span #js {:className "icon-bar"}))
-              (dom/a #js {:className "brand mobilenav" :href "http://daveconservatoire.org"}
-                (dom/span #js {:className "mobiledc"} "Dave Conservatoire"))
-              (dom/div #js {:className "nav-collapse navbar-responsive-collapse collapse" :id "mainfoldout" :style #js {:height "100%" :zindex 1000}}
-                (dom/ul #js {:className "nav"}
-                  (button-block {:react-key "btn-0" ::r/handler ::r/about, ::button-color "yellow"} "About")
-                  (button-block {:react-key "btn-1" ::r/handler ::r/donate, ::button-color "orange"} "Donate")
-                  (button-block {:react-key "btn-2" ::r/handler ::r/tuition, ::button-color "redorange"} "Personal Tuition")
-                  (button-block {:react-key "btn-3" ::r/handler ::r/contact, ::button-color "red"} "Contact")
-                  (dom/form #js {:className "navbar-form"
-                                 :onSubmit  #(.preventDefault %)}
-                    (dom/button #js {:type "submit" :style #js {:display "none"}})
-                    (dom/div #js {:style #js {:width    "100%"
-                                              :position "relative"}}
-                      (dom/div #js {:style #js {:background "#fff"
-                                                :border     "1px solid #ccc"
-                                                :display    "flex"
-                                                :width      "100%"
-                                                :maxHeight  "600px"
-                                                :position   "absolute"
-                                                :boxSizing  "border-box"
-                                                :top        28
-                                                :zIndex     "10"}}
-                        (if (df/loading? (:ui/fetch-state search-swap))
-                          "Loading...")
-                        (if (> (count search) 0)
-                          (cursor/vertical-cursor
-                            (om/computed search-cursor
-                                         {::cursor/children search
-                                          ::cursor/factory  popup-search-result
-                                          ::l/target        #(gobj/get this "search-input")}))))
-
-                      (dom/input #js {:value       (or search-text "")
-                                      :style       #js {:boxSizing "border-box"
-                                                        :border    "1px solid #ccc"
-                                                        :width     "100%"}
-                                      :key         "search-input"
-                                      :ref         (fn [el]
-                                                     (when el
-                                                       (gobj/set this "search-input" (dom/node el))))
-                                      :placeholder "Search"
-                                      :onInput     #(do
-                                                      (um/set-string! this :ui/search-text :event %)
-                                                      (let [txt (.. % -target -value)]
-                                                        (if (> (count txt) 2)
-                                                          (update-search this txt)
-                                                          (um/set-value! this :lesson/search []))))})
-                      (l/simple-listener {::l/target     #(gobj/get this "search-input")
-                                          ::l/event      "keydown"
-                                          ::l/on-trigger (l/handle-key-events
-                                                           {:escape #(um/set-value! this :lesson/search [])})})))
-                  (if (signed-in? props)
-                    (user-menu-status this)
-                    (if (> score 0)
-                      (button-block {:className  "btn btn-success loginbutton"
-                                     :react-key  "btn-4"
-                                     ::r/handler ::r/login}
-                                    (dom/i #js {:className "icon-exclamation-sign icon-white" :style #js {:marginRight 5}})
-                                    score " unclaimed points. Login to save your progress")
-                      (button-block {:react-key "btn-4" ::r/handler ::r/login :className "loginbutton", ::button-color "red"}
-                                    "Login")))))
-
-              )))))))
-
-(def mobile-menu (om/factory MobileMenu))
 
 (defn course-banner [{:keys [title intro]}]
   (dom/div #js {:className "banner"}
@@ -1563,7 +1555,6 @@
                    (contains? banner-routes (::r/handler route)))
           (banner))
         (desktop-menu (assoc me :react-key "desktop-menu"))
-        (mobile-menu (assoc me :react-key "mobile-menu"))
         (if route
           ((u/route->factory route) data))
         (footer {:react-key "footer"})))))

@@ -668,22 +668,38 @@
 (defmethod slug->exercise "pitch-1" [name]
   {::name  name
    ::class PitchDetection
-   ::props {::variation [12 ".." 24]}})
+   ::props {::variation [12 ".." 24]}
+   ::hints (fn [props]
+     ["Pitch is the sensation of a note being higher or lower"
+      "Does the second note sound higher or lower than the first?"
+      (str "The second note is " (answer-label props))])})
 
 (defmethod slug->exercise "pitch-2" [name]
   {::name  name
    ::class PitchDetection
-   ::props {::variation [8 ".." 16]}})
+   ::props {::variation [8 ".." 16]}
+   ::hints (fn [props]
+             ["Here the distance in pitch is getting smaller, but the same idea applies."
+              "Does the second note sound higher or lower than the first?"
+              (str "The second note is " (answer-label props))])})
 
 (defmethod slug->exercise "pitch-3" [name]
   {::name  name
    ::class PitchDetection
-   ::props {::variation [1 ".." 9]}})
+   ::props {::variation [1 ".." 9]}
+   ::hints (fn [props]
+             ["Even smaller steps in pitch now."
+              "Sometimes the eyebrows test is a good approach. Does the second note make your eyebrows want to go up or down?  I'm not joking!"
+              (str "The second note is " (answer-label props))])})
 
 (defmethod slug->exercise "identifying-octaves" [name]
   {::name  name
    ::class IdentifyOctaves
-   ::props {}})
+   ::props {}
+   ::hints (fn [props]
+             ["An octave is a very special sound in music.  What does it sound like?"
+              "An octave sounds like two flavours of the same sound.  Is that the case here?"
+              (str "Are these notes an octave apart? " (answer-label props) ".")])})
 
 (defmethod slug->exercise "treble-clef-reading" [name]
   {::name  name

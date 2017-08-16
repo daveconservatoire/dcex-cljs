@@ -295,7 +295,7 @@
               (dom/span #js {:className "icon-bar"})
               (dom/span #js {:className "icon-bar"})
               (dom/span #js {:className "icon-bar"}))
-            (dom/a #js {:className "brand mobilenav" :href "http://daveconservatoire.org"}
+            (link {:className "brand mobilenav", ::r/handler ::r/home}
               (dom/span #js {:className "mobiledc"} "Dave Conservatoire"))
             (dom/div #js {:className "nav-collapse navbar-responsive-collapse collapse"
                           :id        "mainfoldout"

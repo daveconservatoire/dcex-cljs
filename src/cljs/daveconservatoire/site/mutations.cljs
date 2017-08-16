@@ -7,7 +7,8 @@
             [daveconservatoire.site.ui.util :as uiu]
             [daveconservatoire.site.core :as dc]
             [om.next :as om]
-            [om.util :as omu]))
+            [om.util :as omu]
+            [goog.object :as gobj]))
 
 (js/NProgress.configure #js {:minimum      0.4
                              :trickleSpeed 100
@@ -17,7 +18,9 @@
   (if-let [reconciler (some-> dc/app deref :reconciler)]
     (let [root (om/class->any reconciler ui/Root)]
       (om/set-query! root {:params {:route/data data}})
-      (swap! state assoc :app/route route))
+      (swap! state assoc :app/route route)
+      (swap! state assoc-in (conj (get @state :app/me) :ui/expanded?) false)
+      (gobj/set js/document.body "scrollTop" 0))
     (js/setTimeout #(update-page env params) 10)))
 
 (defmethod m/mutate 'app/set-route-data

@@ -1559,6 +1559,10 @@
           ((u/route->factory route) data))
         (footer {:react-key "footer"})))))
 
+(defn log-state []
+  (-> @daveconservatoire.site.core/app :reconciler :config :state deref
+      js/console.log))
+
 (comment
   (-> @daveconservatoire.site.core/app :reconciler :config :state deref
       js/console.log))

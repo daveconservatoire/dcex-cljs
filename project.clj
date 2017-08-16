@@ -13,7 +13,7 @@
                  [org.clojure/clojurescript "1.9.660" :scope "provided"]
                  [org.clojure/core.async "0.3.442"]
                  [org.omcljs/om "1.0.0-beta1"]
-                 [fulcrologic/fulcro "1.0.0-beta7-SNAPSHOT"]
+                 [fulcrologic/fulcro "1.0.0-beta8"]
                  [bidi "2.0.9"]
                  [kibu/pushy "0.3.6"]
                  [org.clojure/test.check "0.9.0"]

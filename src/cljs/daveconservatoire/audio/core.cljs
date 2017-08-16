@@ -9,15 +9,12 @@
             [cljs.spec.alpha :as s]
             [cljs.core.async :as async :refer [chan promise-chan put! close! <! >! alts!]]))
 
-(defonce AudioContext (or js/AudioContext js/webkitAudioContext))
+(defonce AudioContext (or (gobj/get js/window "AudioContext")
+                          (gobj/get js/window "webkitAudioContext")))
+
 (defonce ^:dynamic *audio-context* (AudioContext.))
 
 (defn output [] (.-destination *audio-context*))
-
-(defn promise->chan [promise]
-  (let [c (promise-chan)]
-    (.then promise #(put! c %) #(put! c %))
-    c))
 
 (s/def ::context #(instance? AudioContext %))
 (s/def ::node #(instance? js/AudioNode %))
@@ -36,7 +33,9 @@
 
 (defn decode-audio-data [buffer]
   {:pre [(s/valid? ::ss/array-buffer buffer)]}
-  (promise->chan (.decodeAudioData *audio-context* buffer)))
+  (let [c (promise-chan)]
+    (.decodeAudioData *audio-context* buffer #(put! c %))
+    c))
 
 (s/fdef decode-audio-data
   :args (s/cat :buffer ::ss/array-buffer)

@@ -2,6 +2,8 @@
   (:require [om.next :as om :include-macros true]
             [om.dom :as dom]
             [goog.object :as gobj]
+            [goog.string :as gstr]
+            [goog.string.format]
             [daveconservatoire.site.routes :as r :refer [routes]]
             [daveconservatoire.site.ui.util :as u]
             [daveconservatoire.site.ui.exercises :as ux]
@@ -1185,13 +1187,13 @@
 
   static om/IQuery
   (query [_]
-    [:db/id :db/table :user/name :user/about :user/score :ui/editing-info?
+    [:db/id :db/table :user/name :user/about :user/score :ui/editing-info? :user/subscription-amount
      :user/lessons-viewed-count :user/created-at :user/ex-answer-count :ui/tmp-about
      (list {:user/activity (om/get-query ProfileRecentActivity)} {:limit 8})])
 
   Object
   (render [this]
-    (let [{:user/keys [name about activity score lessons-viewed-count created-at ex-answer-count]
+    (let [{:user/keys [name about activity score lessons-viewed-count created-at ex-answer-count subscription-amount]
            :ui/keys   [editing-info?]} (om/props this)]
       (dom/div #js {:className "span10"}
         (dom/div #js {:className "row"}
@@ -1213,10 +1215,16 @@
                 (dom/p nil about)))
             (dom/div #js {:className "span5 whiteback"}
               (dom/div #js {:className "padding"}
-                (dom/i #js {:className "icon-star intro-icon-large dc-text-orange pull-right"})
+                (if (zero? subscription-amount)
+                  (dom/a #js {:className "btn dc-btn-red pull-right"} "Update your subscription")
+                  (dom/i #js {:className "icon-star intro-icon-large dc-text-orange pull-right"}))
+
                 (dom/h1 #js {:style #js {:margin 0}} "My Subscription")
-                (dom/h1 nil "$9.00 per month")
-                (dom/p nil "Thank you so much for your subscription. Your support is vital in helping us serve music students around the world.")))))
+                (dom/h1 nil (gstr/format "$%.2f per month" subscription-amount))
+
+                (if (zero? subscription-amount)
+                  (dom/p nil "Dave Conservatoire will be free forever, but if you are in a position to, subscribing will help us serve music students around the world.")
+                  (dom/p nil "Thank you so much for your subscription. Your support is vital in helping us serve music students around the world."))))))
         (dom/div #js {:className "pad30"})
         (dom/div #js {:className "row"}
           (dom/div #js {:className "span5 whiteback"}

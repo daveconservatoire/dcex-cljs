@@ -17,8 +17,11 @@
     (catch :default _ nil)))
 
 (defn read-env [path]
-  (merge (js->clj-one (gobj/get nodejs/process "env"))
-    (some-> (slurp path) read-string)))
+  (try
+    (merge (js->clj-one (gobj/get nodejs/process "env"))
+           (some-> (slurp path) read-string))
+    (catch :default e
+      (throw (ex-info "Unable to read configuration, look at env.edn" {:err e})))))
 
 (defn database-from-url [url]
   (let [url (.parse node-url url)

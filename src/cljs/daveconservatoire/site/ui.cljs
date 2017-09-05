@@ -593,21 +593,20 @@
                 (dom/p nil "If you might find this useful, please complete the contact form and we can arrange a free consultation lesson to discuss your requirements."))
               (dom/div #js {:className "span6"}
                 (dom/div #js {:className "form"}
-                  (dom/form #js {:id "contact-form" :action "/tuition" :method "post"}
+                  (dom/form #js {:id "contact-form" :action "https://formspree.io/dave@daveconservatoire.org" :method "post"}
                     (dom/p #js {:className "note"} "Fields marked (*) are required.")
                     (dom/div #js {:className "control-group"}
                       (dom/label #js {:htmlFor "ContactForm_name" :className "required"} "Name*")
-                      (dom/input #js {:name "ContactForm[name]" :id "ContactForm_name" :type "text"})
+                      (dom/input #js {:name "name" :id "ContactForm_name" :type "text"})
                       (dom/div #js {:className "errorMessage" :id "ContactForm_name_em_"}))
                     (dom/div #js {:className "control-group"}
                       (dom/label #js {:htmlFor "ContactForm_email" :className "required"} "Email*")
-                      (dom/input #js {:name "ContactForm[email]" :id "ContactForm_email" :type "text"})
+                      (dom/input #js {:name "_replyto" :id "ContactForm_email" :type "text"})
                       (dom/div #js {:className "errorMessage" :id "ContactForm_email_em_"}))
                     (dom/div #js {:className "control-group"}
                       (dom/label #js {:htmlFor "ContactForm_body" :className "required"} "Message*")
-                      (dom/textarea #js {:name "ContactForm[body]" :id "ContactForm_body" :type "text"})
+                      (dom/textarea #js {:name "message" :id "ContactForm_body" :type "text"})
                       (dom/div #js {:className "errorMessage" :id "ContactForm_body_em_"}))
-                    (dom/div #js {:className "g-recaptcha" :data-sitekey "6LeLxhkTAAAAAPRgeOsY44L4N27hvPhRjKFM4BP4"})
                     (dom/div #js {:className "form-actions"}
                       (dom/button #js {:type "submit" :className "btn btn-primary"} "Submit")
                       (dom/button #js {:type "reset" :className "btn"} "Reset"))))))))))))
@@ -626,21 +625,20 @@
             (dom/div #js {:className "row"}
               (dom/div #js {:className "span6"}
                 (dom/div #js {:className "form"}
-                  (dom/form #js {:id "contact-form" :action "/tuition" :method "post"}
+                  (dom/form #js {:id "contact-form" :action "https://formspree.io/dave@daveconservatoire.org" :method "post"}
                     (dom/p #js {:className "note"} "Fields marked (*) are required.")
                     (dom/div #js {:className "control-group"}
                       (dom/label #js {:htmlFor "ContactForm_name" :className "required"} "Name*")
-                      (dom/input #js {:name "ContactForm[name]" :id "ContactForm_name" :type "text"})
+                      (dom/input #js {:name "name" :id "ContactForm_name" :type "text"})
                       (dom/div #js {:className "errorMessage" :id "ContactForm_name_em_"}))
                     (dom/div #js {:className "control-group"}
                       (dom/label #js {:htmlFor "ContactForm_email" :className "required"} "Email*")
-                      (dom/input #js {:name "ContactForm[email]" :id "ContactForm_email" :type "text"})
+                      (dom/input #js {:name "_replyto" :id "ContactForm_email" :type "text"})
                       (dom/div #js {:className "errorMessage" :id "ContactForm_email_em_"}))
                     (dom/div #js {:className "control-group"}
                       (dom/label #js {:htmlFor "ContactForm_body" :className "required"} "Message*")
-                      (dom/textarea #js {:name "ContactForm[body]" :id "ContactForm_body" :type "text"})
+                      (dom/textarea #js {:name "message" :id "ContactForm_body" :type "text"})
                       (dom/div #js {:className "errorMessage" :id "ContactForm_body_em_"}))
-                    (dom/div #js {:className "g-recaptcha" :data-sitekey "6LeLxhkTAAAAAPRgeOsY44L4N27hvPhRjKFM4BP4"})
                     (dom/div #js {:className "form-actions"}
                       (dom/button #js {:type "submit" :className "btn btn-primary"} "Submit")
                       (dom/button #js {:type "reset" :className "btn"} "Reset"))))))))))))

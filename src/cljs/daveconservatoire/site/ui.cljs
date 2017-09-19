@@ -78,8 +78,8 @@
       children)))
 
 (s/fdef button
-  :args (s/cat :props (s/keys :opt [::button-color])
-               :children (s/* ::component)))
+        :args (s/cat :props (s/keys :opt [::button-color])
+                     :children (s/* ::component)))
 
 (defn button-block [props & children]
   (let [{:keys [::button-color]
@@ -90,8 +90,8 @@
       children)))
 
 (s/fdef button-block
-  :args (s/cat :props (s/keys :opt [::button-color])
-               :children (s/* ::component)))
+        :args (s/cat :props (s/keys :opt [::button-color])
+                     :children (s/* ::component)))
 
 (defn link [props & children]
   (apply dom/a (u/props->html props) children))
@@ -367,7 +367,7 @@
 (om/defui ^:once DesktopMenu
   static uc/InitialAppState
   (initial-state [_ _]
-    {:db/id (om/tempid) :db/table :user :ui/fetch-state {}
+    {:db/id        (om/tempid) :db/table :user :ui/fetch-state {}
      :ui/expanded? false})
 
   static om/Ident
@@ -388,74 +388,74 @@
            :as      props} (om/props this)]
       (dom/div nil
         (dom/div #js {:className "header hidden-phone"}
-         (dom/div #js {:className "navbar"}
-           (dom/div #js {:className "navbar-inner"}
-             (dom/div #js {:className "container"}
-               (link {:id "desktopbrand", :className "brand", ::r/handler ::r/home}
-                 (dom/img #js {:src "/img/dclogo3.png" :alt "Dave Conservatoire" :key "logo"}))
-               (dom/div #js {:className "navbar"}
-                 (dom/div #js {:className "navbuttons"}
-                   (button {:react-key "btn-0" ::r/handler ::r/about, ::button-color "yellow"} "About")
-                   (button {:react-key "btn-1" ::r/handler ::r/donate, ::button-color "orange"} "Donate")
-                   (button {:react-key "btn-2" ::r/handler ::r/tuition, ::button-color "redorange"} "Personal Tuition")
-                   (button {:react-key "btn-3" ::r/handler ::r/contact, ::button-color "red"} "Contact")
-                   (dom/form #js {:className "navbar-form"
-                                  :onSubmit  #(.preventDefault %)}
-                     (dom/button #js {:type "submit" :style #js {:display "none"}})
-                     (dom/div #js {:style #js {:width    "80%"
-                                               :position "relative"}}
-                       (dom/div #js {:style #js {:background "#fff"
-                                                 :border     "1px solid #ccc"
-                                                 :display    "flex"
-                                                 :width      "100%"
-                                                 :maxHeight  "600px"
-                                                 :position   "absolute"
-                                                 :boxSizing  "border-box"
-                                                 :top        28
-                                                 :zIndex     "10"}}
-                         (if (df/loading? (:ui/fetch-state search-swap))
-                           "Loading...")
-                         (if (> (count search) 0)
-                           (cursor/vertical-cursor
-                             (om/computed search-cursor
-                                          {::cursor/children search
-                                           ::cursor/factory  popup-search-result
-                                           ::l/target        #(gobj/get this "search-input")}))))
+          (dom/div #js {:className "navbar"}
+            (dom/div #js {:className "navbar-inner"}
+              (dom/div #js {:className "container"}
+                (link {:id "desktopbrand", :className "brand", ::r/handler ::r/home}
+                  (dom/img #js {:src "/img/dclogo3.png" :alt "Dave Conservatoire" :key "logo"}))
+                (dom/div #js {:className "navbar"}
+                  (dom/div #js {:className "navbuttons"}
+                    (button {:react-key "btn-0" ::r/handler ::r/about, ::button-color "yellow"} "About")
+                    (button {:react-key "btn-1" ::r/handler ::r/donate, ::button-color "orange"} "Donate")
+                    (button {:react-key "btn-2" ::r/handler ::r/tuition, ::button-color "redorange"} "Personal Tuition")
+                    (button {:react-key "btn-3" ::r/handler ::r/contact, ::button-color "red"} "Contact")
+                    (dom/form #js {:className "navbar-form"
+                                   :onSubmit  #(.preventDefault %)}
+                      (dom/button #js {:type "submit" :style #js {:display "none"}})
+                      (dom/div #js {:style #js {:width    "80%"
+                                                :position "relative"}}
+                        (dom/div #js {:style #js {:background "#fff"
+                                                  :border     "1px solid #ccc"
+                                                  :display    "flex"
+                                                  :width      "100%"
+                                                  :maxHeight  "600px"
+                                                  :position   "absolute"
+                                                  :boxSizing  "border-box"
+                                                  :top        28
+                                                  :zIndex     "10"}}
+                          (if (df/loading? (:ui/fetch-state search-swap))
+                            "Loading...")
+                          (if (> (count search) 0)
+                            (cursor/vertical-cursor
+                              (om/computed search-cursor
+                                           {::cursor/children search
+                                            ::cursor/factory  popup-search-result
+                                            ::l/target        #(gobj/get this "search-input")}))))
 
-                       (dom/input #js {:value       (or search-text "")
-                                       :style       #js {:boxSizing "border-box"
-                                                         :border    "1px solid #ccc"
-                                                         :width     "100%"}
-                                       :key         "search-input"
-                                       :ref         (fn [el]
-                                                      (when el
-                                                        (gobj/set this "search-input" (dom/node el))))
-                                       :placeholder "Search"
-                                       :onInput     #(do
-                                                       (um/set-string! this :ui/search-text :event %)
-                                                       (let [txt (.. % -target -value)]
-                                                         (if (> (count txt) 2)
-                                                           (update-search this txt)
-                                                           (um/set-value! this :lesson/search []))))})
-                       (l/simple-listener {::l/target     #(gobj/get this "search-input")
-                                           ::l/event      "keydown"
-                                           ::l/on-trigger (l/handle-key-events
-                                                            {:escape #(um/set-value! this :lesson/search [])
-                                                             :return #(let [{:keys [ui/search-cursor lesson/search]} (om/props this)
-                                                                            {:keys [url/slug]} (nth search (:ui/selected-index search-cursor))
-                                                                            path (r/path-for {::r/handler ::r/lesson
-                                                                                              ::r/params  {::r/slug slug}})]
-                                                                        (pushy/set-token! daveconservatoire.site.main/history path))})})))
-                   (if (signed-in? props)
-                     (user-menu-status this)
-                     (if (> score 0)
-                       (button {:className  "btn btn-success loginbutton"
-                                :react-key  "btn-4"
-                                ::r/handler ::r/login}
-                         (dom/i #js {:className "icon-exclamation-sign icon-white" :style #js {:marginRight 5}})
-                         score " unclaimed points. Login to save your progress")
-                       (button {:react-key "btn-4" ::r/handler ::r/login :className "loginbutton", ::button-color "red"}
-                         "Login")))))))))
+                        (dom/input #js {:value       (or search-text "")
+                                        :style       #js {:boxSizing "border-box"
+                                                          :border    "1px solid #ccc"
+                                                          :width     "100%"}
+                                        :key         "search-input"
+                                        :ref         (fn [el]
+                                                       (when el
+                                                         (gobj/set this "search-input" (dom/node el))))
+                                        :placeholder "Search"
+                                        :onInput     #(do
+                                                        (um/set-string! this :ui/search-text :event %)
+                                                        (let [txt (.. % -target -value)]
+                                                          (if (> (count txt) 2)
+                                                            (update-search this txt)
+                                                            (um/set-value! this :lesson/search []))))})
+                        (l/simple-listener {::l/target     #(gobj/get this "search-input")
+                                            ::l/event      "keydown"
+                                            ::l/on-trigger (l/handle-key-events
+                                                             {:escape #(um/set-value! this :lesson/search [])
+                                                              :return #(let [{:keys [ui/search-cursor lesson/search]} (om/props this)
+                                                                             {:keys [url/slug]} (nth search (:ui/selected-index search-cursor))
+                                                                             path (r/path-for {::r/handler ::r/lesson
+                                                                                               ::r/params  {::r/slug slug}})]
+                                                                         (pushy/set-token! daveconservatoire.site.main/history path))})})))
+                    (if (signed-in? props)
+                      (user-menu-status this)
+                      (if (> score 0)
+                        (button {:className  "btn btn-success loginbutton"
+                                 :react-key  "btn-4"
+                                 ::r/handler ::r/login}
+                          (dom/i #js {:className "icon-exclamation-sign icon-white" :style #js {:marginRight 5}})
+                          score " unclaimed points. Login to save your progress")
+                        (button {:react-key "btn-4" ::r/handler ::r/login :className "loginbutton", ::button-color "red"}
+                          "Login")))))))))
 
         (mobile-menu this)))))
 
@@ -645,6 +645,138 @@
 
 (defmethod r/route->component ::r/contact [_] ContactPage)
 
+(om/defui ^:once SocialMediaPage
+  Object
+  (render [this]
+    (let [{:keys []} (om/props this)]
+      (dom/div #js {}
+        (course-banner {:title "Share Dave Conservatoire" :intro "Not in a position to donate? No worries, but, please tell your friends!"})
+        (dom/div #js {:className "container wrapper"}
+          (dom/div #js {:className "inner_content"}
+            (dom/div #js {:className "pad45"})
+            (dom/div #js {:className "row"}
+              (dom/div #js {:className "span4"}
+                (dom/div #js {:className "tile introboxes"}
+                  (dom/div #js {:className "intro-icon-disc  social-share"}
+                    (dom/img #js {:src "/img/facebook.png"}))
+                  (dom/a #js {:href "/socialloader/facebook", :target "_blank", :className "btn btn-primary  btn-custom btn-rounded btn-block dc-btn-yellow"} "Share Dave Conservatoire on Facebook"))
+                (dom/div #js {:className "pad25"}))
+              (dom/div #js {:className "span4"}
+                (dom/div #js {:className "tile introboxes"}
+                  (dom/div #js {:className "intro-icon-disc  social-share"}
+                    (dom/img #js {:src "/img/twitter.png"}))
+                  (dom/a #js {:href "/socialloader/twitter", :target "_blank", :className "btn btn-primary  btn-custom btn-rounded btn-block dc-btn-orange"} "Share Dave Conservatoire on Twitter"))
+                (dom/div #js {:className "pad25"}))
+              (dom/div #js {:className "span4"}
+                (dom/div #js {:className "tile introboxes"}
+                  (dom/div #js {:className "intro-icon-disc  social-share"}
+                    (dom/img #js {:src "/img/googleplus.png"}))(dom/a #js {:href "/socialloader/gplus", :target "_blank", :className "btn btn-primary  btn-custom btn-rounded btn-block dc-btn-redorange"} "Share Dave Conservatoire on Google Plus"))
+                (dom/div #js {:className "pad25"})))
+            (dom/div #js {:className "strip"} (dom/h1 #js {:className "center"} "Thanks for taking the time to do this")
+                                              (dom/h1 #js {})
+                                              (dom/h3 #js {:className "center about_strip"} " Ready to get back to learning? ")
+                                              (dom/div #js {:className "pad45"})
+                                              (dom/a #js {:href "/", :className "big_button"} "Let's go!")(dom/div #js {:className "pad25"}))))))))
+
+(defmethod r/route->component ::r/socialmedia [_] SocialMediaPage)
+
+(om/defui ^:once ThanksPage
+  Object
+  (render [this]
+    (let [{:keys []} (om/props this)]
+      (dom/div #js {}
+        (course-banner {:title "Thankyou!" :intro "You've just become part of something huge!"})
+        (dom/div #js {:className "inner_content"}
+          (dom/div #js {:className "pad15"})
+          (dom/div #js {:className "strip"}
+            (dom/h1 #js {:className "center"} "Thanks for your support!")
+            (dom/h1 #js {})
+            (dom/h3 #js {:className "center about_strip"} "You are now officially a Dave Conservatoire subscriber. ")
+            (dom/h3 #js {:className "center about_strip"} "You are playing a role in making a world class music education available to everyone everywhere!")
+            (dom/h3 #js {:className "center about_strip"} " Ready to get back to learning? ")
+            (dom/div #js {:className "pad45"})(dom/a #js {:href "/", :className "big_button"} "Let's go!")
+            (dom/div #js {:className "pad25"})))))))
+
+(defmethod r/route->component ::r/thanks [_] ThanksPage)
+
+
+(om/defui ^:once SubscriptionPage
+  static uc/InitialAppState
+  (initial-state [_ _] {:ui/donation-value 9})
+
+  static om/IQuery
+  (query [_] [:ui/donation-value ])
+
+  static om/Ident
+  (ident [_ props] [:page/by-id "subscribe-page"])
+
+  Object
+  (render [this]
+    (let [{:keys [ui/donation-value]} (om/props this)]
+      (dom/div #js {}
+        (course-banner {:title "Voluntary Subscription" :intro "Dave Conservatoire will always be free. But please consider subscribing!"})
+        (dom/div #js {:className "container wrapper"}
+          (dom/div #js {:className "inner_content"}
+            (dom/div #js {:className "pad15"})
+            (dom/div #js {:className "row"}
+              (dom/div #js {:className "span4"}
+                (dom/h2 #js {} "Why Subscribe?")
+                (dom/p #js {} "You will always be able to access everything on Dave Conservatoire for free.")
+                (dom/p #js {} "However, the future of this site depends on people who found it useful (and are financially able) to contribute what they feel it is worth.")
+                (dom/p #js {} "If you choose to pledge some money each month to help me develop the site, I can promise you:")
+                (dom/ul #js {:className "subbenefits"}
+                  (dom/li #js {} "The great feeling you're helping thousands of students around the world explore music, many of whom don't have access to a teacher.")
+                  (dom/li #js {} "You'll be putting the power into my hands to build the online music school the world is crying out for!")
+                  (dom/li #js {} "The freedom to browse the site without the annoying donation banners."))
+                (dom/p #js {} "Use the slider to set your subscription rate.  You will be taken to Paypal to securely complete your subscription.")
+                (dom/p #js {} "Not able to help out right now?  Just set the slider to 0 and let's get back to learning music."))
+              (dom/div #js {:className "span8"}
+                (dom/div #js {:className "vendor"}
+                  (dom/iframe #js {:width "560", :height "315", :src "https://www.youtube.com/embed/LAlkiNaERKE?showinfo=0&rel=0", :id "player", :frameBorder "0", :allowFullScreen ""}))
+                (dom/div #js {:className (if (= donation-value 0) "alert alert-danger subchange" "alert alert-success subchange")}
+                  (dom/div #js {:className "slider slider-horizontal", :id "ex1Slider", :style #js {"width" "100%"}}
+                    (dom/div #js {:className "slider-track"}
+                      (dom/div #js {:className "slider-selection", :style #js {"left" "0" "width" "30%"}})
+                      (dom/div #js {:className "slider-handle round", :style #js {"left" "30%"}})
+                      (dom/div #js {:className "slider-handle round hide", :style #js {"left" "0%"}}))
+                    (dom/div #js {:className "tooltip top", :style #js {"top" "-52px" "left" "112.2px"}}
+                      (dom/div #js {:className "tooltip-arrow"})
+                      (dom/div #js {:className "tooltip-inner"}
+                        "15"))
+                    (dom/input #js {:value     (or donation-value 9)
+                                    :onChange  #(um/set-integer! this :ui/donation-value :event %)
+                                    :type      "range"
+                                    :id        "ex1"
+                                    :max       "50"
+                                    :className "donationslider"
+                                    :width     "100%"
+                                    :min       "0"})))
+                (if (not= donation-value 0)
+                  (dom/div #js {:className "alert alert-success subchange"}
+                    (dom/p #js {:id "subamount"}
+                      "I would like to subscribe to Dave Conservatoire for $" (or donation-value "9") " per month.")
+                    (dom/a #js {:className "btn btn-block btn-primary dc-orange subbutton" :target "_blank" :href (str "https://www.paypal.com/cgi-bin/webscr?business=dave@daveconservatoire.org&cmd=_xclick-subscriptions&currency_code=USD&p3=1&t3=M&no_shipping=1&src=1&sra=1&a3=" donation-value "&item_name=Dave%20Conservatoire%20Subscription%20&return_url=http://www.daveconservatoire.org/thanks&cancel_return=http://www.daveconservatoire.org/subscribe")}
+                      "\n\t\t         Submit\n\t\t     "))
+                  (dom/div #js {:className "alert alert-danger subchange"}
+                    (dom/p #js {:id "subamount"}
+                      "I am unable to support Dave Conservatoire at this time. \uD83D\uDE22")
+                    (dom/a #js {:className "btn btn-block btn-primary dc-orange subbutton" :target "_blank" :href ""}
+                      "\n\t\t         Submit\n\t\t     "))
+                  ))
+              )))
+        (dom/div #js {:id "suremodal", :className "modal hide fade in", :style #js{"display" "block"}, :aria-hidden "false"}
+          (dom/div #js {:className "modal-header"}
+            (dom/button #js {:type "button", :className "close", :data-dismiss "modal", :aria-hidden "true"}
+              "×")(dom/h3 #js {} "Sure you can't just nudge us in the right direction?"))
+          (dom/div #js {:className "modal-body"}
+            (dom/p #js {} "Could you spare just $1 each month for a worthy cause?  Music students around the world will thank you for it!")
+            (dom/p #js {} "A hard-up student?  No worries, we're still cool."))
+          (dom/div #js {:className "modal-footer"}
+            (dom/a #js {:href "https://www.paypal.com/cgi-bin/webscr?business=dave@daveconservatoire.org&cmd=_xclick-subscriptions&currency_code=USD&p3=1&t3=M&no_shipping=1&src=1&sra=1&a3=1&item_name=Dave%20Conservatoire%20Subscription%20&return_url=http://www.daveconservatoire.org/thanks&cancel_return=http://www.daveconservatoire.org/subscribe", :id "onedollar", :className "btn btn-success"} "Okay!  Let's do this! ($1/month subscription)")
+            (dom/a #js {:href "/socialmedia", :id "stillno", :className "btn btn-danger"} "Still a no, sorry. ")))))))
+
+(defmethod r/route->component ::r/subscribe [_] SubscriptionPage)
+
 (defn import-facebook-api []
   (if-not (js/document.getElementById "fbjssk")
     (let [script (doto (js/document.createElement "script")
@@ -753,7 +885,7 @@
                         (= slug (om/get-computed this :ui/topic-slug)))]
       (nav-item {::selected? selected? ::icon (if started? "icon-adjust")
                  ::r/handler ::r/topic ::r/params {::r/slug slug}}
-        title))))
+                title))))
 
 (def topic-side-bar-link (om/factory TopicSideBarLink))
 
@@ -850,7 +982,7 @@
           selected? (u/current-uri-slug? ::r/lesson slug)]
       (nav-item {::r/handler ::r/lesson ::r/params {::r/slug slug}
                  ::selected? selected?}
-        title))))
+                title))))
 
 (def lesson-topic-menu-item (om/factory LessonTopicMenuItem))
 
@@ -1000,12 +1132,12 @@
     (let [{:keys [db/id lesson/topic lesson/type lesson/playlist-items ui/selected-index
                   ph/pagination]} (om/props this)
           selected-index (or selected-index 0)
-          item           (nth (vec playlist-items) selected-index)
-          set-selected   (fn [n]
-                           (om/transact! (om/get-reconciler this)
-                                         [type id]
-                                         [`(um/set-props {:ui/selected-index ~n})
-                                          :route/data :app/route]))]
+          item (nth (vec playlist-items) selected-index)
+          set-selected (fn [n]
+                         (om/transact! (om/get-reconciler this)
+                                       [type id]
+                                       [`(um/set-props {:ui/selected-index ~n})
+                                        :route/data :app/route]))]
       (container
         (dom/div #js {:className "row"}
           (dom/div #js {:className "span3"}
@@ -1039,7 +1171,7 @@
         (let [state (-> (uc/initial-state class props)
                         (merge info))
               ident (om/ident class state)
-              r     (om/get-reconciler this)]
+              r (om/get-reconciler this)]
           (om/set-query! this {:params {:exercise/data (om/get-query class)}})
           (om/transact! r ident [`(um/set-props ~state)])
           (om/transact! r [type id] [`(um/set-props {:exercise/data ~ident})])))))
@@ -1122,28 +1254,28 @@
 
 (defn modal [{:ui.modal/keys [title onClose onSave]} & children]
   (portal {:append-to "body"}
-    (dom/div #js {:style #js {:position   "absolute"
-                              :left       0
-                              :top        0
-                              :background "rgba(0, 0, 0, 0.5)"
-                              :width      "100vw"
-                              :height     "100vh"}}
-      (dom/div #js {:id "myModal" :className "modal hide fade in" :tabIndex "-1" :role "dialog" :style #js {:display "block"}}
-        (dom/div #js {:className "modal-header"}
-          (dom/button #js {:type "button" :className "close" :onClick #(if onClose (onClose))}
-            "×")
-          (dom/h3 #js {:id "myModalLabel"}
-            title))
-        (dom/div #js {:className "modal-body"}
-          (apply dom/div nil children)
-          (dom/div #js {:className "row buttons"})
-          (dom/div #js {:className "modal-footer"}
-            (dom/button #js {:className "btn"
-                             :onClick   #(if onClose (onClose))}
-              "Close")
-            (dom/button #js {:className "btn btn-primary"
-                             :onClick   #(if onSave (onSave))}
-              "Save")))))))
+          (dom/div #js {:style #js {:position   "absolute"
+                                    :left       0
+                                    :top        0
+                                    :background "rgba(0, 0, 0, 0.5)"
+                                    :width      "100vw"
+                                    :height     "100vh"}}
+            (dom/div #js {:id "myModal" :className "modal hide fade in" :tabIndex "-1" :role "dialog" :style #js {:display "block"}}
+              (dom/div #js {:className "modal-header"}
+                (dom/button #js {:type "button" :className "close" :onClick #(if onClose (onClose))}
+                  "×")
+                (dom/h3 #js {:id "myModalLabel"}
+                  title))
+              (dom/div #js {:className "modal-body"}
+                (apply dom/div nil children)
+                (dom/div #js {:className "row buttons"})
+                (dom/div #js {:className "modal-footer"}
+                  (dom/button #js {:className "btn"
+                                   :onClick   #(if onClose (onClose))}
+                    "Close")
+                  (dom/button #js {:className "btn btn-primary"
+                                   :onClick   #(if onSave (onSave))}
+                    "Save")))))))
 
 (defn user-info-modal [this]
   (let [{:keys [user/about ui/tmp-about]} (om/props this)]
@@ -1156,27 +1288,27 @@
                                    (om/transact! this `[(user/update {:user/about ~tmp-about})])
                                    (um/set-value! this :ui/editing-info? false)
                                    (om/transact! this [:ui/editing-info?]))}
-      (dom/form #js {:id "user-form" :action "profile/update" :method "post"}
-        (dom/div #js {:id "user-form_es_" :className "errorSummary" :style #js {:display "none"}}
-          (dom/p nil
-            "Please fix the following input errors:")
-          (dom/ul nil
-            (dom/li nil
-              "dummy")))
-        (dom/label #js {:htmlFor "User_biog"}
-          (dom/h3 nil
-            "About you") "Who are you? What are your musical goals? What instruments do you play? "
-          (dom/br nil)
-          "(max. 160 characters)"
-          (dom/br nil)
-          (dom/br nil))
-        (dom/textarea #js {:size      "60"
-                           :maxLength "160"
-                           :id        "User_biog"
-                           :value     (or tmp-about about)
-                           :onChange  #(um/set-string! this :ui/tmp-about :event %)
-                           :style     #js {:zIndex "auto" :position "relative" :lineHeight "20px" :fontSize 14 :transition "none" :background "none 0% 0% / auto repeat scroll padding-box border-box rgb(255 255 255)"}})
-        (dom/div #js {:className "errorMessage" :id "User_biog_em_" :style #js {:display "none"}})))))
+           (dom/form #js {:id "user-form" :action "profile/update" :method "post"}
+             (dom/div #js {:id "user-form_es_" :className "errorSummary" :style #js {:display "none"}}
+               (dom/p nil
+                 "Please fix the following input errors:")
+               (dom/ul nil
+                 (dom/li nil
+                   "dummy")))
+             (dom/label #js {:htmlFor "User_biog"}
+               (dom/h3 nil
+                 "About you") "Who are you? What are your musical goals? What instruments do you play? "
+               (dom/br nil)
+               "(max. 160 characters)"
+               (dom/br nil)
+               (dom/br nil))
+             (dom/textarea #js {:size      "60"
+                                :maxLength "160"
+                                :id        "User_biog"
+                                :value     (or tmp-about about)
+                                :onChange  #(um/set-string! this :ui/tmp-about :event %)
+                                :style     #js {:zIndex "auto" :position "relative" :lineHeight "20px" :fontSize 14 :transition "none" :background "none 0% 0% / auto repeat scroll padding-box border-box rgb(255 255 255)"}})
+             (dom/div #js {:className "errorMessage" :id "User_biog_em_" :style #js {:display "none"}})))))
 
 (om/defui ^:once ProfileDashboard
   static om/Ident
@@ -1496,7 +1628,7 @@
         (dom/div #js {:className "span4"}
           (link {::r/handler ::r/login :className "btn btn-primary" :style #js {:marginTop 43}}
             (dom/h2 nil
-              "Click to Subscribe!")))))))
+                    "Click to Subscribe!")))))))
 
 (defn banner-personal-tuition []
   (dom/div #js {:className "dropdown-notification text-center visible-desktop", :id "patreonbanner"}
@@ -1509,7 +1641,7 @@
         (dom/div #js {:className "span4"}
           (link {::r/handler ::r/tuition :className "btn btn-primary" :style #js {:marginTop 43}}
             (dom/h2 nil
-              "Find out more!")))))))
+                    "Find out more!")))))))
 
 (def banner-routes #{::r/topic ::r/lesson})
 
@@ -1544,7 +1676,7 @@
                  (let [{:app/keys [route]} n]
                    (if (or (not= (:app/route o) route)
                            (not= (:app/me o) (:app/me n)))
-                     (let [comp      (some-> route r/route->component)
+                     (let [comp (some-> route r/route->component)
                            auth-req? (if (implements? IRequireAuth comp)
                                        (auth-required? comp) false)]
                        (when (and auth-req? (= (auth-state n) ::guest))

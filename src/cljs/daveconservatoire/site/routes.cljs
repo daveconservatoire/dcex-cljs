@@ -22,6 +22,9 @@
         "donate"           ::donate
         "tuition"          ::tuition
         "contact"          ::contact
+        "subscribe"        ::subscribe
+        "socialmedia"      ::socialmedia
+        "thanks"           ::thanks
         "profile"          ::profile
         "profile/activity" ::profile-activity
         "profile/focus"    ::profile-focus

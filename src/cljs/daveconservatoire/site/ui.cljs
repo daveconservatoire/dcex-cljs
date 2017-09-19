@@ -115,8 +115,10 @@
       (dom/div #js {:className "banner"}
         (dom/div #js {:className "container intro_wrapper"}
           (dom/div #js {:className "inner_content"}
-            (dom/div #js {:className "welcome_index animated fadeInDown"}
-              "Welcome to Dave Conservatoire")))))))
+            (dom/div #js {:className "welcome_index animated fadeInDown"} "Welcome to"
+                                                                          (dom/span #js {:className "dc-text-orange"} " Dave Conservatoire ")
+                                                                          " - a free online music school, aiming to provide a world-class music education for"
+                                                                          (dom/span #js {:className "dc-text-orange"} " everyone."))))))))
 
 (def hero (om/factory Hero))
 
@@ -307,7 +309,7 @@
               (dom/ul #js {:className "nav"}
                 (button-block {:react-key "btn-0" ::r/handler ::r/about, ::button-color "yellow"} "About")
                 (button-block {:react-key "btn-1" ::r/handler ::r/donate, ::button-color "orange"} "Donate")
-                (button-block {:react-key "btn-2" ::r/handler ::r/tuition, ::button-color "redorange"} "Personal Tuition")
+                (button-block {:react-key "btn-2" ::r/handler ::r/tuition, ::button-color "redorange"} "Tuition")
                 (button-block {:react-key "btn-3" ::r/handler ::r/contact, ::button-color "red"} "Contact")
                 (dom/form #js {:className "navbar-form"
                                :onSubmit  #(.preventDefault %)}
@@ -1643,6 +1645,19 @@
             (dom/h2 nil
                     "Find out more!")))))))
 
+(defn banner-new-site []
+  (dom/div #js {:className "dropdown-notification text-center visible-desktop", :id "patreonbanner"}
+    (dom/div #js {:className "container"}
+      (dom/div #js {:className "row"}
+        (dom/div #js {:className "span8"}
+          (dom/h3 nil "Welcome to our new site!")
+          (dom/h3 nil "Hopefully it's working great. ")
+          (dom/p nil "If you notice something not working as it should - please tell us and we'll fix it!"))
+        (dom/div #js {:className "span4"}
+          (link {::r/handler ::r/contact :className "btn btn-primary" :style #js {:marginTop 43}}
+            (dom/h2 nil
+                    "Report a bug!")))))))
+
 (def banner-routes #{::r/topic ::r/lesson})
 
 (om/defui ^:once Root
@@ -1650,7 +1665,7 @@
   (initial-state [_ _]
     (let [route (r/current-handler)]
       {:app/route        nil
-       :ui/banner        (rand-nth [banner-subscribe banner-personal-tuition])
+       :ui/banner        (rand-nth [banner-new-site])
        :ui/react-key     (random-uuid)
        :route/data       (r/route->initial-state route)
        :ui/search-cursor (uc/get-initial-state cursor/VerticalCursor {:ui/cursor-name "search-popup"})

@@ -159,14 +159,15 @@
                         ::ex-total-questions 10
                         ::streak-count       0
                         ::hints-used         0
-                        ::play-notes         play-notes})
+                        ::play-notes         play-notes
+                        ::started?           false})
 
   static om/IQuery
   (query [_] ['*])
 
   Object
   (render [this]
-    (let [{::keys [options ex-answer ex-total-questions streak-count notes hints hints-used]
+    (let [{::keys [options ex-answer ex-total-questions streak-count notes hints hints-used started?]
            :as    props} (om/props this)
           [opt-type _] (s/conform ::options options)
           parent       (om/parent this)
@@ -176,90 +177,98 @@
                                                  (fulcro/load {:query [{:app/me ~(om/get-query UserScore)}] :marker false})]))]
       (s/assert ::ex-props props)
       (dom/div #js {:className "lesson-content"}
-        (dom/article #js {:className "exercises-content clearfix"}
-          (dom/div #js {:className "exercises-body"}
-            (dom/div #js {:className "exercises-stack"})
-            (dom/div #js {:className "exercises-card current-card"}
-              (dom/div #js {:className "current-card-container card-type-problem"}
-                (dom/div #js {:className "current-card-container-inner vertical-shadow" :style #js {"width" "100%"}}
-                  (dom/div #js {:className "current-card-contents"}
-                    (if-not (completed? props)
-                      (progress-bar {::progress-value streak-count
-                                     ::progress-total ex-total-questions}))
-                    (if (completed? props)
-                      (dom/div #js {:key "done" :className "alert alert-success masterymsg"}
-                        (dom/strong nil "Well done! ")
-                        "You've mastered this skill - time to move on to something new"))
-                    (dom/div #js {:id "problem-and-answer" :className "framework-khan-exercises"}
-                      (dom/div #js {:id "problemarea" :style #js {"marginTop" "0"}}
-                        (dom/div #js {:id "workarea" :style #js {"backgroundColor" "white" "margin" "5px" "padding" "10px" "border" "1px solid #ddd"}}
-                          (dom/div #js {:id "problem-type-or-description"}
-                            (dom/div #js {:className "problem"}
-                              (om/children this)
-                              (if (seq notes)
-                                (dom/a #js {:className "btn btn-primary"
-                                            :onClick   #(play-sound props)}
-                                  "Play Again")))))
-                        (dom/div #js {:id "hintsarea" :style #js{"margin" "0"}}
-                          (for [[hint i] (map vector (take hints-used hints) (range))]
-                            (dom/p #js {:key i :style #js {"margin" "5px" "padding" "5px" "background" "#eee" "border" "1px #ddd solid"}} hint))))
-                      (dom/div #js {:id "answer_area_wrap"}
-                        (dom/div #js {:id "answer_area"}
-                          (dom/form #js {:id "answerform" :name "answerform" :onSubmit #(do
-                                                                                          (check-answer)
-                                                                                          (.preventDefault %))}
-                            (dom/div #js {:className "info-box" :id "answercontent"}
-                              (dom/span #js {:className "info-box-header"}
-                                "Answer")
-                              (dom/div #js {:className "fancy-scrollbar" :id "solutionarea"
-                                            :style #js {"borderBottom" "none"}}
-                                (case opt-type
-                                  :text
-                                  (dom/input #js {:type     "text"
-                                                  :value    (or ex-answer "")
-                                                  :onChange #(um/set-string! parent ::ex-answer :event %)})
-
-                                  :select
-                                  (dom/ul #js {:style #js {"margin" "0"}}
-                                    (for [[value label] options]
-                                      (dom/li #js {:key value}
-                                        (dom/label nil
-                                          (dom/button #js {:type      "button"
-                                                           :className (if (= ex-answer value) "btn btn-block btn-success" "btn btn-block dc-btn-orange")
-                                                           :onClick   #(do
-
-                                                                         (um/set-string! parent ::ex-answer :value value)
-                                                                         (js/console.log (::exanswer :value value))
-                                                                         (js/console.log value)
-                                                                         )}
-                                            label)))))))
-                              (dom/div #js {:className "answer-buttons"}
-                                (dom/div #js {:className "check-answer-wrapper"}
-                                  (dom/input #js {:className "btn btn-success btn-block" :type "button" :value "Check Answer"
-                                                  :onClick   check-answer}))
-                                (dom/input #js {:className "btn btn-success btn-block"
-                                                :id        "next-question-button"
-                                                :name      "correctnextbutton"
-                                                :style     #js {:display "none"}
-                                                :type      "button"
-                                                :value     "Continue"})
-                                (dom/div #js {:id "positive-reinforcement" :style #js {:display "none"}}
-                                  (dom/img #js {:src "/images/face-smiley.png"}))))
-
-                            (if (> (count hints) 0)
-                              (dom/div #js {:className "info-box hint-box"}
+        (if-not started?
+          (dom/div #js {}
+            (dom/a #js {:className "btn btn-primary"
+                        :onClick (fn [e]
+                                   (.preventDefault e)
+                                   (um/set-value! parent ::started? true)
+                                   (play-sound props))}
+              "Start"))
+          (dom/article #js {:className "exercises-content clearfix"}
+            (dom/div #js {:className "exercises-body"}
+              (dom/div #js {:className "exercises-stack"})
+              (dom/div #js {:className "exercises-card current-card"}
+                (dom/div #js {:className "current-card-container card-type-problem"}
+                  (dom/div #js {:className "current-card-container-inner vertical-shadow" :style #js {"width" "100%"}}
+                    (dom/div #js {:className "current-card-contents"}
+                      (if-not (completed? props)
+                        (progress-bar {::progress-value streak-count
+                                       ::progress-total ex-total-questions}))
+                      (if (completed? props)
+                        (dom/div #js {:key "done" :className "alert alert-success masterymsg"}
+                          (dom/strong nil "Well done! ")
+                          "You've mastered this skill - time to move on to something new"))
+                      (dom/div #js {:id "problem-and-answer" :className "framework-khan-exercises"}
+                        (dom/div #js {:id "problemarea" :style #js {"marginTop" "0"}}
+                          (dom/div #js {:id "workarea" :style #js {"backgroundColor" "white" "margin" "5px" "padding" "10px" "border" "1px solid #ddd"}}
+                            (dom/div #js {:id "problem-type-or-description"}
+                              (dom/div #js {:className "problem"}
+                                (om/children this)
+                                (if (seq notes)
+                                  (dom/a #js {:className "btn btn-primary"
+                                              :onClick   #(play-sound props)}
+                                    "Play Again")))))
+                          (dom/div #js {:id "hintsarea" :style #js{"margin" "0"}}
+                            (for [[hint i] (map vector (take hints-used hints) (range))]
+                              (dom/p #js {:key i :style #js {"margin" "5px" "padding" "5px" "background" "#eee" "border" "1px #ddd solid"}} hint))))
+                        (dom/div #js {:id "answer_area_wrap"}
+                          (dom/div #js {:id "answer_area"}
+                            (dom/form #js {:id "answerform" :name "answerform" :onSubmit #(do
+                                                                                            (check-answer)
+                                                                                            (.preventDefault %))}
+                              (dom/div #js {:className "info-box" :id "answercontent"}
                                 (dom/span #js {:className "info-box-header"}
-                                  "Need help?")
-                                (dom/div #js {:id "get-hint-button-container"}
-                                  (dom/input #js {:className "btn btn-block dc-btn-orange"
+                                  "Answer")
+                                (dom/div #js {:className "fancy-scrollbar" :id "solutionarea"
+                                              :style     #js {"borderBottom" "none"}}
+                                  (case opt-type
+                                    :text
+                                    (dom/input #js {:type     "text"
+                                                    :value    (or ex-answer "")
+                                                    :onChange #(um/set-string! parent ::ex-answer :event %)})
+
+                                    :select
+                                    (dom/ul #js {:style #js {"margin" "0"}}
+                                      (for [[value label] options]
+                                        (dom/li #js {:key value}
+                                          (dom/label nil
+                                            (dom/button #js {:type      "button"
+                                                             :className (if (= ex-answer value) "btn btn-block btn-success" "btn btn-block dc-btn-orange")
+                                                             :onClick   #(do
+
+                                                                           (um/set-string! parent ::ex-answer :value value)
+                                                                           (js/console.log (::exanswer :value value))
+                                                                           (js/console.log value)
+                                                                           )}
+                                              label)))))))
+                                (dom/div #js {:className "answer-buttons"}
+                                  (dom/div #js {:className "check-answer-wrapper"}
+                                    (dom/input #js {:className "btn btn-success btn-block" :type "button" :value "Check Answer"
+                                                    :onClick   check-answer}))
+                                  (dom/input #js {:className "btn btn-success btn-block"
+                                                  :id        "next-question-button"
+                                                  :name      "correctnextbutton"
+                                                  :style     #js {:display "none"}
                                                   :type      "button"
-                                                  :disabled  (= (count hints) hints-used)
-                                                  :onClick   #(om/transact! parent `[(dcex/request-hint)])
-                                                  :value     (if (zero? hints-used)
-                                                               "I'd like a hint"
-                                                               (str "I'd like another hint (" (- (count hints) hints-used) " hints left)"))}))
-                                (dom/span #js {:id "hint-remainder"}))))))
-                      (dom/div #js {:style #js {:clear "both"}}))))))))))))
+                                                  :value     "Continue"})
+                                  (dom/div #js {:id "positive-reinforcement" :style #js {:display "none"}}
+                                    (dom/img #js {:src "/images/face-smiley.png"}))))
+
+                              (if (> (count hints) 0)
+                                (dom/div #js {:className "info-box hint-box"}
+                                  (dom/span #js {:className "info-box-header"}
+                                    "Need help?")
+                                  (dom/div #js {:id "get-hint-button-container"}
+                                    (dom/input #js {:className "btn btn-block dc-btn-orange"
+                                                    :type      "button"
+                                                    :disabled  (= (count hints) hints-used)
+                                                    :onClick   #(om/transact! parent `[(dcex/request-hint)])
+                                                    :value     (if (zero? hints-used)
+                                                                 "I'd like a hint"
+                                                                 (str "I'd like another hint (" (- (count hints) hints-used) " hints left)"))}))
+                                  (dom/span #js {:id "hint-remainder"}))))))
+                        (dom/div #js {:style #js {:clear "both"}})))))))))))))
 
 (def exercise (om/factory Exercise))
 

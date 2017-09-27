@@ -21,6 +21,9 @@
   (:import goog.i18n.DateTimeFormat
            goog.async.Debouncer))
 
+(declare modal)
+
+
 (defn debounce [f interval]
   (let [dbnc (Debouncer. f interval)]
     (fn [& args] (.apply (.-fire dbnc) dbnc (to-array args)))))
@@ -672,13 +675,13 @@
               (dom/div #js {:className "span4"}
                 (dom/div #js {:className "tile introboxes"}
                   (dom/div #js {:className "intro-icon-disc  social-share"}
-                    (dom/img #js {:src "/img/googleplus.png"}))(dom/a #js {:href "/socialloader/gplus", :target "_blank", :className "btn btn-primary  btn-custom btn-rounded btn-block dc-btn-redorange"} "Share Dave Conservatoire on Google Plus"))
+                    (dom/img #js {:src "/img/googleplus.png"})) (dom/a #js {:href "/socialloader/gplus", :target "_blank", :className "btn btn-primary  btn-custom btn-rounded btn-block dc-btn-redorange"} "Share Dave Conservatoire on Google Plus"))
                 (dom/div #js {:className "pad25"})))
             (dom/div #js {:className "strip"} (dom/h1 #js {:className "center"} "Thanks for taking the time to do this")
                                               (dom/h1 #js {})
                                               (dom/h3 #js {:className "center about_strip"} " Ready to get back to learning? ")
                                               (dom/div #js {:className "pad45"})
-                                              (dom/a #js {:href "/", :className "big_button"} "Let's go!")(dom/div #js {:className "pad25"}))))))))
+                                              (dom/a #js {:href "/", :className "big_button"} "Let's go!") (dom/div #js {:className "pad25"}))))))))
 
 (defmethod r/route->component ::r/socialmedia [_] SocialMediaPage)
 
@@ -696,25 +699,28 @@
             (dom/h3 #js {:className "center about_strip"} "You are now officially a Dave Conservatoire subscriber. ")
             (dom/h3 #js {:className "center about_strip"} "You are playing a role in making a world class music education available to everyone everywhere!")
             (dom/h3 #js {:className "center about_strip"} " Ready to get back to learning? ")
-            (dom/div #js {:className "pad45"})(dom/a #js {:href "/", :className "big_button"} "Let's go!")
+            (dom/div #js {:className "pad45"}) (dom/a #js {:href "/", :className "big_button"} "Let's go!")
             (dom/div #js {:className "pad25"})))))))
 
 (defmethod r/route->component ::r/thanks [_] ThanksPage)
 
 
+(defn paypal-donate-url [donation-value]
+  (str "https://www.paypal.com/cgi-bin/webscr?business=dave@daveconservatoire.org&cmd=_xclick-subscriptions&currency_code=USD&p3=1&t3=M&no_shipping=1&src=1&sra=1&a3=" donation-value "&item_name=Dave%20Conservatoire%20Subscription%20&return_url=http://www.daveconservatoire.org/thanks&cancel_return=http://www.daveconservatoire.org/subscribe"))
+
 (om/defui ^:once SubscriptionPage
   static uc/InitialAppState
-  (initial-state [_ _] {:ui/donation-value 9})
+  (initial-state [_ _] {:ui/donation-value 9 :ui/show-modal? false})
 
   static om/IQuery
-  (query [_] [:ui/donation-value ])
+  (query [_] [:ui/donation-value :ui/show-modal?])
 
   static om/Ident
   (ident [_ props] [:page/by-id "subscribe-page"])
 
   Object
   (render [this]
-    (let [{:keys [ui/donation-value]} (om/props this)]
+    (let [{:keys [ui/donation-value ui/show-modal?]} (om/props this)]
       (dom/div #js {}
         (course-banner {:title "Voluntary Subscription" :intro "Dave Conservatoire will always be free. But please consider subscribing!"})
         (dom/div #js {:className "container wrapper"}
@@ -757,25 +763,28 @@
                   (dom/div #js {:className "alert alert-success subchange"}
                     (dom/p #js {:id "subamount"}
                       "I would like to subscribe to Dave Conservatoire for $" (or donation-value "9") " per month.")
-                    (dom/a #js {:className "btn btn-block btn-primary dc-orange subbutton" :target "_blank" :href (str "https://www.paypal.com/cgi-bin/webscr?business=dave@daveconservatoire.org&cmd=_xclick-subscriptions&currency_code=USD&p3=1&t3=M&no_shipping=1&src=1&sra=1&a3=" donation-value "&item_name=Dave%20Conservatoire%20Subscription%20&return_url=http://www.daveconservatoire.org/thanks&cancel_return=http://www.daveconservatoire.org/subscribe")}
+                    (dom/a #js {:className "btn btn-block btn-primary dc-orange subbutton" :target "_blank" :href (paypal-donate-url (or donation-value 9))}
                       "\n\t\t         Submit\n\t\t     "))
                   (dom/div #js {:className "alert alert-danger subchange"}
                     (dom/p #js {:id "subamount"}
                       "I am unable to support Dave Conservatoire at this time. \uD83D\uDE22")
-                    (dom/a #js {:className "btn btn-block btn-primary dc-orange subbutton" :target "_blank" :href ""}
-                      "\n\t\t         Submit\n\t\t     "))
-                  ))
-              )))
-        (dom/div #js {:id "suremodal", :className "modal hide fade in", :style #js{"display" "block"}, :aria-hidden "false"}
-          (dom/div #js {:className "modal-header"}
-            (dom/button #js {:type "button", :className "close", :data-dismiss "modal", :aria-hidden "true"}
-              "×")(dom/h3 #js {} "Sure you can't just nudge us in the right direction?"))
-          (dom/div #js {:className "modal-body"}
+                    (dom/a #js {:className "btn btn-block btn-primary dc-orange subbutton"
+                                :onClick #(um/set-value! this :ui/show-modal? true)}
+                      "\n\t\t         Submit\n\t\t     ")))))))
+        (if show-modal?
+          (modal #:ui.modal{:title   "Sure you can't just nudge us in the right direction?"
+                            :footer  (fn [{:ui.modal/keys [title footer onClose onConfirm]}]
+                                       (dom/div #js {:className "modal-footer"}
+                                         (dom/a #js {:className "btn btn-success"
+                                                     :href      (paypal-donate-url 1)
+                                                     :target    "_blank"}
+                                           "Okay!  Let's do this! ($1/month subscription)")
+                                         (link {:className  "btn btn-danger"
+                                                ::r/handler ::r/socialmedia}
+                                           "Still a no, sorry")))
+                            :onClose #(um/set-value! this :ui/show-modal? false)}
             (dom/p #js {} "Could you spare just $1 each month for a worthy cause?  Music students around the world will thank you for it!")
-            (dom/p #js {} "A hard-up student?  No worries, we're still cool."))
-          (dom/div #js {:className "modal-footer"}
-            (dom/a #js {:href "https://www.paypal.com/cgi-bin/webscr?business=dave@daveconservatoire.org&cmd=_xclick-subscriptions&currency_code=USD&p3=1&t3=M&no_shipping=1&src=1&sra=1&a3=1&item_name=Dave%20Conservatoire%20Subscription%20&return_url=http://www.daveconservatoire.org/thanks&cancel_return=http://www.daveconservatoire.org/subscribe", :id "onedollar", :className "btn btn-success"} "Okay!  Let's do this! ($1/month subscription)")
-            (dom/a #js {:href "/socialmedia", :id "stillno", :className "btn btn-danger"} "Still a no, sorry. ")))))))
+            (dom/p #js {} "A hard-up student?  No worries, we're still cool.")))))))
 
 (defmethod r/route->component ::r/subscribe [_] SubscriptionPage)
 
@@ -1254,63 +1263,65 @@
 
 (def profile-recent-activity (om/factory ProfileRecentActivity {:keyfn :db/id}))
 
-(defn modal [{:ui.modal/keys [title onClose onSave]} & children]
+(defn modal [{:ui.modal/keys [title footer onClose onConfirm] :as props} & children]
   (portal {:append-to "body"}
-          (dom/div #js {:style #js {:position   "absolute"
-                                    :left       0
-                                    :top        0
-                                    :background "rgba(0, 0, 0, 0.5)"
-                                    :width      "100vw"
-                                    :height     "100vh"}}
-            (dom/div #js {:id "myModal" :className "modal hide fade in" :tabIndex "-1" :role "dialog" :style #js {:display "block"}}
-              (dom/div #js {:className "modal-header"}
-                (dom/button #js {:type "button" :className "close" :onClick #(if onClose (onClose))}
-                  "×")
-                (dom/h3 #js {:id "myModalLabel"}
-                  title))
-              (dom/div #js {:className "modal-body"}
-                (apply dom/div nil children)
-                (dom/div #js {:className "row buttons"})
-                (dom/div #js {:className "modal-footer"}
-                  (dom/button #js {:className "btn"
-                                   :onClick   #(if onClose (onClose))}
-                    "Close")
-                  (dom/button #js {:className "btn btn-primary"
-                                   :onClick   #(if onSave (onSave))}
-                    "Save")))))))
+    (dom/div #js {:style #js {:position   "absolute"
+                              :left       0
+                              :top        0
+                              :background "rgba(0, 0, 0, 0.5)"
+                              :width      "100vw"
+                              :height     "100vh"}}
+      (dom/div #js {:id "myModal" :className "modal hide fade in" :tabIndex "-1" :role "dialog" :style #js {:display "block"}}
+        (dom/div #js {:className "modal-header"}
+          (dom/button #js {:type "button" :className "close" :onClick #(if onClose (onClose))}
+            "×")
+          (dom/h3 #js {:id "myModalLabel"}
+            title))
+        (dom/div #js {:className "modal-body"}
+          (apply dom/div nil children)
+          (dom/div #js {:className "row buttons"})
+          (if footer
+            (footer props)
+            (dom/div #js {:className "modal-footer"}
+              (dom/button #js {:className "btn"
+                               :onClick   #(if onClose (onClose))}
+                "Close")
+              (dom/button #js {:className "btn btn-primary"
+                               :onClick   #(if onConfirm (onConfirm))}
+                "Save"))))))))
 
 (defn user-info-modal [this]
   (let [{:keys [user/about ui/tmp-about]} (om/props this)]
-    (modal #:ui.modal {:title   "Update your Profile"
-                       :onClose #(do
-                                   (um/set-value! this :ui/editing-info? false)
-                                   (um/set-value! this :ui/tmp-about about)
-                                   (om/transact! this [:ui/editing-info?]))
-                       :onSave  #(do
-                                   (om/transact! this `[(user/update {:user/about ~tmp-about})])
-                                   (um/set-value! this :ui/editing-info? false)
-                                   (om/transact! this [:ui/editing-info?]))}
-           (dom/form #js {:id "user-form" :action "profile/update" :method "post"}
-             (dom/div #js {:id "user-form_es_" :className "errorSummary" :style #js {:display "none"}}
-               (dom/p nil
-                 "Please fix the following input errors:")
-               (dom/ul nil
-                 (dom/li nil
-                   "dummy")))
-             (dom/label #js {:htmlFor "User_biog"}
-               (dom/h3 nil
-                 "About you") "Who are you? What are your musical goals? What instruments do you play? "
-               (dom/br nil)
-               "(max. 160 characters)"
-               (dom/br nil)
-               (dom/br nil))
-             (dom/textarea #js {:size      "60"
-                                :maxLength "160"
-                                :id        "User_biog"
-                                :value     (or tmp-about about)
-                                :onChange  #(um/set-string! this :ui/tmp-about :event %)
-                                :style     #js {:zIndex "auto" :position "relative" :lineHeight "20px" :fontSize 14 :transition "none" :background "none 0% 0% / auto repeat scroll padding-box border-box rgb(255 255 255)"}})
-             (dom/div #js {:className "errorMessage" :id "User_biog_em_" :style #js {:display "none"}})))))
+    (modal #:ui.modal {:title     "Update your Profile"
+                       :onClose   #(do
+                                     (um/set-value! this :ui/editing-info? false)
+                                     (um/set-value! this :ui/tmp-about about)
+                                     (om/transact! this [:ui/editing-info?]))
+                       :onConfirm #(do
+                                     (om/transact! this `[(user/update {:user/about ~tmp-about})])
+                                     (um/set-value! this :ui/editing-info? false)
+                                     (om/transact! this [:ui/editing-info?]))}
+      (dom/form #js {:id "user-form" :action "profile/update" :method "post"}
+        (dom/div #js {:id "user-form_es_" :className "errorSummary" :style #js {:display "none"}}
+          (dom/p nil
+            "Please fix the following input errors:")
+          (dom/ul nil
+            (dom/li nil
+              "dummy")))
+        (dom/label #js {:htmlFor "User_biog"}
+          (dom/h3 nil
+            "About you") "Who are you? What are your musical goals? What instruments do you play? "
+          (dom/br nil)
+          "(max. 160 characters)"
+          (dom/br nil)
+          (dom/br nil))
+        (dom/textarea #js {:size      "60"
+                           :maxLength "160"
+                           :id        "User_biog"
+                           :value     (or tmp-about about)
+                           :onChange  #(um/set-string! this :ui/tmp-about :event %)
+                           :style     #js {:zIndex "auto" :position "relative" :lineHeight "20px" :fontSize 14 :transition "none" :background "none 0% 0% / auto repeat scroll padding-box border-box rgb(255 255 255)"}})
+        (dom/div #js {:className "errorMessage" :id "User_biog_em_" :style #js {:display "none"}})))))
 
 (om/defui ^:once ProfileDashboard
   static om/Ident

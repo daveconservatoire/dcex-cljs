@@ -52,10 +52,15 @@
 (defn auth-state [state]
   (let [user (get state :app/me)]
     (cond
-      (some-> user first (= :user/by-id)) ::authenticated
+      (and (some-> user first (= :user/by-id))
+           (some-> user second (not= -1)))
+      ::authenticated
+
       (or (some-> user first (= :unknown))
           (and (map? user)
-               (contains? user :ui/fetch-state))) ::loading
+               (contains? user :ui/fetch-state)))
+      ::loading
+
       :else ::guest)))
 
 (defprotocol IRequireAuth

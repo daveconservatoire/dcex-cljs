@@ -170,6 +170,25 @@
             (.redirect res "/login"))))
       (.redirect res "/login"))))
 
+(def moment (nodejs/require "moment"))
+
+(defn mysql-now []
+  (.format (moment.) "YYYY-MM-DD HH:mm:ss"))
+
+(ex/get app "/thanks"
+  (fn [req res]
+    (go-catch
+      (let [amount (.. req -query -amt)
+            st (.. req -query -st)
+            user-id (current-user req)
+            user {:db/id                     user-id
+                  :db/table                  :user
+                  :user/subscription-amount  amount
+                  :user/subscription-updated (mysql-now)}]
+        (if (and user-id (= "Completed" st))
+          (<? (ps/save (api-env req) user)))
+        (.sendFile res (str (.cwd nodejs/process) "/resources/public/index.html"))))))
+
 (ex/get app #".+"
   (fn [_ res]
     (.sendFile res (str (.cwd nodejs/process) "/resources/public/index.html"))))

@@ -182,6 +182,7 @@
                        :user/score                "points"
                        :user/last-activity        "lastActivity"
                        :user/subscription-amount  "subamount"
+                       :user/subscription-updated "subupdated"
                        :user/user-views           (ps/has-many :user-activity :user-activity/user-id {:sort ["timestamp" "desc"] :where {:user-activity/type "view"}})
                        :user/ex-answers           (ps/has-many :user-activity :user-activity/user-id {:sort ["timestamp" "desc"] :where {:user-activity/type "answer"}})
                        :user/ex-masteries         (ps/has-many :user-activity :user-activity/user-id {:sort ["timestamp" "desc"] :where {:user-activity/type "mastery"}})

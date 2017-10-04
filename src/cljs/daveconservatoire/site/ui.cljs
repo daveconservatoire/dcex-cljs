@@ -720,6 +720,9 @@
   static om/IQuery
   (query [_] [:ui/donation-value :ui/show-modal?])
 
+  static IRequireAuth
+  (auth-required? [_] true)
+
   static om/Ident
   (ident [_ props] [:page/by-id "subscribe-page"])
 
@@ -843,6 +846,16 @@
                     (dom/input #js {:type "hidden", :name "hosted_button_id", :value "UNU8E3PLEYG3N"})
                     (dom/input #js {:type "image", :src "https://www.paypalobjects.com/en_US/GB/i/btn/btn_donateCC_LG.gif", :name "submit", :alt "PayPal — The safer, easier way to pay online."})
                     (dom/img #js {:alt "", :src "https://www.paypalobjects.com/en_GB/i/scr/pixel.gif", :width "1", :height "1"})))))
+            (dom/hr nil)
+            (dom/div #js {:className "row"}
+              (dom/div #js {:className "span8"}
+                (dom/h2 nil "Subscribe")
+                (dom/p nil "Paypal securely accepts all major credit and debit cards in all currencies.")
+                (dom/p nil " "))
+              (dom/div #js {:className "span3 offset1"}
+                (dom/div #js {:className "btn btn-block dc-btn-orange"}
+                  (link {::r/handler ::r/subscribe, :className "btn btn-block dc-btn-yellow"}
+                    (dom/h2 #js {} "Subscribe Now!")))))
             (dom/hr nil)
             (dom/div #js {:className "row"}
               (dom/div #js {:className "span8"}
@@ -1363,14 +1376,14 @@
                 (dom/p nil about)))
             (dom/div #js {:className "span5 whiteback"}
               (dom/div #js {:className "padding"}
-                (if (zero? subscription-amount)
-                  (dom/a #js {:className "btn dc-btn-red pull-right"} "Update your subscription")
+                (if (= "0" subscription-amount)
+                  (link {::r/handler ::r/subscribe, :className "btn dc-btn-red pull-right"}  "Help us grow!")
                   (dom/i #js {:className "icon-star intro-icon-large dc-text-orange pull-right"}))
 
                 (dom/h1 #js {:style #js {:margin 0}} "My Subscription")
                 (dom/h1 nil (gstr/format "$%.2f per month" subscription-amount))
 
-                (if (zero? subscription-amount)
+                (if (= "0" subscription-amount)
                   (dom/p nil "Dave Conservatoire will be free forever, but if you are in a position to, subscribing will help us serve music students around the world.")
                   (dom/p nil "Thank you so much for your subscription. Your support is vital in helping us serve music students around the world."))))))
         (dom/div #js {:className "pad30"})

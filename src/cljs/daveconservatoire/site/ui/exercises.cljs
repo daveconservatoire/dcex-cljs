@@ -178,13 +178,14 @@
       (s/assert ::ex-props props)
       (dom/div #js {:className "lesson-content"}
         (if-not started?
-          (dom/div #js {}
+          (dom/div #js {:style #js {"textAlign" "center"}}
+            (dom/h1 nil "Make sure you have your volume up, many of our exercises play sound!")
             (dom/a #js {:className "btn btn-primary"
                         :onClick (fn [e]
                                    (.preventDefault e)
                                    (um/set-value! parent ::started? true)
                                    (play-sound props))}
-              "Start"))
+              (dom/h1 nil "Start Exercise")))
           (dom/article #js {:className "exercises-content clearfix"}
             (dom/div #js {:className "exercises-body"}
               (dom/div #js {:className "exercises-stack"})

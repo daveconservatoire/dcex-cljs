@@ -164,7 +164,11 @@
       (go
         (try
           (<? (p/consume-guest-tx (api-env req)))
-          (.redirect res "/profile")
+          (let [user (<? (ps/find-by (api-env req) {:db/table :user :db/id (current-user req)}))]
+            (println "USER" user)
+            (if (:user/subscription-updated user)
+              (.redirect res "/profile")
+              (.redirect res "/subscribe")))
           (catch :default e
             (println "Error" e)
             (.redirect res "/login"))))

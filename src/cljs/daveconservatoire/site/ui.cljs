@@ -788,7 +788,8 @@
                                                      :target    "_blank"}
                                            "Okay!  Let's do this! ($1/month subscription)")
                                          (link {:className  "btn btn-danger"
-                                                ::r/handler ::r/socialmedia}
+                                                ::r/handler ::r/socialmedia
+                                                :onClick    #(om/transact! this `[(user/update {:user/subscription-amount "0"})])}
                                            "Still a no, sorry")))
                             :onClose #(um/set-value! this :ui/show-modal? false)}
             (dom/p #js {} "Could you spare just $1 each month for a worthy cause?  Music students around the world will thank you for it!")

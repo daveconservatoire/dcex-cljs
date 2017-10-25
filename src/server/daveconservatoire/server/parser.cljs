@@ -252,7 +252,7 @@
 
 (defn update-current-user [{:keys [current-user-id] :as env} data]
   (if current-user-id
-    (let [enabled-keys #{:user/about}]
+    (let [enabled-keys #{:user/about :user/subscription-updated :user/subscription-amount}]
       (ps/save env (-> (select-keys data enabled-keys)
                        (assoc :db/id current-user-id
                               :db/table :user))))

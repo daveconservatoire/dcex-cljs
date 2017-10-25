@@ -1385,7 +1385,7 @@
                 (if subscription-amount
                   (dom/h1 nil (gstr/format "$%.2f per month" subscription-amount)))
 
-                (if (= "0" subscription-amount)
+                (if subscription-amount
                   (dom/p nil "Dave Conservatoire will be free forever, but if you are in a position to, subscribing will help us serve music students around the world.")
                   (dom/p nil "Thank you so much for your subscription. Your support is vital in helping us serve music students around the world."))))))
         (dom/div #js {:className "pad30"})

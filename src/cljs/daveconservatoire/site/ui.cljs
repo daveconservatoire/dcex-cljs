@@ -1380,9 +1380,10 @@
                 (if (= "0" subscription-amount)
                   (link {::r/handler ::r/subscribe, :className "btn dc-btn-red pull-right"}  "Help us grow!")
                   (dom/i #js {:className "icon-star intro-icon-large dc-text-orange pull-right"}))
-
                 (dom/h1 #js {:style #js {:margin 0}} "My Subscription")
-                (dom/h1 nil (gstr/format "$%.2f per month" subscription-amount))
+
+                (if subscription-amount
+                  (dom/h1 nil (gstr/format "$%.2f per month" subscription-amount)))
 
                 (if (= "0" subscription-amount)
                   (dom/p nil "Dave Conservatoire will be free forever, but if you are in a position to, subscribing will help us serve music students around the world.")

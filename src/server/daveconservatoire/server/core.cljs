@@ -32,6 +32,7 @@
 (defonce compression (nodejs/require "compression"))
 (defonce session (nodejs/require "express-session"))
 (defonce RedisStore ((nodejs/require "connect-redis") session))
+(defonce express-useragent (nodejs/require "express-useragent"))
 
 (defonce rollbar-init (rollbar/init (::rollbar/access-token rollbar)))
 
@@ -47,6 +48,7 @@
     (.on s "end" (fn [] (put! c @out)))
     c))
 
+(ex/use app (.express express-useragent))
 (ex/use app (compression))
 (ex/use app (.static express "resources/public"))
 (ex/use app (session #js {:secret            (get settings :session-secret)
@@ -165,7 +167,6 @@
         (try
           (<? (p/consume-guest-tx (api-env req)))
           (let [user (<? (ps/find-by (api-env req) {:db/table :user :db/id (current-user req)}))]
-            (println "USER" user)
             (if (:user/subscription-updated user)
               (.redirect res "/profile")
               (.redirect res "/subscribe")))
@@ -194,8 +195,10 @@
         (.sendFile res (str (.cwd nodejs/process) "/resources/public/index.html"))))))
 
 (ex/get app #".+"
-  (fn [_ res]
-    (.sendFile res (str (.cwd nodejs/process) "/resources/public/index.html"))))
+  (fn [req res]
+    (if (.. req -useragent -isIE)
+      (.redirect res "http://legacy.daveconservatoire.org/")
+      (.sendFile res (str (.cwd nodejs/process) "/resources/public/index.html")))))
 
 (defn -main []
   (let [port (or (gobj/getValueByKeys nodejs/process #js ["env" "PORT"])

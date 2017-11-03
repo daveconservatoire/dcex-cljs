@@ -252,10 +252,12 @@
 
 (defn update-current-user [{:keys [current-user-id] :as env} data]
   (if current-user-id
-    (let [enabled-keys #{:user/about :user/subscription-updated :user/subscription-amount}]
+    (let [enabled-keys #{:user/about :user/subscription-amount}]
       (ps/save env (-> (select-keys data enabled-keys)
                        (assoc :db/id current-user-id
-                              :db/table :user))))
+                              :db/table :user)
+                       (cond-> (:user/subscription-amount data)
+                         (assoc :user/subscription-updated (js/Date.))))))
     (go nil)))
 
 (defn consume-guest-tx [{:keys [http-request current-user-id] :as env}]

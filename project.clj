@@ -9,11 +9,12 @@
   :test-paths ["test/server"]
   :source-paths ["src/cljs" "src/site" "src/server"]
 
-  :dependencies [[org.clojure/clojure "1.9.0-alpha17" :scope "provided"]
-                 [org.clojure/clojurescript "1.9.660" :scope "provided"]
+  :dependencies [[org.clojure/clojure "1.9.0-beta3" :scope "provided"]
+                 [org.clojure/clojurescript "1.9.946" :scope "provided"]
                  [org.clojure/core.async "0.3.442"]
                  [org.omcljs/om "1.0.0-beta1"]
-                 [fulcrologic/fulcro "1.0.0-beta8"]
+                 [fulcrologic/fulcro "1.2.0-SNAPSHOT"]
+                 [fulcrologic/fulcro-inspect "0.1.0-SNAPSHOT"]
                  [bidi "2.0.9"]
                  [kibu/pushy "0.3.6"]
                  [org.clojure/test.check "0.9.0"]
@@ -62,7 +63,7 @@
                                :asset-path           "/site"
                                :output-to            "resources/public/site/site.js"
                                :output-dir           "resources/public/site"
-                               :preloads             [daveconservatoire.support.dev]
+                               :preloads             [fulcro.inspect.preload daveconservatoire.support.dev]
                                :parallel-build       true
                                :recompile-dependents true
                                :verbose              false}}

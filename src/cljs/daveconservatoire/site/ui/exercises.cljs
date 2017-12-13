@@ -89,6 +89,7 @@
                              (assoc ::audio/duration duration))))))))
 
 (defn play-notes [notes]
+  (audio/global-stop-all)
   (let [nodes (prepare-notes notes)]
     (audio/play-sequence nodes {::audio/time (audio/current-time)})))
 

@@ -7,10 +7,17 @@
             [cljs.spec.alpha :as s]
             [daveconservatoire.audio.core :as audio]
             [daveconservatoire.site.ui.vexflow :as vf]
-            [daveconservatoire.site.ui.util :as u]))
+            [daveconservatoire.site.ui.util :as u]
+            [clojure.test.check.generators]
+            [clojure.test.check.properties]))
 
 (defprotocol IExercise
   (new-round [this props]))
+
+(defn new-round! [this props]
+  (let [props' (new-round this props)]
+    (assert (s/valid? (s/keys) props') (s/explain-str (s/keys) props'))
+    props'))
 
 (s/def ::progress-value number?)
 (s/def ::progress-total number?)
@@ -20,7 +27,7 @@
 (s/def ::description string?)
 (s/def ::option (s/cat :value string? :label string?))
 (s/def ::options (s/or :text #{::option-type-text}
-                       :select (s/+ (s/spec ::option))))
+                       :select (s/coll-of ::option :kind vector?)))
 
 (s/def ::hints (s/coll-of ::template/fragment))
 (s/def ::hints-used nat-int?)
@@ -104,35 +111,41 @@
 
 (defmethod um/mutate 'dcex/check-answer
   [{:keys [state ref]} _ _]
+  (js/console.log "enter check answer mutation" (get-in @state ref))
   {:action
    (fn []
      (let [{::keys [ex-answer correct-answer streak-count class last-error] :as props} (get-in @state ref)]
-       (if (and ex-answer (not= ex-answer ""))
+       (js/console.log "check it" ex-answer correct-answer)
+       (if (and ex-answer (seq ex-answer))
          (if (= ex-answer correct-answer)
            (let [next-streak (inc streak-count)
                  new-props   (if last-error
                                (assoc props ::streak-count next-streak
-                                            ::last-error false)
+                                            ::last-error false
+                                            ::confirm-answer true)
                                (new-round class
                                  (merge props
-                                        {::streak-count next-streak
-                                         ::hints-used   0
-                                         ::ex-answer    nil})))]
+                                        {::streak-count   next-streak
+                                         ::hints-used     0
+                                         ::ex-answer      nil
+                                         ::confirm-answer true})))]
              (swap! state assoc-in ref new-props)
              (play-sound new-props))
-           (swap! state update-in ref assoc ::streak-count 0 ::last-error false ::ex-answer nil
-                  (play-sound props))))))
+           (swap! state update-in ref assoc ::streak-count 0 ::last-error false ::ex-answer nil ::confirm-answer false
+             (play-sound props)))
+         (swap! state update-in ref assoc ::confirm-answer false))))
 
    :remote
-   (let [{::keys [name streak-count ex-total-questions hints-used]} (get-in @state ref)]
-     (cond
-       (= streak-count ex-total-questions)
-       (-> (om/query->ast `[(exercise/score-master {:url/slug ~name :user-activity/hints-used ~hints-used})])
-           :children first)
+   (let [{::keys [name streak-count ex-total-questions hints-used confirm-answer]} (get-in @state ref)]
+     (if confirm-answer
+       (cond
+         (= streak-count ex-total-questions)
+         (-> (om/query->ast `[(exercise/score-master {:url/slug ~name :user-activity/hints-used ~hints-used})])
+             :children first)
 
-       (> streak-count 0)
-       (-> (om/query->ast `[(exercise/score {:url/slug ~name :user-activity/hints-used ~hints-used})])
-           :children first)))})
+         (> streak-count 0)
+         (-> (om/query->ast `[(exercise/score {:url/slug ~name :user-activity/hints-used ~hints-used})])
+             :children first))))})
 
 (defn int-in [min max] (+ min (rand-int (- max min))))
 
@@ -665,6 +678,9 @@
   (new-round [_ props]
     (let [[a b :as notes] (vary-pitch props)
           distance (js/Math.abs (- b a))]
+      (js/console.log "start interval" (assoc props
+                        ::notes notes
+                        ::correct-answer (str distance)))
       (assoc props
         ::notes notes
         ::correct-answer (str distance))))
@@ -673,6 +689,58 @@
   (render [this]
     (exercise (om/props this)
       (dom/p #js {:key "p"} "You will hear two notes - what is their interval?"))))
+
+(def SCALE-NAMES
+  {"major"          [2 2 1 2 2 2 1]
+   "natural-minor"  [2 1 2 2 1 2 2]
+   "harmonic-minor" [2 1 2 2 1 3 1]
+   "chromatic"      [1 1 1 1 1 1 1 1 1 1 1 1 1]
+   "whole-tone"     [2 2 2 2 2 2]
+   "melodic-minor"  [[2 1 2 2 1 2 2] [1 2 2 2 2 1 2]]})
+
+(s/def ::scale-offset (s/with-gen pos-int? #(s/gen #{1 2})))
+(s/def ::scale (s/coll-of ::scale-offset :kind vector? :max-count 12))
+(s/def ::full-scale (s/or :regular ::scale :irregular (s/tuple ::scale ::scale)))
+
+(defn build-scale [tonic scale]
+  (reduce
+    (fn [notes offset]
+      (conj notes (+ (last notes) offset)))
+    [tonic]
+    scale))
+
+(om/defui ^:once Scales
+  static uc/InitialAppState
+  (initial-state [this props]
+    (new-round! this
+      (let [scales (get props ::scales)]
+        (merge
+          (uc/initial-state Exercise nil)
+          {::name      "scales"
+           ::options   (mapv #(vector (str %) (str %)) scales)}
+          props))))
+
+  static om/Ident
+  (ident [_ props] [:exercise/by-name (::name props)])
+
+  static om/IQuery
+  (query [_] '[*])
+
+  static IExercise
+  (new-round [_ props]
+    (let [tonic (descriptor->value ["B2" ".." "F5"])
+          scale (rand-nth (::scales props))
+          notes (build-scale tonic (get SCALE-NAMES scale))]
+      (assoc props
+        ::notes notes
+        ::correct-answer scale)))
+
+  Object
+  (render [this]
+    (exercise (om/props this)
+      (dom/p #js {:key "p"} "What kind of scale do you hear?"))))
+
+
 
 (defmulti slug->exercise identity)
 
@@ -718,6 +786,11 @@
   {::name  name
    ::class ReadingMusic
    ::props notes-treble})
+
+(defmethod slug->exercise "identifying-scales" [name]
+  {::name  name
+   ::class Scales
+   ::props {::scales ["major" "harmonic-minor"]}})
 
 (defmethod slug->exercise "bass-clef-reading" [name]
   {::name  name

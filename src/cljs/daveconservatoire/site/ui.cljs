@@ -1,9 +1,12 @@
 (ns daveconservatoire.site.ui
+  (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [om.next :as om :include-macros true]
             [om.dom :as dom]
             [goog.object :as gobj]
             [goog.string :as gstr]
             [goog.string.format]
+            [daveconservatoire.audio.core :as audio]
+            [cljs.core.async :refer [<!]]
             [daveconservatoire.site.routes :as r :refer [routes]]
             [daveconservatoire.site.ui.util :as u]
             [daveconservatoire.site.ui.exercises :as ux]
@@ -583,7 +586,12 @@
                             :person "Martin Bean, Vice Chancellor, Open University"})
               (testimonial {:quote  "The stuff you're doing is super cool! I hope we get the chance to meet and/or collaborate in the not-too-far-off future."
                             :person "Salman Khan, Founder, Khan Academy"}))))
-        (get-started)))))
+        (get-started)
+        (dom/button #js {:onClick (fn []
+                                    (go
+                                      (let [drum (<! (audio/load-sound-file "/audio/2a.ogg"))]
+                                        (js/console.log "DRUM" drum))))}
+          "Play sound")))))
 
 (defmethod r/route->component ::r/about [_] AboutPage)
 

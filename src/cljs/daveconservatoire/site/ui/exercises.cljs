@@ -93,6 +93,13 @@
   (let [nodes (prepare-notes notes)]
     (audio/play-sequence nodes {::audio/time (audio/current-time)})))
 
+(defn play-chord [notes]
+  (let [time (audio/current-time)]
+    (audio/global-stop-all)
+    (doseq [note notes]
+      (audio/play (-> (note->node note)
+                      (assoc ::audio/time time))))))
+
 (defn play-sound [props]
   ((-> props ::play-notes) (-> props ::notes)))
 
@@ -115,25 +122,27 @@
   (js/console.log "enter check answer mutation" (get-in @state ref))
   {:action
    (fn []
-     (let [{::keys [ex-answer correct-answer streak-count class last-error] :as props} (get-in @state ref)]
-       (js/console.log "check it" ex-answer correct-answer)
+     (let [{::keys [ex-answer correct-answer streak-count class last-error ex-total-questions] :as props} (get-in @state ref)]
        (if (and ex-answer (seq ex-answer))
          (if (= ex-answer correct-answer)
            (let [next-streak (inc streak-count)
-                 new-props   (if last-error
-                               (assoc props ::streak-count next-streak
-                                            ::last-error false
-                                            ::confirm-answer true)
-                               (new-round class
-                                 (merge props
-                                        {::streak-count   next-streak
-                                         ::hints-used     0
-                                         ::ex-answer      nil
-                                         ::confirm-answer true})))]
+                 new-props (if last-error
+                             (assoc props ::streak-count next-streak
+                                          ::last-error false
+                                          ::confirm-answer true)
+                             (new-round class
+                               (merge props
+                                      {::streak-count   next-streak
+                                       ::hints-used     0
+                                       ::ex-answer      nil
+                                       ::confirm-answer true})))]
              (swap! state assoc-in ref new-props)
              (play-sound new-props))
-           (swap! state update-in ref assoc ::streak-count 0 ::last-error false ::ex-answer nil ::confirm-answer false
-             (play-sound props)))
+           (if (< streak-count ex-total-questions)
+             (swap! state update-in ref assoc ::streak-count 0 ::last-error false ::ex-answer nil ::confirm-answer false
+                    (play-sound props))
+             (swap! state update-in ref assoc ::last-error false ::ex-answer nil ::confirm-answer false
+                    (play-sound props))))
          (swap! state update-in ref assoc ::confirm-answer false))))
 
    :remote
@@ -522,8 +531,9 @@
         (dom/p #js {:key "p"} (str "For how many beats does a " quiz-question " last?"))))))
 
 (def type->arrengement
-  {"major" audio/MAJOR-TRIAD
-   "minor" audio/MINOR-TRIAD})
+  {"major"            audio/MAJOR-TRIAD
+   "minor"            audio/MINOR-TRIAD
+   "dominant-seventh" audio/DOMINANT-SEVENTH})
 
 (om/defui ^:once ChordType
   static uc/InitialAppState
@@ -532,7 +542,7 @@
       (merge
         (uc/initial-state Exercise nil)
         {::name       "rhythm-math"
-         ::options    [["major" "Major"] ["minor" "Minor"]]
+         ::options    [["major" "Major"] ["minor" "Minor"] ["dominant-seventh" "Dominant Seventh"]]
          ::play-notes (fn [notes]
                         (let [time (audio/current-time)]
                           (audio/global-stop-all)
@@ -549,7 +559,7 @@
 
   static IExercise
   (new-round [_ props]
-    (let [type      (rand-nth ["major" "minor"])
+    (let [type      (rand-nth ["major" "minor" "dominant-seventh"])
           base-note (descriptor->value ["C3" ".." "F3"])]
       (assoc props
         ::notes (audio/chord base-note (type->arrengement type))
@@ -692,12 +702,12 @@
       (dom/p #js {:key "p"} "You will hear two notes - what is their interval?"))))
 
 (def SCALE-NAMES
-  {"major"          [2 2 1 2 2 2 1]
-   "natural-minor"  [2 1 2 2 1 2 2]
-   "harmonic-minor" [2 1 2 2 1 3 1]
-   "chromatic"      [1 1 1 1 1 1 1 1 1 1 1 1 1]
-   "whole-tone"     [2 2 2 2 2 2]
-   "melodic-minor"  [[2 1 2 2 1 2 2] [1 2 2 2 2 1 2]]})
+  {"Major"          [2 2 1 2 2 2 1]
+   "Natural Minor"  [2 1 2 2 1 2 2]
+   "Harmonic Minor" [2 1 2 2 1 3 1]
+   "Chromatic"      [1 1 1 1 1 1 1 1 1 1 1 1 1]
+   "Whole Tone"     [2 2 2 2 2 2]
+   "Melodic Minor"  [[2 1 2 2 1 2 2] [1 2 2 2 2 1 2]]})
 
 (s/def ::scale-offset (s/with-gen pos-int? #(s/gen #{1 2})))
 (s/def ::scale (s/coll-of ::scale-offset :kind vector? :max-count 12))
@@ -717,8 +727,9 @@
       (let [scales (get props ::scales)]
         (merge
           (uc/initial-state Exercise nil)
-          {::name      "scales"
-           ::options   (mapv #(vector (str %) (str %)) scales)}
+          {::name           "scales"
+           ::audio/duration 2
+           ::options        (mapv #(vector (str %) (str %)) scales)}
           props))))
 
   static om/Ident
@@ -729,9 +740,11 @@
 
   static IExercise
   (new-round [_ props]
-    (let [tonic (descriptor->value ["B2" ".." "F5"])
-          scale (rand-nth (::scales props))
-          notes (build-scale tonic (get SCALE-NAMES scale))]
+    (let [tonic    (descriptor->value ["B2" ".." "F5"])
+          duration (::audio/duration props)
+          scale    (rand-nth (::scales props))
+          notes    (as-> (build-scale tonic (get SCALE-NAMES scale)) <>
+                     (mapv vector <> (repeat duration)))]
       (assoc props
         ::notes notes
         ::correct-answer scale)))
@@ -740,8 +753,6 @@
   (render [this]
     (exercise (om/props this)
       (dom/p #js {:key "p"} "What kind of scale do you hear?"))))
-
-
 
 (defmulti slug->exercise identity)
 
@@ -791,7 +802,27 @@
 (defmethod slug->exercise "identifying-scales" [name]
   {::name  name
    ::class Scales
-   ::props {::scales ["major" "harmonic-minor"]}})
+   ::props {::scales ["Major" "Natural Minor"]}})
+
+(defmethod slug->exercise "identifying-scales-2" [name]
+  {::name  name
+   ::class Scales
+   ::props {::scales ["Major" "Natural Minor" "Harmonic Minor"]}})
+
+(defmethod slug->exercise "identifying-scales-3" [name]
+  {::name  name
+   ::class Scales
+   ::props {::scales ["Major" "Natural Minor" "Harmonic Minor" "Melodic Minor"]}})
+
+(defmethod slug->exercise "identifying-scales-4" [name]
+  {::name  name
+   ::class Scales
+   ::props {::scales ["Major" "Natural Minor" "Harmonic Minor" "Melodic Minor" "Whole Tone"]}})
+
+(defmethod slug->exercise "identifying-scales-5" [name]
+  {::name  name
+   ::class Scales
+   ::props {::scales ["Major" "Natural Minor" "Harmonic Minor" "Melodic Minor" "Whole Tone" "Chromatic"]}})
 
 (defmethod slug->exercise "bass-clef-reading" [name]
   {::name  name

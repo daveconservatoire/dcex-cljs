@@ -9,8 +9,8 @@
   :test-paths ["test/server"]
   :source-paths ["src/cljs" "src/site" "src/server"]
 
-  :dependencies [[org.clojure/clojure "1.9.0-beta3" :scope "provided"]
-                 [org.clojure/clojurescript "1.9.946" :scope "provided"]
+  :dependencies [[org.clojure/clojure "1.9.0"]
+                 [org.clojure/clojurescript "1.9.946"]
                  [org.clojure/core.async "0.3.442"]
                  [org.omcljs/om "1.0.0-beta1"]
                  [fulcrologic/fulcro "1.2.0-SNAPSHOT"]
@@ -22,7 +22,7 @@
                  [com.cognitect/transit-cljs "0.8.239"]
                  [cljsjs/nprogress "0.2.0-1"]
 
-                 [figwheel-sidecar "0.5.10"]]
+                 [figwheel-sidecar "0.5.14"]]
 
   :plugins [[lein-cljsbuild "1.1.4"]
             [lein-doo "0.1.6"]]

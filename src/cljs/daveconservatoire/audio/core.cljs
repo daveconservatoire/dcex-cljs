@@ -20,7 +20,7 @@
 (s/def ::node #(instance? js/AudioNode %))
 (s/def ::node-gen (s/fspec :args (s/cat) :ret ::node))
 (s/def ::buffer #(instance? js/AudioBuffer %))
-(s/def ::time pos-int?)
+(s/def ::time number?)
 (s/def ::sound-point
   (s/and (s/keys :req [::time] :opt [::node ::node-gen])
          #(some #{::node ::node-gen} (keys %))))
@@ -65,8 +65,6 @@
   [buffer]
   {:pre [(s/valid? ::buffer buffer)]}
   (doto (.createBufferSource *audio-context*)
-    #_ (.addEventListener "statechange" #(js/console.log "buffer state changed" %))
-    #_ (.addEventListener "ended" #(js/console.log "buffer node ended" %))
     (gobj/set "buffer" buffer)))
 
 (s/fdef buffer-node
@@ -113,11 +111,8 @@
       (.open xhr "GET" url true)
       (gobj/set xhr "responseType" "arraybuffer")
       (gobj/set xhr "onload"
-        (fn []
-          (js/console.log "loaded file" (gobj/get xhr "response"))
-          #_ (async/pipe
-            (decode-audio-data (gobj/get xhr "response"))
-            c)))
+        #(let [response (gobj/get xhr "response")]
+           (go (put! c (<! (decode-audio-data response))))))
       (.send xhr))
     c))
 
@@ -132,7 +127,7 @@
 
 (defn play
   ([sound] (play sound global-sound-manager))
-  ([{:keys [::node ::node-gen ::time] :as sound} tracker]
+  ([{::keys [node node-gen time] :as sound} tracker]
    (let [node (or node (node-gen))]
      (swap! tracker update ::nodes assoc node (assoc sound ::node node))
      (doto node
@@ -151,8 +146,6 @@
               [[] time]
               nodes)
       (first)))
-
-
 
 (defn play-regular-sequence [nodes {:keys [::interval] :as options}]
   (play-sequence (map #(assoc % ::duration interval) nodes) options))
@@ -228,7 +221,6 @@
 (def MAJOR-TRIAD [0 4 7])
 (def MINOR-TRIAD [0 3 7])
 (def DOMINANT-SEVENTH [0 4 7 10])
-
 
 (def MAJOR-STEPS {0 0, 1 2, 2 4, 3 5, 4 7, 5 9, 6 11})
 (def MAJOR-ARRANGEMENTS {0 MAJOR-TRIAD 1 MINOR-TRIAD 2 MINOR-TRIAD 3 MAJOR-TRIAD 4 MAJOR-TRIAD 5 MINOR-TRIAD 6 [0, 3, 6]})

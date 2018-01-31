@@ -27,7 +27,7 @@
 (s/def ::description string?)
 (s/def ::option (s/cat :value string? :label string?))
 (s/def ::options (s/or :text #{::option-type-text}
-                       :select (s/coll-of ::option :kind vector?)))
+                   :select (s/coll-of ::option :kind vector?)))
 
 (s/def ::hints (s/coll-of ::template/fragment))
 (s/def ::hints-used nat-int?)
@@ -39,13 +39,13 @@
 
 (s/def ::value-descriptor
   (s/or :sound ::audio/sound
-        :range (s/and (s/tuple ::audio/sound #{".."} ::audio/sound)
-                      (fn [[[_ a] _ [_ b] :as t]]
-                        (if (< (audio/note->semitone a)
-                               (audio/note->semitone b))
-                          t
-                          false)))
-        :list (s/coll-of ::audio/sound)))
+    :range (s/and (s/tuple ::audio/sound #{".."} ::audio/sound)
+             (fn [[[_ a] _ [_ b] :as t]]
+               (if (< (audio/note->semitone a)
+                     (audio/note->semitone b))
+                 t
+                 false)))
+    :list (s/coll-of ::audio/sound)))
 
 (s/def ::pitch ::value-descriptor)
 (s/def ::variation ::value-descriptor)
@@ -58,7 +58,7 @@
 
 (s/def ::read-music-props
   (s/merge ::ex-props
-           (s/keys :req [::read-note-order ::read-note-prefix])))
+    (s/keys :req [::read-note-order ::read-note-prefix])))
 
 (om/defui ^:once ProgressBar
   Object
@@ -66,7 +66,7 @@
     (let [{::keys [progress-value progress-total] :as props} (om/props this)
           pct (-> (/ progress-value progress-total) (* 100))]
       (dom/div (u/props->html {:className "progress progress-striped active success" :style {:margin 20}}
-                              props)
+                 props)
         (dom/div #js {:className "bar" :style #js {:width (str pct "%")}})))))
 
 (def progress-bar (om/factory ProgressBar))
@@ -75,8 +75,8 @@
   (-> (into {} options) (get correct-answer)))
 
 (s/fdef progress-bar
-        :args (s/cat :props (s/keys :opt [::progress-total ::progress-value]))
-        :ret ::react-component)
+  :args (s/cat :props (s/keys :opt [::progress-total ::progress-value]))
+  :ret ::react-component)
 
 (defn note->node [note]
   {::audio/node-gen (->> note audio/semitone->note (get @audio/*sound-library*))})
@@ -140,9 +140,9 @@
              (play-sound new-props))
            (if (< streak-count ex-total-questions)
              (swap! state update-in ref assoc ::streak-count 0 ::last-error false ::ex-answer nil ::confirm-answer false
-                    (play-sound props))
+               (play-sound props))
              (swap! state update-in ref assoc ::last-error false ::ex-answer nil ::confirm-answer false
-                    (play-sound props))))
+               (play-sound props))))
          (swap! state update-in ref assoc ::confirm-answer false))))
 
    :remote
@@ -170,8 +170,8 @@
                  (int-in (audio/note->semitone a) (audio/note->semitone b)))))))
 
 (s/fdef descriptor->value
-        :args (s/cat :desc ::value-descriptor)
-        :ret ::audio/semitone)
+  :args (s/cat :desc ::value-descriptor)
+  :ret ::audio/semitone)
 
 (defn completed? [{:keys [::ex-total-questions ::streak-count]}]
   (>= streak-count ex-total-questions))
@@ -299,19 +299,19 @@
 (defn rand-direction [] (rand-nth [1 -1]))
 
 (s/fdef rand-direction
-        :args (s/cat)
-        :ret #{-1 1})
+  :args (s/cat)
+  :ret #{-1 1})
 
 (defn vary-pitch [{:keys [::pitch ::variation ::direction]}]
   (let [direction (or direction [-1 1])
         a         (descriptor->value pitch)
         b         (+ a (* (descriptor->value variation)
-                          (descriptor->value direction)))]
+                         (descriptor->value direction)))]
     [a b]))
 
 (s/fdef vary-pitch
-        :args (s/cat :data (s/keys :req [::pitch ::variation]))
-        :ret (s/tuple ::audio/semitone ::audio/semitone))
+  :args (s/cat :data (s/keys :req [::pitch ::variation]))
+  :ret (s/tuple ::audio/semitone ::audio/semitone))
 
 (om/defui ^:once PitchDetection
   static uc/InitialAppState
@@ -690,8 +690,8 @@
     (let [[a b :as notes] (vary-pitch props)
           distance (js/Math.abs (- b a))]
       (js/console.log "start interval" (assoc props
-                        ::notes notes
-                        ::correct-answer (str distance)))
+                                         ::notes notes
+                                         ::correct-answer (str distance)))
       (assoc props
         ::notes notes
         ::correct-answer (str distance))))
@@ -707,18 +707,35 @@
    "Harmonic Minor" [2 1 2 2 1 3 1]
    "Chromatic"      [1 1 1 1 1 1 1 1 1 1 1 1 1]
    "Whole Tone"     [2 2 2 2 2 2]
-   "Melodic Minor"  [[2 1 2 2 1 2 2] [1 2 2 2 2 1 2]]})
+   "Melodic Minor"  [[2 1 2 2 2 2 1] [2 2 1 2 2 1 2]]})
 
 (s/def ::scale-offset (s/with-gen pos-int? #(s/gen #{1 2})))
 (s/def ::scale (s/coll-of ::scale-offset :kind vector? :max-count 12))
 (s/def ::full-scale (s/or :regular ::scale :irregular (s/tuple ::scale ::scale)))
 
+(defn build-up-scale [tonic scale]
+  (let [[type scale] (s/conform ::full-scale scale)
+        scale (if (= :regular type) scale (first scale))]
+    (reduce
+      (fn [notes offset]
+        (conj notes (+ (last notes) offset)))
+      [tonic]
+      scale)))
+
+(defn build-down-scale [tonic scale]
+  (let [[type scale] (s/conform ::full-scale scale)
+        scale (if (= :regular type) scale (second scale))]
+    (cond-> (reduce
+              (fn [notes offset]
+                (conj notes (+ (last notes) offset)))
+              [tonic]
+              scale)
+      :regular (-> rseq vec))))
+
 (defn build-scale [tonic scale]
-  (reduce
-    (fn [notes offset]
-      (conj notes (+ (last notes) offset)))
-    [tonic]
-    scale))
+  (->> (concat (build-up-scale tonic scale)
+               (next (build-down-scale tonic scale)))
+       vec))
 
 (om/defui ^:once Scales
   static uc/InitialAppState
@@ -763,9 +780,9 @@
    ::class PitchDetection
    ::props {::variation [12 ".." 24]}
    ::hints (fn [props]
-     ["Pitch is the sensation of a note being higher or lower"
-      "Does the second note sound higher or lower than the first?"
-      (str "The second note is " (answer-label props))])})
+             ["Pitch is the sensation of a note being higher or lower"
+              "Does the second note sound higher or lower than the first?"
+              (str "The second note is " (answer-label props))])})
 
 (defmethod slug->exercise "pitch-2" [name]
   {::name  name

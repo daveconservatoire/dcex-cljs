@@ -3,7 +3,7 @@
   (:require [devcards.core :refer-macros [defcard deftest]]
             [cljs.core.async :as async :refer [promise-chan chan <! >! close! put! alts!]]
             [cljs.test :refer-macros [is are testing async]]
-            [cljs.spec.test :as st]
+            [cljs.spec.test.alpha :as st]
             [clojure.test.check]
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties]
@@ -181,3 +181,14 @@
                                       (reset! anodes (audio/play-sequence nodes {::audio/time (audio/current-time)}))))}
           "Play")
         (dom/button #js {:onClick #(run! audio/stop @anodes)} "Stop")))))
+
+(defcard test-play-sound-file
+  (fn [_ _]
+    (dom/div nil
+      (dom/button #js {:onClick (fn []
+                                  (go
+                                    (let [buffer (<! (audio/load-sound-file "/audio/2a.mp3"))]
+                                      (audio/play {::audio/node-gen #(audio/buffer-node buffer)
+                                                   ::audio/time     (audio/current-time)}))))}
+        "Play")
+      (dom/button #js {:onClick #(audio/global-stop-all)} "Stop"))))

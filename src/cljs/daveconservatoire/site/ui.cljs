@@ -586,12 +586,7 @@
                             :person "Martin Bean, Vice Chancellor, Open University"})
               (testimonial {:quote  "The stuff you're doing is super cool! I hope we get the chance to meet and/or collaborate in the not-too-far-off future."
                             :person "Salman Khan, Founder, Khan Academy"}))))
-        (get-started)
-        (dom/button #js {:onClick (fn []
-                                    (go
-                                      (let [drum (<! (audio/load-sound-file "/audio/2a.ogg"))]
-                                        (js/console.log "DRUM" drum))))}
-          "Play sound")))))
+        (get-started)))))
 
 (defmethod r/route->component ::r/about [_] AboutPage)
 

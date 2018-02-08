@@ -187,7 +187,7 @@
     (dom/div nil
       (dom/button #js {:onClick (fn []
                                   (go
-                                    (let [buffer (<! (audio/load-sound-file "/audio/2a.mp3"))]
+                                    (let [buffer (<! (audio/load-sound-file "/audio/2a"))]
                                       (audio/play {::audio/node-gen #(audio/buffer-node buffer)
                                                    ::audio/time     (audio/current-time)}))))}
         "Play")

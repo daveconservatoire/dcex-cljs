@@ -27,7 +27,7 @@
 (s/def ::sound-point-chan (ss/chan-of ::sound-point))
 (s/def ::items-list
   (s/+ (s/cat :node-gens (s/+ ::node-gen)
-              :interval ::time)))
+         :interval ::time)))
 (s/def ::interval ::time)
 (s/def ::duration nat-int?)
 
@@ -105,9 +105,28 @@
     (async/pipeline-async 10 out process in true)
     (async/into {} out)))
 
+(def sort-rank
+  {"probably" 1
+   "maybe"    2})
+
+(def extension-map
+  {"audio/mpeg" ".mp3"
+   "audio/ogg"  ".ogg"})
+
+(defonce audio-support
+  (memoize
+    (fn []
+      (let [audio (js/document.createElement "audio")]
+        (->> (keys extension-map)
+             (map #(vector % (.canPlayType audio %)))
+             (remove (comp #{""} second))
+             (sort-by (comp sort-rank second))
+             (mapv (comp extension-map first)))))))
+
 (defn load-sound-file [url]
   (let [c (promise-chan)]
-    (let [xhr (js/XMLHttpRequest.)]
+    (let [xhr (js/XMLHttpRequest.)
+          url (str url (first (audio-support)))]
       (.open xhr "GET" url true)
       (gobj/set xhr "responseType" "arraybuffer")
       (gobj/set xhr "onload"
@@ -159,7 +178,7 @@
 
 (s/fdef play
   :args (s/cat :sound ::sound-point
-               :tracker (s/? #(instance? Atom %))))
+          :tracker (s/? #(instance? Atom %))))
 
 (defn play-sequence [nodes {::keys [time]}]
   (-> (reduce (fn [[anodes t] {::keys [duration] :as node}]
@@ -191,8 +210,8 @@
 
 (s/fdef loop-chan
   :args (s/cat :items (s/spec ::items-list)
-               :start ::time
-               :chan ::sound-point-chan)
+          :start ::time
+          :chan ::sound-point-chan)
   :ret ::sound-point-chan)
 
 (defn stop [node] (.stop node))
@@ -229,7 +248,7 @@
 
 (s/fdef consume-loop
   :args (s/cat :interval ::time
-               :chan ::sound-point-chan)
+          :chan ::sound-point-chan)
   :ret (ss/chan-of #{:stop :stop-hard}))
 
 (defn play-loop [items start]
@@ -278,7 +297,7 @@
 
 (s/fdef note->semitone
   :args (s/cat :note (s/or :note ::note
-                           :semitone ::semitone))
+                       :semitone ::semitone))
   :ret ::semitone
   :fn #(= (semitone->note (:ret %))
          (semitone->note (-> % :args :note second))))
@@ -293,7 +312,7 @@
 
 (s/fdef semitone->note
   :args (s/cat :semitone (s/or :note ::note
-                               :semitone ::semitone))
+                           :semitone ::semitone))
   :ret ::note
   :fn #(= (note->semitone (:ret %))
          (note->semitone (-> % :args :semitone second))))

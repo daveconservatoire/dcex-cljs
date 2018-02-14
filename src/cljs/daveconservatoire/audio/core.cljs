@@ -23,7 +23,7 @@
 (s/def ::time number?)
 (s/def ::sound-point
   (s/and (s/keys :req [::time] :opt [::node ::node-gen])
-         #(some #{::node ::node-gen} (keys %))))
+    #(some #{::node ::node-gen} (keys %))))
 (s/def ::sound-point-chan (ss/chan-of ::sound-point))
 (s/def ::items-list
   (s/+ (s/cat :node-gens (s/+ ::node-gen)
@@ -94,12 +94,12 @@
   :args (s/+ ::node))
 
 (defn preload-sounds [sounds]
-  (let [out (chan)
-        in (async/to-chan sounds)
+  (let [out     (chan)
+        in      (async/to-chan sounds)
         process (fn [[name str] out']
                   (go
                     (let [data (<! (base64->audio-data str))
-                          gen #(buffer-node data)]
+                          gen  #(buffer-node data)]
                       (>! out' [name gen])
                       (close! out'))))]
     (async/pipeline-async 10 out process in true)
@@ -115,6 +115,28 @@
            (go (put! c (<! (decode-audio-data response))))))
       (.send xhr))
     c))
+
+(s/fdef load-sound-file
+  :args (s/cat :url string?)
+  :ret (ss/chan-of ::buffer))
+
+(defn load-sound-library [library]
+  (let [c (promise-chan)]
+    (go
+      (let [out     (chan)
+            in      (async/to-chan library)
+            process (fn [[k url] result]
+                      (go
+                        (let [buffer (<! (load-sound-file url))]
+                          (>! result [k buffer])
+                          (close! result))))]
+        (async/pipeline-async 4 out process in true)
+        (put! c (<! (async/into {} out)))))
+    c))
+
+(s/fdef load-sound-file
+  :args (s/cat :library (s/map-of keyword? string?))
+  :ret (ss/chan-of (s/map-of keyword? ::buffer)))
 
 (defonce ^:dynamic *sound-library*
   (let [a (atom {})]
@@ -139,12 +161,12 @@
   :args (s/cat :sound ::sound-point
                :tracker (s/? #(instance? Atom %))))
 
-(defn play-sequence [nodes {:keys [::time]}]
-  (-> (reduce (fn [[anodes t] {:keys [::duration] :as node}]
+(defn play-sequence [nodes {::keys [time]}]
+  (-> (reduce (fn [[anodes t] {::keys [duration] :as node}]
                 [(conj anodes (play (assoc node ::time t)))
                  (+ t duration)])
-              [[] time]
-              nodes)
+        [[] time]
+        nodes)
       (first)))
 
 (defn play-regular-sequence [nodes {:keys [::interval] :as options}]
@@ -157,11 +179,11 @@
   (go
     (loop [i 0
            t start]
-      (let [i (mod i (count items))
+      (let [i   (mod i (count items))
             val (get items i)]
         (if (number? val)
           (recur (inc i)
-                 (+ t val))
+            (+ t val))
           (do
             (>! chan {::node-gen val ::time t ::node-index i})
             (recur (inc i) t))))))
@@ -183,7 +205,7 @@
 
 (defn consume-loop [interval chan]
   (let [control (async/chan)
-        active (atom {::nodes {}})]
+        active  (atom {::nodes {}})]
     (go
       (loop []
         (when-let [{:keys [::time] :as sound} (<! chan)]
@@ -259,14 +281,14 @@
                            :semitone ::semitone))
   :ret ::semitone
   :fn #(= (semitone->note (:ret %))
-          (semitone->note (-> % :args :note second))))
+         (semitone->note (-> % :args :note second))))
 
 (defn semitone->note [semitone]
   (if-not (s/valid? ::semitone semitone)
     semitone
-    (let [s (- semitone 3)
+    (let [s      (- semitone 3)
           octive (-> (js/Math.floor (/ s 12)) (+ 1))
-          tone (-> (+ s 12) (mod 12))]
+          tone   (-> (+ s 12) (mod 12))]
       (str (SEMITONE->NOTE tone) octive))))
 
 (s/fdef semitone->note
@@ -274,7 +296,7 @@
                                :semitone ::semitone))
   :ret ::note
   :fn #(= (note->semitone (:ret %))
-          (note->semitone (-> % :args :semitone second))))
+         (note->semitone (-> % :args :semitone second))))
 
 (defn chord [base arrange]
   (let [base (note->semitone base)]

@@ -192,3 +192,19 @@
                                                    ::audio/time     (audio/current-time)}))))}
         "Play")
       (dom/button #js {:onClick #(audio/global-stop-all)} "Stop"))))
+
+(defcard test-play-sound-library
+  (fn [_ _]
+    (dom/div nil
+      (dom/button #js {:onClick (fn []
+                                  (go
+                                    (let [buffers (<! (audio/load-sound-library {:a0 "/audio/0a.mp3"
+                                                                                 :a1 "/audio/1a.mp3"
+                                                                                 :a2 "/audio/2a.mp3"}))
+                                          t       (audio/current-time)]
+                                      (audio/play {::audio/node-gen #(audio/buffer-node (:a0 buffers))
+                                                   ::audio/time     t})
+                                      (audio/play {::audio/node-gen #(audio/buffer-node (:a2 buffers))
+                                                   ::audio/time     (inc t)}))))}
+        "Play")
+      (dom/button #js {:onClick #(audio/global-stop-all)} "Stop"))))

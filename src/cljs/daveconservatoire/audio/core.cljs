@@ -153,9 +153,13 @@
         (put! c (<! (async/into {} out)))))
     c))
 
-(s/fdef load-sound-file
-  :args (s/cat :library (s/map-of keyword? string?))
-  :ret (ss/chan-of (s/map-of keyword? ::buffer)))
+(s/def ::sound-label (s/or :keyword keyword? :string string?))
+
+(s/def ::library-request (s/map-of ::sound-label string?))
+
+(s/fdef load-sound-library
+  :args (s/cat :library ::library-request)
+  :ret (ss/chan-of (s/map-of ::sound-label ::buffer)))
 
 (defonce ^:dynamic *sound-library*
   (let [a (atom {})]

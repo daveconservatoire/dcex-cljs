@@ -198,13 +198,13 @@
     (dom/div nil
       (dom/button #js {:onClick (fn []
                                   (go
-                                    (let [buffers (<! (audio/load-sound-library {:a0 "/audio/0a.mp3"
-                                                                                 :a1 "/audio/1a.mp3"
-                                                                                 :a2 "/audio/2a.mp3"}))
+                                    (let [buffers (<! (audio/load-sound-library {:a0 "/audio/0a"
+                                                                                 :a1 "/audio/1a"
+                                                                                 :a2 "/audio/2a"}))
                                           t       (audio/current-time)]
                                       (audio/play {::audio/node-gen #(audio/buffer-node (:a0 buffers))
                                                    ::audio/time     t})
-                                      (audio/play {::audio/node-gen #(audio/buffer-node (:a2 buffers))
-                                                   ::audio/time     (inc t)}))))}
+                                      (audio/play {::audio/node-gen #(audio/buffer-node (:a1 buffers))
+                                                   ::audio/time     (+ t 1)}))))}
         "Play")
       (dom/button #js {:onClick #(audio/global-stop-all)} "Stop"))))

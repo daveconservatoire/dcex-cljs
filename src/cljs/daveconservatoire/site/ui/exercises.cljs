@@ -1,10 +1,12 @@
 (ns daveconservatoire.site.ui.exercises
+  (:require-macros [cljs.core.async.macros :refer [go go-loop]])
   (:require [om.next :as om :include-macros true]
             [om.dom :as dom]
             [common.template :as template]
             [fulcro.client.core :as uc]
             [fulcro.client.mutations :as um]
             [cljs.spec.alpha :as s]
+            [cljs.core.async :refer [<!]]
             [daveconservatoire.audio.core :as audio]
             [daveconservatoire.site.ui.vexflow :as vf]
             [daveconservatoire.site.ui.util :as u]
@@ -88,12 +90,12 @@
                          (-> (note->node note)
                              (assoc ::audio/duration duration))))))))
 
-(defn play-notes [notes]
+(defn play-notes [{::keys [notes]}]
   (audio/global-stop-all)
   (let [nodes (prepare-notes notes)]
     (audio/play-sequence nodes {::audio/time (audio/current-time)})))
 
-(defn play-chord [notes]
+(defn play-chord [{::keys [notes]}]
   (let [time (audio/current-time)]
     (audio/global-stop-all)
     (doseq [note notes]
@@ -101,7 +103,7 @@
                       (assoc ::audio/time time))))))
 
 (defn play-sound [props]
-  ((-> props ::play-notes) (-> props ::notes)))
+  ((-> props ::play-notes) props))
 
 (om/defui UserScore
   static om/IQuery
@@ -183,14 +185,23 @@
                         ::streak-count       0
                         ::hints-used         0
                         ::play-notes         play-notes
-                        ::started?           false})
+                        ::started?           false
+                        ::custom-sounds-req  nil})
 
   static om/IQuery
   (query [_] ['*])
 
   Object
+  (componentDidMount [this]
+    (let [{::keys [custom-sounds-req]} (om/props this)]
+      (if custom-sounds-req
+        (go
+          (let [sounds (<! (audio/load-sound-library custom-sounds-req))]
+            (um/set-value! (om/parent this) ::custom-sounds sounds))))))
+
   (render [this]
-    (let [{::keys [options ex-answer ex-total-questions streak-count notes hints hints-used started?]
+    (let [{::keys [options ex-answer ex-total-questions streak-count notes hints
+                   hints-used started? custom-sounds-req custom-sounds]
            :as    props} (om/props this)
           [opt-type _] (s/conform ::options options)
           parent       (om/parent this)
@@ -203,12 +214,14 @@
         (if-not started?
           (dom/div #js {:style #js {"textAlign" "center"}}
             (dom/h1 nil "Make sure you have your volume up, many of our exercises play sound!")
-            (dom/a #js {:className "btn btn-primary"
-                        :onClick (fn [e]
-                                   (.preventDefault e)
-                                   (um/set-value! parent ::started? true)
-                                   (play-sound props))}
-              (dom/h1 nil "Start Exercise")))
+            (if (and custom-sounds-req (not custom-sounds))
+              (dom/div nil "Loading...")
+              (dom/a #js {:className "btn btn-primary"
+                          :onClick   (fn [e]
+                                       (.preventDefault e)
+                                       (um/set-value! parent ::started? true)
+                                       (play-sound props))}
+                (dom/h1 nil "Start Exercise"))))
           (dom/article #js {:className "exercises-content clearfix"}
             (dom/div #js {:className "exercises-body"}
               (dom/div #js {:className "exercises-stack"})
@@ -419,7 +432,8 @@
       (merge
         (uc/initial-state Exercise nil)
         {::name    "reading-music"
-         ::options ::option-type-text} props)))
+         ::options ::option-type-text}
+        props)))
 
   static om/Ident
   (ident [_ props] [:exercise/by-name (::name props)])
@@ -775,13 +789,17 @@
   static uc/InitialAppState
   (initial-state [this props]
     (new-round! this
-      (let [scales (get props ::scales)]
-        (merge
-          (uc/initial-state Exercise nil)
-          {::name           "scales"
-           ::audio/duration 2
-           ::options        (mapv #(vector (str %) (str %)) scales)}
-          props))))
+      (merge
+        (uc/initial-state Exercise nil)
+        {::name              "single-sound"
+         ::options           [["violin" "Violin"] ["flute" "Flute"]]
+         ::notes             ['_]
+         ::play-notes        (fn [{::keys [custom-sounds correct-answer]}]
+                               (audio/play {::audio/node-gen #(audio/buffer-node (get custom-sounds correct-answer))
+                                            ::audio/time     (audio/current-time)}))
+         ::custom-sounds-req {"flute"  "/audio/flute_As4_15_piano_normal"
+                              "violin" "/audio/violin_Gs3_15_fortissimo_arco-normal"}}
+        props)))
 
   static om/Ident
   (ident [_ props] [:exercise/by-name (::name props)])
@@ -791,14 +809,9 @@
 
   static IExercise
   (new-round [_ props]
-    (let [tonic    (descriptor->value ["B2" ".." "F5"])
-          duration (::audio/duration props)
-          scale    (rand-nth (::scales props))
-          notes    (as-> (build-scale tonic (get SCALE-NAMES scale)) <>
-                     (mapv vector <> (repeat duration)))]
+    (let [sound-id (rand-nth (-> props ::custom-sounds-req keys vec))]
       (assoc props
-        ::notes notes
-        ::correct-answer scale)))
+        ::correct-answer sound-id)))
 
   Object
   (render [this]
@@ -1066,3 +1079,8 @@
   {::name  name
    ::class Quiz
    ::props {::quiz-map uk-symbols}})
+
+(defmethod slug->exercise "test-ex" [name]
+  {::name  name
+   ::class SingleSoundListening
+   ::props {::scales ["Major" "Natural Minor"]}})

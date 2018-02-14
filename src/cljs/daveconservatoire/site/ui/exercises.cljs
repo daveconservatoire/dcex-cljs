@@ -771,6 +771,46 @@
     (exercise (om/props this)
       (dom/p #js {:key "p"} "What kind of scale do you hear?"))))
 
+(om/defui ^:once SingleSoundListening
+  static uc/InitialAppState
+  (initial-state [this props]
+    (new-round! this
+      (let [scales (get props ::scales)]
+        (merge
+          (uc/initial-state Exercise nil)
+          {::name           "scales"
+           ::audio/duration 2
+           ::options        (mapv #(vector (str %) (str %)) scales)}
+          props))))
+
+  static om/Ident
+  (ident [_ props] [:exercise/by-name (::name props)])
+
+  static om/IQuery
+  (query [_] '[*])
+
+  static IExercise
+  (new-round [_ props]
+    (let [tonic    (descriptor->value ["B2" ".." "F5"])
+          duration (::audio/duration props)
+          scale    (rand-nth (::scales props))
+          notes    (as-> (build-scale tonic (get SCALE-NAMES scale)) <>
+                     (mapv vector <> (repeat duration)))]
+      (assoc props
+        ::notes notes
+        ::correct-answer scale)))
+
+  Object
+  (render [this]
+    (exercise (om/props this)
+      (dom/p #js {:key "p"} "What kind of scale do you hear?"))))
+
+{"guitar1" {::url   ["instruments/sample-guitar"
+                     "instruments/sample-guitar2"]
+            ::label "Guitar"}
+ "piano"   {::url   ["instruments/piano"]
+            ::label "Piano"}}
+
 (defmulti slug->exercise identity)
 
 (defmethod slug->exercise :default [_] nil)

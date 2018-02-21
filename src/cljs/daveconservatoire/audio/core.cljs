@@ -166,7 +166,7 @@
                    library-out))))
      c)))
 
-(s/def ::sound-label (s/or :keyword keyword? :string string?))
+(s/def ::sound-label any?)
 
 (s/def ::library-request (s/map-of ::sound-label string?))
 

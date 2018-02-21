@@ -186,6 +186,11 @@
         (recur))))
   progress-chan)
 
+(defn flatten-request [sound-req]
+  (into {} (mapcat (fn [[id urls]]
+                     (map-indexed #(-> [[id %] %2]) urls)))
+        sound-req))
+
 (om/defui ^:once Exercise
   static uc/InitialAppState
   (initial-state [_ _] {::ex-answer              nil
@@ -207,7 +212,9 @@
       (if custom-sounds-req
         (go
           (let [progress-chan (handle-progress (om/parent this) (async/chan 10))
-                sounds (<! (audio/load-sound-library custom-sounds-req progress-chan))]
+                sounds (<! (audio/load-sound-library
+                             (flatten-request custom-sounds-req)
+                             progress-chan))]
             (um/set-value! (om/parent this) ::custom-sounds sounds))))))
 
   (render [this]
@@ -800,13 +807,17 @@
       (merge
         (uc/initial-state Exercise nil)
         {::name              "single-sound"
-         ::options           [["violin" "Violin"] ["flute" "Flute"]]
+         ::options           [["violin" "Violin"] ["flute" "Flute"] ["drum" "Drum"]]
          ::notes             ['_]
-         ::play-notes        (fn [{::keys [custom-sounds correct-answer]}]
-                               (audio/play {::audio/node-gen #(audio/buffer-node (get custom-sounds correct-answer))
+         ::play-notes        (fn [{::keys [custom-sounds correct-answer custom-sound-idx]}]
+                               (audio/global-stop-all)
+                               (audio/play {::audio/node-gen #(audio/buffer-node (get custom-sounds [correct-answer custom-sound-idx]))
                                             ::audio/time     (audio/current-time)}))
-         ::custom-sounds-req {"flute"  "/audio/flute_As4_15_piano_normal"
-                              "violin" "/audio/violin_Gs3_15_fortissimo_arco-normal"}}
+         ::custom-sounds-req {"flute"  ["/audio/flute_As4_15_piano_normal"]
+                              "violin" ["/audio/violin_Gs3_15_fortissimo_arco-normal"]
+                              "drum"   ["/audio/0a"
+                                        "/audio/1a"
+                                        "/audio/2a"]}}
         props)))
 
   static om/Ident
@@ -817,20 +828,16 @@
 
   static IExercise
   (new-round [_ props]
-    (let [sound-id (rand-nth (-> props ::custom-sounds-req keys vec))]
+    (let [instrument (-> props ::custom-sounds-req keys vec rand-nth)
+          sound-idx  (-> props ::custom-sounds-req (get instrument) count rand-int)]
       (assoc props
-        ::correct-answer sound-id)))
+        ::custom-sound-idx sound-idx
+        ::correct-answer instrument)))
 
   Object
   (render [this]
     (exercise (om/props this)
       (dom/p #js {:key "p"} "What kind of scale do you hear?"))))
-
-{"guitar1" {::url   ["instruments/sample-guitar"
-                     "instruments/sample-guitar2"]
-            ::label "Guitar"}
- "piano"   {::url   ["instruments/piano"]
-            ::label "Piano"}}
 
 (defmulti slug->exercise identity)
 

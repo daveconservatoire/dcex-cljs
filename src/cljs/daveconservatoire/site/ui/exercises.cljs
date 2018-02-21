@@ -182,7 +182,6 @@
   (go
     (loop []
       (when-let [progress (<! progress-chan)]
-        (js/console.log "got progress" progress)
         (um/set-value! comp ::custom-sounds-progress progress)
         (recur))))
   progress-chan)

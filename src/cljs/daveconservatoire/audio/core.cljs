@@ -123,7 +123,7 @@
              (sort-by (comp sort-rank second))
              (mapv (comp extension-map first)))))))
 
-(defn load-sound-file [url]
+(defn load-sound-file* [url]
   (let [c (promise-chan)]
     (let [xhr (js/XMLHttpRequest.)
           url (str url (first (audio-support)))]
@@ -134,6 +134,8 @@
            (go (put! c (<! (decode-audio-data response))))))
       (.send xhr))
     c))
+
+(def load-sound-file (memoize load-sound-file*))
 
 (s/fdef load-sound-file
   :args (s/cat :url string?)

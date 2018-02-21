@@ -11,7 +11,8 @@
             [daveconservatoire.site.ui.vexflow :as vf]
             [daveconservatoire.site.ui.util :as u]
             [clojure.test.check.generators]
-            [clojure.test.check.properties]))
+            [clojure.test.check.properties]
+            [cljs.core.async :as async]))
 
 (defprotocol IExercise
   (new-round [this props]))
@@ -65,7 +66,7 @@
 (om/defui ^:once ProgressBar
   Object
   (render [this]
-    (let [{::keys [progress-value progress-total] :as props} (om/props this)
+    (let [{:ui/keys [progress-value progress-total] :as props} (om/props this)
           pct (-> (/ progress-value progress-total) (* 100))]
       (dom/div (u/props->html {:className "progress progress-striped active success" :style {:margin 20}}
                  props)
@@ -121,7 +122,6 @@
 
 (defmethod um/mutate 'dcex/check-answer
   [{:keys [state ref]} _ _]
-  (js/console.log "enter check answer mutation" (get-in @state ref))
   {:action
    (fn []
      (let [{::keys [ex-answer correct-answer streak-count class last-error ex-total-questions] :as props} (get-in @state ref)]
@@ -178,15 +178,26 @@
 (defn completed? [{:keys [::ex-total-questions ::streak-count]}]
   (>= streak-count ex-total-questions))
 
+(defn handle-progress [comp progress-chan]
+  (go
+    (loop []
+      (when-let [progress (<! progress-chan)]
+        (js/console.log "got progress" progress)
+        (um/set-value! comp ::custom-sounds-progress progress)
+        (recur))))
+  progress-chan)
+
 (om/defui ^:once Exercise
   static uc/InitialAppState
-  (initial-state [_ _] {::ex-answer          nil
-                        ::ex-total-questions 10
-                        ::streak-count       0
-                        ::hints-used         0
-                        ::play-notes         play-notes
-                        ::started?           false
-                        ::custom-sounds-req  nil})
+  (initial-state [_ _] {::ex-answer              nil
+                        ::ex-total-questions     10
+                        ::streak-count           0
+                        ::hints-used             0
+                        ::play-notes             play-notes
+                        ::started?               false
+                        ::custom-sounds-progress {:ui/progress-value 0
+                                                  :ui/progress-total 1}
+                        ::custom-sounds-req      nil})
 
   static om/IQuery
   (query [_] ['*])
@@ -196,12 +207,13 @@
     (let [{::keys [custom-sounds-req]} (om/props this)]
       (if custom-sounds-req
         (go
-          (let [sounds (<! (audio/load-sound-library custom-sounds-req))]
+          (let [progress-chan (handle-progress (om/parent this) (async/chan 10))
+                sounds (<! (audio/load-sound-library custom-sounds-req progress-chan))]
             (um/set-value! (om/parent this) ::custom-sounds sounds))))))
 
   (render [this]
     (let [{::keys [options ex-answer ex-total-questions streak-count notes hints
-                   hints-used started? custom-sounds-req custom-sounds]
+                   hints-used started? custom-sounds-req custom-sounds custom-sounds-progress]
            :as    props} (om/props this)
           [opt-type _] (s/conform ::options options)
           parent       (om/parent this)
@@ -215,7 +227,9 @@
           (dom/div #js {:style #js {"textAlign" "center"}}
             (dom/h1 nil "Make sure you have your volume up, many of our exercises play sound!")
             (if (and custom-sounds-req (not custom-sounds))
-              (dom/div nil "Loading...")
+              (dom/div nil
+                (some-> custom-sounds-progress progress-bar)
+                (dom/div nil "Loading..."))
               (dom/a #js {:className "btn btn-primary"
                           :onClick   (fn [e]
                                        (.preventDefault e)
@@ -230,8 +244,8 @@
                   (dom/div #js {:className "current-card-container-inner vertical-shadow" :style #js {"width" "100%"}}
                     (dom/div #js {:className "current-card-contents"}
                       (if-not (completed? props)
-                        (progress-bar {::progress-value streak-count
-                                       ::progress-total ex-total-questions}))
+                        (progress-bar {:ui/progress-value streak-count
+                                       :ui/progress-total ex-total-questions}))
                       (if (completed? props)
                         (dom/div #js {:key "done" :className "alert alert-success masterymsg"}
                           (dom/strong nil "Well done! ")
@@ -272,12 +286,7 @@
                                           (dom/label nil
                                             (dom/button #js {:type      "button"
                                                              :className (if (= ex-answer value) "btn btn-block btn-success" "btn btn-block dc-btn-orange")
-                                                             :onClick   #(do
-
-                                                                           (um/set-string! parent ::ex-answer :value value)
-                                                                           (js/console.log (::exanswer :value value))
-                                                                           (js/console.log value)
-                                                                           )}
+                                                             :onClick   #(um/set-string! parent ::ex-answer :value value)}
                                               label)))))))
                                 (dom/div #js {:className "answer-buttons"}
                                   (dom/div #js {:className "check-answer-wrapper"}
@@ -907,6 +916,10 @@
 (defmethod slug->exercise "rhythm-maths" [name]
   {::name  name
    ::class RhythmMath
+   ::props {}}
+
+  {::name  name
+   ::class SingleSoundListening
    ::props {}})
 
 (defmethod slug->exercise "rhythm-reading" [name]

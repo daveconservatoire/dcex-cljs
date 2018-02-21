@@ -139,19 +139,30 @@
   :args (s/cat :url string?)
   :ret (ss/chan-of ::buffer))
 
-(defn load-sound-library [library]
-  (let [c (promise-chan)]
-    (go
-      (let [out     (chan)
-            in      (async/to-chan library)
-            process (fn [[k url] result]
-                      (go
-                        (let [buffer (<! (load-sound-file url))]
-                          (>! result [k buffer])
-                          (close! result))))]
-        (async/pipeline-async 4 out process in true)
-        (put! c (<! (async/into {} out)))))
-    c))
+(defn load-sound-library
+  ([library] (load-sound-library library nil))
+  ([library progress-chan]
+   (let [c (promise-chan)]
+     (go
+       (let [out      (chan)
+             in       (async/to-chan library)
+             progress (atom 0)
+             process  (fn [[k url] result]
+                        (go
+                          (let [buffer (<! (load-sound-file url))]
+                            (if progress-chan
+                              (>! progress-chan {:ui/progress-total (count library)
+                                                 :ui/progress-value (swap! progress inc)}))
+                            (>! result [k buffer])
+                            (close! result))))]
+         (if progress-chan
+           (>! progress-chan {:ui/progress-total (count library)
+                              :ui/progress-value 0}))
+         (async/pipeline-async 4 out process in true)
+         (put! c (let [library-out (<! (async/into {} out))]
+                   (if progress-chan (close! progress-chan))
+                   library-out))))
+     c)))
 
 (s/def ::sound-label (s/or :keyword keyword? :string string?))
 

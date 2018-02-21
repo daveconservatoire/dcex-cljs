@@ -11,7 +11,7 @@
 
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [org.clojure/clojurescript "1.9.946"]
-                 [org.clojure/core.async "0.3.465"]
+                 [org.clojure/core.async "0.4.474"]
                  [org.omcljs/om "1.0.0-beta1"]
                  [fulcrologic/fulcro "1.2.0-SNAPSHOT"]
                  [fulcrologic/fulcro-inspect "0.1.0-SNAPSHOT"]
@@ -63,7 +63,7 @@
                                :asset-path           "/site"
                                :output-to            "resources/public/site/site.js"
                                :output-dir           "resources/public/site"
-                               :preloads             [fulcro.inspect.preload daveconservatoire.support.dev]
+                               :preloads             [daveconservatoire.support.dev]
                                :parallel-build       true
                                :recompile-dependents true
                                :verbose              false}}

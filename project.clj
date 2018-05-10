@@ -63,7 +63,7 @@
                                :asset-path           "/site"
                                :output-to            "resources/public/site/site.js"
                                :output-dir           "resources/public/site"
-                               :preloads             [daveconservatoire.support.dev]
+                               :preloads             [daveconservatoire.support.dev fulcro.inspect.preload]
                                :parallel-build       true
                                :recompile-dependents true
                                :verbose              false}}

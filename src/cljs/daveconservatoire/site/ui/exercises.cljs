@@ -74,6 +74,9 @@
 
 (def progress-bar (om/factory ProgressBar))
 
+(defn completed? [{:keys [::ex-total-questions ::streak-count]}]
+  (>= streak-count ex-total-questions))
+
 (defn answer-label [{::keys [correct-answer options]}]
   (-> (into {} options) (get correct-answer)))
 
@@ -134,17 +137,15 @@
                                           ::confirm-answer true)
                              (new-round class
                                (merge props
-                                      {::streak-count   next-streak
-                                       ::hints-used     0
-                                       ::ex-answer      nil
-                                       ::confirm-answer true})))]
+                                 {::streak-count   next-streak
+                                  ::hints-used     0
+                                  ::ex-answer      nil
+                                  ::confirm-answer true})))]
              (swap! state assoc-in ref new-props)
-             (play-sound new-props))
-           (if (< streak-count ex-total-questions)
-             (swap! state update-in ref assoc ::streak-count 0 ::last-error false ::ex-answer nil ::confirm-answer false
-               (play-sound props))
-             (swap! state update-in ref assoc ::last-error false ::ex-answer nil ::confirm-answer false
-               (play-sound props))))
+             (if-not (completed? new-props)
+               (play-sound new-props)))
+           (swap! state update-in ref assoc ::streak-count 0 ::last-error false ::ex-answer nil ::confirm-answer false
+             (play-sound props)))
          (swap! state update-in ref assoc ::confirm-answer false))))
 
    :remote
@@ -153,11 +154,11 @@
        (cond
          (= streak-count ex-total-questions)
          (-> (om/query->ast `[(exercise/score-master {:url/slug ~name :user-activity/hints-used ~hints-used})])
-             :children first)
+           :children first)
 
          (> streak-count 0)
          (-> (om/query->ast `[(exercise/score {:url/slug ~name :user-activity/hints-used ~hints-used})])
-             :children first))))})
+           :children first))))})
 
 (defn int-in [min max] (+ min (rand-int (- max min))))
 
@@ -175,8 +176,7 @@
   :args (s/cat :desc ::value-descriptor)
   :ret ::audio/semitone)
 
-(defn completed? [{:keys [::ex-total-questions ::streak-count]}]
-  (>= streak-count ex-total-questions))
+
 
 (defn handle-progress [comp progress-chan]
   (go
@@ -194,7 +194,7 @@
 (om/defui ^:once Exercise
   static uc/InitialAppState
   (initial-state [_ _] {::ex-answer              nil
-                        ::ex-total-questions     10
+                        ::ex-total-questions     3
                         ::streak-count           0
                         ::hints-used             0
                         ::play-notes             play-notes
@@ -221,6 +221,8 @@
     (let [{::keys [options ex-answer ex-total-questions streak-count notes hints
                    hints-used started? custom-sounds-req custom-sounds custom-sounds-progress]
            :as    props} (om/props this)
+          state        (-> this om/get-reconciler om/app-state deref)
+          me           (get-in state (get state :app/me))
           [opt-type _] (s/conform ::options options)
           parent       (om/parent this)
           hints        (if hints (hints props) [])
@@ -228,8 +230,10 @@
                           (om/transact! parent `[(dcex/check-answer)
                                                  (fulcro/load {:query [{:app/me ~(om/get-query UserScore)}] :marker false})]))]
       (s/assert ::ex-props props)
+      (js/console.log "ENTER EX RENDER!!" me)
       (dom/div #js {:className "lesson-content"}
-        (if-not started?
+        (cond
+          (not started?)
           (dom/div #js {:style #js {"textAlign" "center"}}
             (dom/h1 nil "Make sure you have your volume up, many of our exercises play sound!")
             (if (and custom-sounds-req (not custom-sounds))
@@ -242,6 +246,19 @@
                                        (um/set-value! parent ::started? true)
                                        (play-sound props))}
                 (dom/h1 nil "Start Exercise"))))
+
+          (completed? props)
+          (cond
+            (= -1 (get me :db/id))
+            (dom/div nil "You can login to save this progress!")
+
+            (= "0" (get me :user/subscription-amount))
+            (dom/div nil "Please donate! ")
+
+            :else
+            (dom/div nil "Congratulations! You've completed this exercise. You Rock!"))
+
+          :else
           (dom/article #js {:className "exercises-content clearfix"}
             (dom/div #js {:className "exercises-body"}
               (dom/div #js {:className "exercises-stack"})
@@ -249,13 +266,8 @@
                 (dom/div #js {:className "current-card-container card-type-problem"}
                   (dom/div #js {:className "current-card-container-inner vertical-shadow" :style #js {"width" "100%"}}
                     (dom/div #js {:className "current-card-contents"}
-                      (if-not (completed? props)
-                        (progress-bar {:ui/progress-value streak-count
-                                       :ui/progress-total ex-total-questions}))
-                      (if (completed? props)
-                        (dom/div #js {:key "done" :className "alert alert-success masterymsg"}
-                          (dom/strong nil "Well done! ")
-                          "You've mastered this skill - time to move on to something new"))
+                      (progress-bar {:ui/progress-value streak-count
+                                     :ui/progress-total ex-total-questions})
                       (dom/div #js {:id "problem-and-answer" :className "framework-khan-exercises"}
                         (dom/div #js {:id "problemarea" :style #js {"marginTop" "0"}}
                           (dom/div #js {:id "workarea" :style #js {"backgroundColor" "white" "margin" "5px" "padding" "10px" "border" "1px solid #ddd"}}
@@ -807,17 +819,13 @@
       (merge
         (uc/initial-state Exercise nil)
         {::name              "single-sound"
-         ::options           [["violin" "Violin"] ["flute" "Flute"] ["drum" "Drum"]]
+         ::options           []
          ::notes             ['_]
          ::play-notes        (fn [{::keys [custom-sounds correct-answer custom-sound-idx]}]
                                (audio/global-stop-all)
                                (audio/play {::audio/node-gen #(audio/buffer-node (get custom-sounds [correct-answer custom-sound-idx]))
                                             ::audio/time     (audio/current-time)}))
-         ::custom-sounds-req {"flute"  ["/audio/flute_As4_15_piano_normal"]
-                              "violin" ["/audio/violin_Gs3_15_fortissimo_arco-normal"]
-                              "drum"   ["/audio/0a"
-                                        "/audio/1a"
-                                        "/audio/2a"]}}
+         ::custom-sounds-req {}}
         props)))
 
   static om/Ident
@@ -836,8 +844,9 @@
 
   Object
   (render [this]
-    (exercise (om/props this)
-      (dom/p #js {:key "p"} "What kind of scale do you hear?"))))
+    (let [{:keys [::question] :as props} (om/props this)]
+      (exercise props
+        (dom/p #js {:key "p"} question)))))
 
 (defmulti slug->exercise identity)
 
@@ -1102,4 +1111,24 @@
 (defmethod slug->exercise "test-ex" [name]
   {::name  name
    ::class SingleSoundListening
-   ::props {::scales ["Major" "Natural Minor"]}})
+   ::props {::options           [["violin" "Violin"] ["flute" "Flute"] ["drum" "Drum"]]
+            ::custom-sounds-req {"flute"  ["/audio/flute_As4_15_piano_normal"]
+                                 "violin" ["/audio/violin_Gs3_15_fortissimo_arco-normal"]
+                                 "drum"   ["/audio/0a"
+                                           "/audio/1a"
+                                           "/audio/2a"]}}})
+
+(defmethod slug->exercise "recognising-chords-1" [name]
+  {::name  name
+   ::class SingleSoundListening
+   ::props {::options           [["major" "Major"] ["minor" "Minor"]]
+            ::custom-sounds-req {"major"  ["/audio/chord_recog/1"
+                                           "/audio/chord_recog/2"
+                                           "/audio/chord_recog/3"
+                                           "/audio/chord_recog/4"]
+                                 "minor" ["/audio/chord_recog/5"
+                                          "/audio/chord_recog/6"
+                                          "/audio/chord_recog/7"
+                                          "/audio/chord_recog/8"]}
+            ::question "What kind of chord is this?  Is it major or minor?"}})
+

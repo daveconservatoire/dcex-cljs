@@ -587,13 +587,47 @@
               (testimonial {:quote  "The stuff you're doing is super cool! I hope we get the chance to meet and/or collaborate in the not-too-far-off future."
                             :person "Salman Khan, Founder, Khan Academy"}))))
         (get-started)
-        (dom/button #js {:onClick (fn []
-                                    (go
-                                      (let [drum (<! (audio/load-sound-file "/audio/2a.ogg"))]
-                                        (js/console.log "DRUM" drum))))}
-          "Play sound")))))
+        ))))
 
 (defmethod r/route->component ::r/about [_] AboutPage)
+
+(om/defui ^:once PrivacyPage
+  Object
+  (render [this]
+    (let [{:keys []} (om/props this)]
+      (dom/div #js {}
+        (course-banner {:title "About" :intro "Dave Conservatoire is a free music school for everyone . . . even you! In fact, <em>especially</em> you!"})
+        (dom/div #js {:className "container wrapper"}
+          (dom/div #js {:className "inner_content"}
+            (dom/div #js {:className "row"}
+              (dom/div #js {:className "span4"}
+                (dom/h2 nil "The story so far")
+                (dom/p nil "Hello, my name's Dave, and I'm a musician from London, UK. I started Dave Conservatoire in 2011 to help people to learn music, no matter what their circumstances.")
+                (dom/p nil "Inspired by non-profit educational sites like Khan Academy who teach millions of people for free, I wanted to see if I could do the same for people who wanted to learn, not just how to play music, but more importantly how music works.")
+                (dom/p nil "Music, to me, is the most wonderful and interesting thing in the world, it brings us together and teaches us about ourselves and the world around us. Music helps to heal and helps people to grow in confidence and express their ideas. Everyone should have the opportunity to learn about music and explore this wonderful world. Whether you are lucky enough to have a music teacher or are learning by yourself, I'm here to help you on your journey!"))
+              (dom/div #js {:className "span4"}
+                (dom/h2 nil "Where we're at")
+                (dom/p nil "So far I've made over 300 video music lessons and exercises. But I feel like I'm only just scratching the surface of what's possible.")
+                (dom/p nil "Every day I get emails for students excited by the fact the site is help them to learn about music. Teachers are using the site's tools as homework or assignments and while others are using them to learn by themselves.")
+                (dom/p nil "So far I've been able to deliver over 1,500,000 lessons and exercises to over 250,000 students in over 100 countries."))
+              (dom/div #js {:className "span4"}
+                (dom/h2 nil "Where we're heading")
+                (dom/p nil "The plan is to keep making lessons and developing this website so that students have a greater choice over what they're learning, have more opportunities to interact and test their skills and get feedback on how their ability is progressing. I'm really excited about the challenges that lie ahead.")
+                (dom/p nil "I know that I'm not going to be able achieve everything I'd like to on my own. I've already been very lucky to have been offered advice and support from some very smart and talented people (I've written a list of these people here).")
+                (dom/p nil "If you are excited by the possibility of helping thousands (if not millions) of people to know the joy of music in their lives, there are lots of ways you can lend a hand and get involved!")))))
+        (dom/div #js {:className "container wrapper"}
+          (dom/div #js {:className "inner_content"}
+            (dom/div #js {:className "row"}
+              (testimonial {:quote  "Watching your videos made music seem a lot less like sorcery, they do make it much more magical though."
+                            :person "Kristian Theisson, Dave Conservatoire student"})
+              (testimonial {:quote  "Wishing you all the best with Dave Conservatoire. I'll be sure to share it with my colleagues."
+                            :person "Martin Bean, Vice Chancellor, Open University"})
+              (testimonial {:quote  "The stuff you're doing is super cool! I hope we get the chance to meet and/or collaborate in the not-too-far-off future."
+                            :person "Salman Khan, Founder, Khan Academy"}))))
+        (get-started)
+        ))))
+
+(defmethod r/route->component ::r/privacy [_] PrivacyPage)
 
 (om/defui ^:once TuitionPage
   Object

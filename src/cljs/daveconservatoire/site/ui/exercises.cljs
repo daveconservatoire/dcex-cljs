@@ -5,6 +5,7 @@
             [fulcro.client.core :as uc]
             [fulcro.client.mutations :as um]
             [cljs.spec.alpha :as s]
+            [cljs.core.async :refer [go <!]]
             [daveconservatoire.audio.core :as audio]
             [daveconservatoire.site.ui.vexflow :as vf]
             [daveconservatoire.site.ui.util :as u]
@@ -119,7 +120,7 @@
 
 (defmethod um/mutate 'dcex/check-answer
   [{:keys [state ref]} _ _]
-  (js/console.log "enter check answer mutation" (get-in @state ref))
+
   {:action
    (fn []
      (let [{::keys [ex-answer correct-answer streak-count class last-error ex-total-questions] :as props} (get-in @state ref)]
@@ -206,8 +207,11 @@
             (dom/a #js {:className "btn btn-primary"
                         :onClick (fn [e]
                                    (.preventDefault e)
-                                   (um/set-value! parent ::started? true)
-                                   (play-sound props))}
+                                   (let [audio-ready (audio/upsert-sound-context)]
+                                     (go
+                                       (<! audio-ready)
+                                       (um/set-value! parent ::started? true)
+                                       (play-sound props))))}
               (dom/h1 nil "Start Exercise")))
           (dom/article #js {:className "exercises-content clearfix"}
             (dom/div #js {:className "exercises-body"}
@@ -259,12 +263,7 @@
                                           (dom/label nil
                                             (dom/button #js {:type      "button"
                                                              :className (if (= ex-answer value) "btn btn-block btn-success" "btn btn-block dc-btn-orange")
-                                                             :onClick   #(do
-
-                                                                           (um/set-string! parent ::ex-answer :value value)
-                                                                           (js/console.log (::exanswer :value value))
-                                                                           (js/console.log value)
-                                                                           )}
+                                                             :onClick   #(um/set-string! parent ::ex-answer :value value)}
                                               label)))))))
                                 (dom/div #js {:className "answer-buttons"}
                                   (dom/div #js {:className "check-answer-wrapper"}

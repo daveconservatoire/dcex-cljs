@@ -200,12 +200,12 @@
         (dom/div #js {:className "navbar-inner"}
           (dom/div #js {:className "container"}
             (dom/div #js {:className "row"}
-              (dom/div #js {:className "span6"}
-                (dom/div #js {:className "copyright" :style #js {:paddingTop 10}}
+              (dom/div #js {:className "span9"}
+                (dom/div #js {:className "copyright" :style #js {:paddingTop 10, :paddingBottom 10 :text-align "left" :font-size 12}}
                   "© Dave Conservatoire " (str (.getFullYear (js/Date.))) ". The videos and exercises on this site are available under a "
                   (dom/a #js {:href "http://creativecommons.org/licenses/by-nc-sa/3.0/", :target "_blank"}
-                    "CC BY-NC-SA Licence") "."))
-              (dom/div #js {:className "span6"}
+                    "CC BY-NC-SA Licence") ". Read our updated " (dom/a #js {:href "http://daveconservatoire.org/privacy"} "privacy policy")))
+              (dom/div #js {:className "span3"}
                 (dom/span #js {:id "socialmediaicons"}
                   (dom/a #js {:href "http://www.youtube.com/daveconservatoire", :target "_blank"}
                     (dom/img #js {:className "socialicon", :src "/img/socialicons/youtube.png"}))
@@ -538,7 +538,9 @@
           (dom/h3 nil
             "Won't this give you access to all my private data?")
           (dom/p nil
-            "Definitely not!  The only information we will ever store about you is your name and email address - and how awesome you're becoming at music!")
+            "Definitely not!  The only information we will ever store about you is your name and email address - and how awesome you're becoming at music! You can read more about how we use your data, by visiting our "
+            (dom/a #js {:href "http://daveconservatoire.org/privacy", :target "_blank"}
+              "privacy policy") ".")
           (dom/p nil \u00a0)
           (dom/h3 nil
             "What if I don't have an account with one of these sites?")
@@ -596,34 +598,49 @@
   (render [this]
     (let [{:keys []} (om/props this)]
       (dom/div #js {}
-        (course-banner {:title "About" :intro "Dave Conservatoire is a free music school for everyone . . . even you! In fact, <em>especially</em> you!"})
+        (course-banner {:title "Privacy Policy" :intro "Learn more about how we use your data"})
         (dom/div #js {:className "container wrapper"}
           (dom/div #js {:className "inner_content"}
             (dom/div #js {:className "row"}
-              (dom/div #js {:className "span4"}
-                (dom/h2 nil "The story so far")
-                (dom/p nil "Hello, my name's Dave, and I'm a musician from London, UK. I started Dave Conservatoire in 2011 to help people to learn music, no matter what their circumstances.")
-                (dom/p nil "Inspired by non-profit educational sites like Khan Academy who teach millions of people for free, I wanted to see if I could do the same for people who wanted to learn, not just how to play music, but more importantly how music works.")
-                (dom/p nil "Music, to me, is the most wonderful and interesting thing in the world, it brings us together and teaches us about ourselves and the world around us. Music helps to heal and helps people to grow in confidence and express their ideas. Everyone should have the opportunity to learn about music and explore this wonderful world. Whether you are lucky enough to have a music teacher or are learning by yourself, I'm here to help you on your journey!"))
-              (dom/div #js {:className "span4"}
-                (dom/h2 nil "Where we're at")
-                (dom/p nil "So far I've made over 300 video music lessons and exercises. But I feel like I'm only just scratching the surface of what's possible.")
-                (dom/p nil "Every day I get emails for students excited by the fact the site is help them to learn about music. Teachers are using the site's tools as homework or assignments and while others are using them to learn by themselves.")
-                (dom/p nil "So far I've been able to deliver over 1,500,000 lessons and exercises to over 250,000 students in over 100 countries."))
-              (dom/div #js {:className "span4"}
-                (dom/h2 nil "Where we're heading")
-                (dom/p nil "The plan is to keep making lessons and developing this website so that students have a greater choice over what they're learning, have more opportunities to interact and test their skills and get feedback on how their ability is progressing. I'm really excited about the challenges that lie ahead.")
-                (dom/p nil "I know that I'm not going to be able achieve everything I'd like to on my own. I've already been very lucky to have been offered advice and support from some very smart and talented people (I've written a list of these people here).")
-                (dom/p nil "If you are excited by the possibility of helping thousands (if not millions) of people to know the joy of music in their lives, there are lots of ways you can lend a hand and get involved!")))))
-        (dom/div #js {:className "container wrapper"}
-          (dom/div #js {:className "inner_content"}
-            (dom/div #js {:className "row"}
-              (testimonial {:quote  "Watching your videos made music seem a lot less like sorcery, they do make it much more magical though."
-                            :person "Kristian Theisson, Dave Conservatoire student"})
-              (testimonial {:quote  "Wishing you all the best with Dave Conservatoire. I'll be sure to share it with my colleagues."
-                            :person "Martin Bean, Vice Chancellor, Open University"})
-              (testimonial {:quote  "The stuff you're doing is super cool! I hope we get the chance to meet and/or collaborate in the not-too-far-off future."
-                            :person "Salman Khan, Founder, Khan Academy"}))))
+              (dom/div #js {:className "span8"}
+
+                (dom/h2 nil "Our approach to handling your data")
+                (dom/p nil "Dave Conservatoire is committed to protecting your privacy. On this page we set out why we collect information, what we do with information and what your rights are. Personal information or data is any information that can be used to identify you as an individual.")
+                (dom/h2 nil "Personal information")
+                (dom/p nil "The General Data Protection Regulations (GDPR) defines personal data as information relating to a person which can identify that person. The regulations require us to ensure that data shall be:")
+                (dom/ol nil
+                  (dom/li nil "Processed lawfully, fairly and in a transparent manner in relation to individuals")
+                  (dom/li nil "Collected for specified, explicit and legitimate purposes and not further processed in a manner that is incompatible with those purposes; further processing for archiving purposes in the public interest, scientific or historical research purposes or statistical purposes shall not be considered to be incompatible with the initial purposes")
+                  (dom/li nil "Adequate, relevant and limited to what is necessary in relation to the purposes for which they are processed")
+                  (dom/li nil "Accurate and, where necessary, kept up to date; every reasonable step must be taken to ensure that personal data that are inaccurate, having regard to the purposes for which they are processed, are erased or rectified without delay")
+                  (dom/li nil "Kept in a form which permits identification of data subjects for no longer than is necessary for the purposes for which the personal data are processed; personal data may be stored for longer periods insofar as the personal data will be processed solely for archiving purposes in the public interest, scientific or historical research purposes or statistical purposes subject to implementation of the appropriate technical and organisational measures required by the GDPR in order to safeguard the rights and freedoms of individuals")
+                  (dom/li nil "Processed in a manner that ensures appropriate security of the personal data, including protection against unauthorised or unlawful processing and against accidental loss, destruction or damage, using appropriate technical or organisational measures."))
+                (dom/h2 nil "Why do we need your data?")
+                (dom/p nil "The only time you share identifying data with us is when you sign in.  This creates an account with your name and email address.  We then store the lessons you watch and exercises you complete when you are logged in to this account.")
+                (dom/p nil "We need to know your personal data in order to provide you with the services we offer. We will not collect any personal data from you that we do not need. It is possible to use the site without creating an account or sharing any identifying data with us.")
+                (dom/h2 nil "What do we do with your data?")
+                (dom/p nil "Your data is stored in a secure database.  Only core members of the Dave Conservatoire team can access it. We will never share your data with any third party.")
+                (dom/h2 nil "Subject access request")
+                (dom/p nil "If you wish to make a formal access request to see the data Dave Conservatoire holds about you, please contact us via our "
+                  (link {::r/handler ::r/contact} "contact form") ".")
+                (dom/h2 nil "Data portability")
+                (dom/p nil "If you would like a portable version of the identifying data we hold about you, please contact us via our "
+                  (link {::r/handler ::r/contact} "contact form") ".")
+                (dom/h2 nil "Right to Erasure")
+                (dom/p nil "The right to be forgotten was established to enable a data subject to request the deletion or removal of personal data where there is no reason for it to be retained.\n\nIf you would like the identifying data we hold about you to be erased, please contact us via our "
+                  (link {::r/handler ::r/contact} "contact form") ".")
+
+                (dom/h2 nil "Your rights and how to make a complaint")
+                (dom/p nil "If you believe that the information we hold on you is incorrect, you may request to see it and have it amended or deleted. If you wish to make a complaint about how your data has been handled you may do so by contacting us via our "
+                  (link {::r/handler ::r/contact} "contact form") ".")
+
+                (dom/h2 nil "Cookies")
+                (dom/p nil "Most websites, including Dave Conservatoire will put small text files onto your computer or similar device, which are known as cookies. A cookie is a small piece of information placed in your web browser or hard drive that can be used to identify website visitors and to analyse website traffic. This allows us to understand how people use our website and to improve visitors’ experiences.")
+
+                )
+
+              )))
+
         (get-started)
         ))))
 

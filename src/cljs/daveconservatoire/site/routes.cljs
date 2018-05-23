@@ -24,6 +24,7 @@
         "contact"          ::contact
         "subscribe"        ::subscribe
         "socialmedia"      ::socialmedia
+        "privacy"          ::privacy
         "thanks"           ::thanks
         "profile"          ::profile
         "profile/activity" ::profile-activity

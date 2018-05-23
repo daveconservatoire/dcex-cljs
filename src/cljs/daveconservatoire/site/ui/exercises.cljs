@@ -6,7 +6,7 @@
             [fulcro.client.core :as uc]
             [fulcro.client.mutations :as um]
             [cljs.spec.alpha :as s]
-            [cljs.core.async :refer [<!]]
+            [cljs.core.async :refer [go <!]]
             [daveconservatoire.audio.core :as audio]
             [daveconservatoire.site.ui.vexflow :as vf]
             [daveconservatoire.site.ui.util :as u]
@@ -125,6 +125,7 @@
 
 (defmethod um/mutate 'dcex/check-answer
   [{:keys [state ref]} _ _]
+
   {:action
    (fn []
      (let [{::keys [ex-answer correct-answer streak-count class last-error ex-total-questions] :as props} (get-in @state ref)]
@@ -243,8 +244,11 @@
               (dom/a #js {:className "btn btn-primary"
                           :onClick   (fn [e]
                                        (.preventDefault e)
+                                       (let [audio-ready (audio/upsert-sound-context)]
+                                     (go
+                                       (<! audio-ready)
                                        (um/set-value! parent ::started? true)
-                                       (play-sound props))}
+                                       (play-sound props))))}
                 (dom/h1 nil "Start Exercise"))))
 
           (completed? props)

@@ -12,9 +12,9 @@
 (defonce AudioContext (or (gobj/get js/window "AudioContext")
                           (gobj/get js/window "webkitAudioContext")))
 
-(defonce ^:dynamic *audio-context* (AudioContext.))
+(defonce ^:dynamic *audio-context* (atom nil))
 
-(defn output [] (.-destination *audio-context*))
+(defn output [] (.-destination @*audio-context*))
 
 (s/def ::context #(instance? AudioContext %))
 (s/def ::node #(instance? js/AudioNode %))
@@ -34,7 +34,7 @@
 (defn decode-audio-data [buffer]
   {:pre [(s/valid? ::ss/array-buffer buffer)]}
   (let [c (promise-chan)]
-    (.decodeAudioData *audio-context* buffer #(put! c %))
+    (.decodeAudioData @*audio-context* buffer #(put! c %))
     c))
 
 (s/fdef decode-audio-data
@@ -45,7 +45,7 @@
 
 (defn current-time []
   "Return the current time from the Audio Context."
-  (.-currentTime *audio-context*))
+  (.-currentTime @*audio-context*))
 
 (s/fdef current-time
   :ret ::time)
@@ -64,7 +64,7 @@
   "Creates a buffer node from an AudioBuffer."
   [buffer]
   {:pre [(s/valid? ::buffer buffer)]}
-  (doto (.createBufferSource *audio-context*)
+  (doto (.createBufferSource @*audio-context*)
     (gobj/set "buffer" buffer)))
 
 (s/fdef buffer-node
@@ -73,7 +73,7 @@
 
 (defn gain-node [value]
   "Creates a gain with given value."
-  (let [node (.createGain *audio-context*)]
+  (let [node (.createGain @*audio-context*)]
     (-> (gobj/get node "gain") (gobj/set "value" value))
     node))
 
@@ -174,11 +174,15 @@
   :args (s/cat :library ::library-request)
   :ret (ss/chan-of (s/map-of ::sound-label ::buffer)))
 
-(defonce ^:dynamic *sound-library*
-  (let [a (atom {})]
-    (go
-      (reset! a (<! (preload-sounds (merge piano metro)))))
-    a))
+(defonce ^:dynamic *sound-library* (atom nil))
+
+(defn upsert-sound-context []
+  (if @*audio-context*
+    (go nil)
+    (do
+      (reset! *audio-context* (AudioContext.))
+      (go
+        (reset! *sound-library* (<! (preload-sounds (merge piano metro))))))))
 
 (defonce global-sound-manager
   (atom {::nodes {}}))

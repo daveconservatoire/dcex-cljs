@@ -192,6 +192,16 @@
                      (map-indexed #(-> [[id %] %2]) urls)))
         sound-req))
 
+(defn start-exercise-custom-sounds [this]
+  (go
+    (let [{::keys [custom-sounds-req]} (om/props this)
+          progress-chan (handle-progress (om/parent this) (async/chan 10))
+          sounds        (<! (audio/load-sound-library
+                              (flatten-request custom-sounds-req)
+                              progress-chan))]
+      (um/set-value! (om/parent this) ::custom-sounds sounds))
+    nil))
+
 (om/defui ^:once Exercise
   static uc/InitialAppState
   (initial-state [_ _] {::ex-answer              nil
@@ -200,6 +210,7 @@
                         ::hints-used             0
                         ::play-notes             play-notes
                         ::started?               false
+                        ::context-missing        false
                         ::custom-sounds-progress {:ui/progress-value 0
                                                   :ui/progress-total 1}
                         ::custom-sounds-req      nil})
@@ -211,15 +222,12 @@
   (componentDidMount [this]
     (let [{::keys [custom-sounds-req]} (om/props this)]
       (if custom-sounds-req
-        (go
-          (let [progress-chan (handle-progress (om/parent this) (async/chan 10))
-                sounds (<! (audio/load-sound-library
-                             (flatten-request custom-sounds-req)
-                             progress-chan))]
-            (um/set-value! (om/parent this) ::custom-sounds sounds))))))
+        (if @audio/*audio-context*
+          (start-exercise-custom-sounds this)
+          (um/set-value! (om/parent this) ::context-missing true)))))
 
   (render [this]
-    (let [{::keys [options ex-answer ex-total-questions streak-count notes hints
+    (let [{::keys [options ex-answer ex-total-questions streak-count notes hints context-missing
                    hints-used started? custom-sounds-req custom-sounds custom-sounds-progress]
            :as    props} (om/props this)
           state        (-> this om/get-reconciler om/app-state deref)
@@ -238,9 +246,22 @@
           (dom/div #js {:style #js {"textAlign" "center"}}
             (dom/h1 nil "Make sure you have your volume up, many of our exercises play sound!")
             (if (and custom-sounds-req (not custom-sounds))
-              (dom/div nil
-                (some-> custom-sounds-progress progress-bar)
-                (dom/div nil "Loading..."))
+              (if context-missing
+                (dom/div nil
+                  (dom/a #js {:className "btn btn-primary"
+                              :onClick   (fn [e]
+                                           (.preventDefault e)
+                                           (let [audio-ready (audio/upsert-sound-context)]
+                                             (go
+                                               (<! audio-ready)
+                                               (um/set-value! parent ::context-missing false)
+                                               (<! (start-exercise-custom-sounds this))
+                                               (um/set-value! parent ::started? true)
+                                               (js/setTimeout #(play-sound (om/props this)) 200))))}
+                    (dom/h1 nil "Start Exercise")))
+                (dom/div nil
+                  (some-> custom-sounds-progress progress-bar)
+                  (dom/div nil "Loading...")))
               (dom/a #js {:className "btn btn-primary"
                           :onClick   (fn [e]
                                        (.preventDefault e)

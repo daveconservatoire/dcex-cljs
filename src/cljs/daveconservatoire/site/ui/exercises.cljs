@@ -275,13 +275,40 @@
           (completed? props)
           (cond
             (= -1 (get me :db/id))
-            (dom/div nil "You can login to save this progress!")
+            (dom/div #js {:className "tile introboxes"}
+              (dom/div #js {:className "intro-icon-disc cont-large"}
+                (dom/i #js {:className "icon-star intro-icon-large dc-text-orange"}))
+              (dom/h6 #js {}
+                (dom/small #js {}
+                  "CONGRATULATIONS!"))
+              (dom/p #js {}
+                "You have mastered this exercise for today.  You can track your progress on the site by creating and account.")
+              (dom/a #js {:href "/login", :className "btn btn-primary  btn-custom btn-rounded btn-block dc-btn-orange"}
+                "Sign in to track your progress"))
 
             (= "0" (get me :user/subscription-amount))
-            (dom/div nil "Please donate! ")
+            (dom/div #js {:className "tile introboxes"}
+              (dom/div #js {:className "intro-icon-disc cont-large"}
+                (dom/i #js {:className "icon-money  intro-icon-large dc-text-red"}))
+              (dom/h6 #js {}
+                (dom/small #js {}
+                  "Nice work! You just learned something new - maybe pass that on?"))
+              (dom/p #js {}
+                "Please help Dave Conservatoire to grow by becoming a subscriber! ")
+              (dom/a #js {:href "/subscribe", :className "btn btn-primary  btn-custom btn-rounded btn-block dc-btn-red"}
+                "How you can help"))
 
             :else
-            (dom/div nil "Congratulations! You've completed this exercise. You Rock!"))
+            (dom/div #js {:className "tile introboxes"}
+              (dom/div #js {:className "intro-icon-disc cont-large"}
+                (dom/i #js {:className "icon-star intro-icon-large dc-text-orange"}))
+              (dom/h6 #js {}
+                (dom/small #js {}
+                  "CONGRATULATIONS!"))
+              (dom/p #js {}
+                "You have mastered this exercise for today.  You can view this progress in your account.")
+              (dom/a #js {:href "/profile", :className "btn btn-primary  btn-custom btn-rounded btn-block dc-btn-orange"}
+                "My profile")))
 
           :else
           (dom/article #js {:className "exercises-content clearfix"}

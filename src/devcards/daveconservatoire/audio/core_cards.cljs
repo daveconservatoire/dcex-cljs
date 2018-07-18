@@ -3,7 +3,7 @@
   (:require [devcards.core :refer-macros [defcard deftest]]
             [cljs.core.async :as async :refer [promise-chan chan <! >! close! put! alts!]]
             [cljs.test :refer-macros [is are testing async]]
-            [cljs.spec.test :as st]
+            [cljs.spec.test.alpha :as st]
             [clojure.test.check]
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties]
@@ -181,3 +181,30 @@
                                       (reset! anodes (audio/play-sequence nodes {::audio/time (audio/current-time)}))))}
           "Play")
         (dom/button #js {:onClick #(run! audio/stop @anodes)} "Stop")))))
+
+(defcard test-play-sound-file
+  (fn [_ _]
+    (dom/div nil
+      (dom/button #js {:onClick (fn []
+                                  (go
+                                    (let [buffer (<! (audio/load-sound-file "/audio/2a"))]
+                                      (audio/play {::audio/node-gen #(audio/buffer-node buffer)
+                                                   ::audio/time     (audio/current-time)}))))}
+        "Play")
+      (dom/button #js {:onClick #(audio/global-stop-all)} "Stop"))))
+
+(defcard test-play-sound-library
+  (fn [_ _]
+    (dom/div nil
+      (dom/button #js {:onClick (fn []
+                                  (go
+                                    (let [buffers (<! (audio/load-sound-library {:a0 "/audio/0a"
+                                                                                 :a1 "/audio/1a"
+                                                                                 :a2 "/audio/2a"}))
+                                          t       (audio/current-time)]
+                                      (audio/play {::audio/node-gen #(audio/buffer-node (:a0 buffers))
+                                                   ::audio/time     t})
+                                      (audio/play {::audio/node-gen #(audio/buffer-node (:a1 buffers))
+                                                   ::audio/time     (+ t 1)}))))}
+        "Play")
+      (dom/button #js {:onClick #(audio/global-stop-all)} "Stop"))))

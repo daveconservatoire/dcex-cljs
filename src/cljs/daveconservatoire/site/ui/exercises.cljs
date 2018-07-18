@@ -1,15 +1,18 @@
 (ns daveconservatoire.site.ui.exercises
+  (:require-macros [cljs.core.async.macros :refer [go go-loop]])
   (:require [om.next :as om :include-macros true]
             [om.dom :as dom]
             [common.template :as template]
             [fulcro.client.core :as uc]
             [fulcro.client.mutations :as um]
             [cljs.spec.alpha :as s]
+            [cljs.core.async :refer [go <!]]
             [daveconservatoire.audio.core :as audio]
             [daveconservatoire.site.ui.vexflow :as vf]
             [daveconservatoire.site.ui.util :as u]
             [clojure.test.check.generators]
-            [clojure.test.check.properties]))
+            [clojure.test.check.properties]
+            [cljs.core.async :as async]))
 
 (defprotocol IExercise
   (new-round [this props]))
@@ -40,11 +43,11 @@
 (s/def ::value-descriptor
   (s/or :sound ::audio/sound
         :range (s/and (s/tuple ::audio/sound #{".."} ::audio/sound)
-                      (fn [[[_ a] _ [_ b] :as t]]
-                        (if (< (audio/note->semitone a)
-                               (audio/note->semitone b))
-                          t
-                          false)))
+                 (fn [[[_ a] _ [_ b] :as t]]
+                   (if (< (audio/note->semitone a)
+                         (audio/note->semitone b))
+                     t
+                     false)))
         :list (s/coll-of ::audio/sound)))
 
 (s/def ::pitch ::value-descriptor)
@@ -58,25 +61,31 @@
 
 (s/def ::read-music-props
   (s/merge ::ex-props
-           (s/keys :req [::read-note-order ::read-note-prefix])))
+    (s/keys :req [::read-note-order ::read-note-prefix])))
 
 (om/defui ^:once ProgressBar
   Object
   (render [this]
-    (let [{::keys [progress-value progress-total] :as props} (om/props this)
+    (let [{:ui/keys [progress-value progress-total] :as props} (om/props this)
           pct (-> (/ progress-value progress-total) (* 100))]
-      (dom/div (u/props->html {:className "progress progress-striped active success" :style {:margin 20}}
-                              props)
+      (dom/div (u/props->html {:className "progress progress-striped active success" :style {:margin 20 :flex 1}}
+                 props)
         (dom/div #js {:className "bar" :style #js {:width (str pct "%")}})))))
 
 (def progress-bar (om/factory ProgressBar))
+
+(defn completed? [{::keys [ex-total-questions streak-count]}]
+  (>= streak-count ex-total-questions))
+
+(defn game-over? [{::keys [lives-left]}]
+  (zero? lives-left))
 
 (defn answer-label [{::keys [correct-answer options]}]
   (-> (into {} options) (get correct-answer)))
 
 (s/fdef progress-bar
-        :args (s/cat :props (s/keys :opt [::progress-total ::progress-value]))
-        :ret ::react-component)
+  :args (s/cat :props (s/keys :opt [::progress-total ::progress-value]))
+  :ret ::react-component)
 
 (defn note->node [note]
   {::audio/node-gen (->> note audio/semitone->note (get @audio/*sound-library*))})
@@ -88,12 +97,12 @@
                          (-> (note->node note)
                              (assoc ::audio/duration duration))))))))
 
-(defn play-notes [notes]
+(defn play-notes [{::keys [notes]}]
   (audio/global-stop-all)
   (let [nodes (prepare-notes notes)]
     (audio/play-sequence nodes {::audio/time (audio/current-time)})))
 
-(defn play-chord [notes]
+(defn play-chord [{::keys [notes]}]
   (let [time (audio/current-time)]
     (audio/global-stop-all)
     (doseq [note notes]
@@ -101,7 +110,7 @@
                       (assoc ::audio/time time))))))
 
 (defn play-sound [props]
-  ((-> props ::play-notes) (-> props ::notes)))
+  ((-> props ::play-notes) props))
 
 (om/defui UserScore
   static om/IQuery
@@ -119,35 +128,35 @@
 
 (defmethod um/mutate 'dcex/check-answer
   [{:keys [state ref]} _ _]
-  (js/console.log "enter check answer mutation" (get-in @state ref))
+
   {:action
    (fn []
-     (let [{::keys [ex-answer correct-answer streak-count class last-error ex-total-questions] :as props} (get-in @state ref)]
+     (let [{::keys [ex-answer correct-answer streak-count class last-error ex-total-questions lives-left] :as props} (get-in @state ref)]
        (if (and ex-answer (seq ex-answer))
          (if (= ex-answer correct-answer)
            (let [next-streak (inc streak-count)
-                 new-props (if last-error
-                             (assoc props ::streak-count next-streak
-                                          ::last-error false
-                                          ::confirm-answer true)
-                             (new-round class
-                               (merge props
-                                      {::streak-count   next-streak
-                                       ::hints-used     0
-                                       ::ex-answer      nil
-                                       ::confirm-answer true})))]
+                 new-props   (if last-error
+                               (assoc props ::streak-count next-streak
+                                            ::last-error false
+                                            ::confirm-answer true)
+                               (new-round class
+                                 (merge props
+                                        {::streak-count   next-streak
+                                         ::hints-used     0
+                                         ::ex-answer      nil
+                                         ::confirm-answer true})))]
              (swap! state assoc-in ref new-props)
-             (play-sound new-props))
-           (if (< streak-count ex-total-questions)
-             (swap! state update-in ref assoc ::streak-count 0 ::last-error false ::ex-answer nil ::confirm-answer false
-                    (play-sound props))
-             (swap! state update-in ref assoc ::last-error false ::ex-answer nil ::confirm-answer false
-                    (play-sound props))))
+             (if-not (completed? new-props)
+               (play-sound new-props)))
+           (do
+             (swap! state update-in ref assoc ::lives-left (dec lives-left) ::ex-answer nil ::confirm-answer false)
+             (if (> lives-left 1) (play-sound props))))
          (swap! state update-in ref assoc ::confirm-answer false))))
 
    :remote
    (let [{::keys [name streak-count ex-total-questions hints-used confirm-answer]} (get-in @state ref)]
-     (if confirm-answer
+     (when confirm-answer
+       (js/console.log "CONFIRM ANSWER" streak-count ex-total-questions)
        (cond
          (= streak-count ex-total-questions)
          (-> (om/query->ast `[(exercise/score-master {:url/slug ~name :user-activity/hints-used ~hints-used})])
@@ -156,6 +165,25 @@
          (> streak-count 0)
          (-> (om/query->ast `[(exercise/score {:url/slug ~name :user-activity/hints-used ~hints-used})])
              :children first))))})
+
+(def total-lives 3)
+
+(defmethod um/mutate 'dcex/restart-exercise
+  [{:keys [state ref]} _ _]
+
+  {:action
+   (fn []
+     (let [{::keys [class] :as props} (get-in @state ref)]
+       (let [new-props (new-round class
+                         (merge props
+                                {::streak-count   0
+                                 ::hints-used     0
+                                 ::lives-left     total-lives
+                                 ::last-error     false
+                                 ::ex-answer      nil
+                                 ::confirm-answer true}))]
+         (swap! state assoc-in ref new-props)
+         (play-sound new-props))))})
 
 (defn int-in [min max] (+ min (rand-int (- max min))))
 
@@ -170,28 +198,64 @@
                  (int-in (audio/note->semitone a) (audio/note->semitone b)))))))
 
 (s/fdef descriptor->value
-        :args (s/cat :desc ::value-descriptor)
-        :ret ::audio/semitone)
+  :args (s/cat :desc ::value-descriptor)
+  :ret ::audio/semitone)
 
-(defn completed? [{:keys [::ex-total-questions ::streak-count]}]
-  (>= streak-count ex-total-questions))
+(defn handle-progress [comp progress-chan]
+  (go
+    (loop []
+      (when-let [progress (<! progress-chan)]
+        (um/set-value! comp ::custom-sounds-progress progress)
+        (recur))))
+  progress-chan)
+
+(defn flatten-request [sound-req]
+  (into {} (mapcat (fn [[id urls]]
+                     (map-indexed #(-> [[id %] %2]) urls)))
+        sound-req))
+
+(defn start-exercise-custom-sounds [this]
+  (go
+    (let [{::keys [custom-sounds-req]} (om/props this)
+          progress-chan (handle-progress (om/parent this) (async/chan 10))
+          sounds        (<! (audio/load-sound-library
+                              (flatten-request custom-sounds-req)
+                              progress-chan))]
+      (um/set-value! (om/parent this) ::custom-sounds sounds))
+    nil))
 
 (om/defui ^:once Exercise
   static uc/InitialAppState
-  (initial-state [_ _] {::ex-answer          nil
-                        ::ex-total-questions 10
-                        ::streak-count       0
-                        ::hints-used         0
-                        ::play-notes         play-notes
-                        ::started?           false})
+  (initial-state [_ _] {::ex-answer              nil
+                        ::ex-total-questions     20
+                        ::lives-left             total-lives
+                        ::streak-count           0
+                        ::hints-used             0
+                        ::play-notes             play-notes
+                        ::started?               false
+                        ::context-missing        false
+                        ::custom-sounds-progress {:ui/progress-value 0
+                                                  :ui/progress-total 1}
+                        ::custom-sounds-req      nil})
 
   static om/IQuery
   (query [_] ['*])
 
   Object
+  (componentDidMount [this]
+    (let [{::keys [custom-sounds-req]} (om/props this)]
+      (if custom-sounds-req
+        (if @audio/*audio-context*
+          (start-exercise-custom-sounds this)
+          (um/set-value! (om/parent this) ::context-missing true)))))
+
   (render [this]
-    (let [{::keys [options ex-answer ex-total-questions streak-count notes hints hints-used started?]
+    (let [{::keys [options ex-answer ex-total-questions streak-count notes hints context-missing
+                   hints-used started? custom-sounds-req custom-sounds custom-sounds-progress
+                   lives-left]
            :as    props} (om/props this)
+          state        (-> this om/get-reconciler om/app-state deref)
+          me           (get-in state (get state :app/me))
           [opt-type _] (s/conform ::options options)
           parent       (om/parent this)
           hints        (if hints (hints props) [])
@@ -200,32 +264,106 @@
                                                  (fulcro/load {:query [{:app/me ~(om/get-query UserScore)}] :marker false})]))]
       (s/assert ::ex-props props)
       (dom/div #js {:className "lesson-content"}
-        (if-not started?
+        (cond
+          (not started?)
           (dom/div #js {:style #js {"textAlign" "center"}}
             (dom/h1 nil "Make sure you have your volume up, many of our exercises play sound!")
-            (dom/a #js {:className "btn btn-primary"
-                        :onClick (fn [e]
+            (if (and custom-sounds-req (not custom-sounds))
+              (if context-missing
+                (dom/div nil
+                  (dom/a #js {:className "btn btn-primary"
+                              :onClick   (fn [e]
+                                           (.preventDefault e)
+                                           (let [audio-ready (audio/upsert-sound-context)]
+                                             (go
+                                               (<! audio-ready)
+                                               (um/set-value! parent ::context-missing false)
+                                               (<! (start-exercise-custom-sounds this))
+                                               (um/set-value! parent ::started? true)
+                                               (js/setTimeout #(play-sound (om/props this)) 200))))}
+                    (dom/h1 nil "Start Exercise")))
+                (dom/div nil
+                  (some-> custom-sounds-progress progress-bar)
+                  (dom/div nil "Loading...")))
+              (dom/a #js {:className "btn btn-primary"
+                          :onClick   (fn [e]
+                                       (.preventDefault e)
+                                       (let [audio-ready (audio/upsert-sound-context)]
+                                         (go
+                                           (<! audio-ready)
+                                           (um/set-value! parent ::started? true)
+                                           (play-sound props))))}
+                (dom/h1 nil "Start Exercise"))))
+
+          (game-over? props)
+          (dom/div #js {:className "tile introboxes"}
+            (dom/div #js {:className "intro-icon-disc cont-large"}
+              (dom/i #js {:className "icon-star intro-icon-large dc-text-orange"}))
+            (dom/h6 #js {}
+              (dom/small #js {}
+                "Oh no - you have no lives left!"))
+            (dom/p #js {}
+              "Keep trying - practice makes perfect. . . ")
+            (dom/a #js {:onClick (fn [e]
                                    (.preventDefault e)
-                                   (um/set-value! parent ::started? true)
-                                   (play-sound props))}
-              (dom/h1 nil "Start Exercise")))
+                                   (om/transact! parent `[(dcex/restart-exercise)])), :className "btn btn-primary  btn-custom btn-rounded btn-block dc-btn-orange"}
+              "Start again"))
+
+          (completed? props)
+          (cond
+            (= -1 (get me :db/id))
+            (dom/div #js {:className "tile introboxes"}
+              (dom/div #js {:className "intro-icon-disc cont-large"}
+                (dom/i #js {:className "icon-star intro-icon-large dc-text-orange"}))
+              (dom/h6 #js {}
+                (dom/small #js {}
+                  "CONGRATULATIONS!"))
+              (dom/p #js {}
+                "You have mastered this exercise for today.  You can track your progress on the site by creating an account.")
+              (dom/a #js {:href "/login", :className "btn btn-primary  btn-custom btn-rounded btn-block dc-btn-orange"}
+                "Sign in to track your progress"))
+
+            (= "0" (get me :user/subscription-amount))
+            (dom/div #js {:className "tile introboxes"}
+              (dom/div #js {:className "intro-icon-disc cont-large"}
+                (dom/i #js {:className "icon-money  intro-icon-large dc-text-red"}))
+              (dom/h6 #js {}
+                (dom/small #js {}
+                  "Nice work! You just learned something new - maybe pass that on?"))
+              (dom/p #js {}
+                "Please help Dave Conservatoire to grow by becoming a subscriber! ")
+              (dom/a #js {:href "/subscribe", :className "btn btn-primary  btn-custom btn-rounded btn-block dc-btn-red"}
+                "How you can help"))
+
+            :else
+            (dom/div #js {:className "tile introboxes"}
+              (dom/div #js {:className "intro-icon-disc cont-large"}
+                (dom/i #js {:className "icon-star intro-icon-large dc-text-orange"}))
+              (dom/h6 #js {}
+                (dom/small #js {}
+                  "CONGRATULATIONS!"))
+              (dom/p #js {}
+                "You have mastered this exercise for today.  You can view this progress in your account.")
+              (dom/a #js {:href "/profile", :className "btn btn-primary  btn-custom btn-rounded btn-block dc-btn-orange"}
+                "My profile")))
+
+          :else
           (dom/article #js {:className "exercises-content clearfix"}
             (dom/div #js {:className "exercises-body"}
               (dom/div #js {:className "exercises-stack"})
               (dom/div #js {:className "exercises-card current-card"}
                 (dom/div #js {:className "current-card-container card-type-problem"}
-                  (dom/div #js {:className "current-card-container-inner vertical-shadow" :style #js {"width" "100%"}}
+                  (dom/div #js {:className "current-card-container-inner vertical-shadow" :style #js {:width "100%"}}
                     (dom/div #js {:className "current-card-contents"}
-                      (if-not (completed? props)
-                        (progress-bar {::progress-value streak-count
-                                       ::progress-total ex-total-questions}))
-                      (if (completed? props)
-                        (dom/div #js {:key "done" :className "alert alert-success masterymsg"}
-                          (dom/strong nil "Well done! ")
-                          "You've mastered this skill - time to move on to something new"))
+                      (dom/div #js {:id "scoring-container" :style #js {:display "flex" :alignItems "center"}}
+                        (progress-bar {:ui/progress-value streak-count
+                                       :ui/progress-total ex-total-questions})
+                        (dom/div #js {:style #js {:fontSize "25px" :color "red" :width "135px" }}
+                          (for [i (range lives-left)]
+                            (dom/i #js {:className "icon-heart" :key i :style #js {:padding "0 10px"}}))))
                       (dom/div #js {:id "problem-and-answer" :className "framework-khan-exercises"}
-                        (dom/div #js {:id "problemarea" :style #js {"marginTop" "0"}}
-                          (dom/div #js {:id "workarea" :style #js {"backgroundColor" "white" "margin" "5px" "padding" "10px" "border" "1px solid #ddd"}}
+                        (dom/div #js {:id "problemarea" :style #js {:marginTop "0"}}
+                          (dom/div #js {:id "workarea" :style #js {:backgroundColor "white" :margin "5px" :padding "10px" :border "1px solid #ddd"}}
                             (dom/div #js {:id "problem-type-or-description"}
                               (dom/div #js {:className "problem"}
                                 (om/children this)
@@ -235,7 +373,7 @@
                                     "Play Again")))))
                           (dom/div #js {:id "hintsarea" :style #js{"margin" "0"}}
                             (for [[hint i] (map vector (take hints-used hints) (range))]
-                              (dom/p #js {:key i :style #js {"margin" "5px" "padding" "5px" "background" "#eee" "border" "1px #ddd solid"}} hint))))
+                              (dom/p #js {:key i :style #js {:margin "5px" :padding "5px" :background "#eee" :border "1px #ddd solid"}} hint))))
                         (dom/div #js {:id "answer_area_wrap"}
                           (dom/div #js {:id "answer_area"}
                             (dom/form #js {:id "answerform" :name "answerform" :onSubmit #(do
@@ -259,12 +397,7 @@
                                           (dom/label nil
                                             (dom/button #js {:type      "button"
                                                              :className (if (= ex-answer value) "btn btn-block btn-success" "btn btn-block dc-btn-orange")
-                                                             :onClick   #(do
-
-                                                                           (um/set-string! parent ::ex-answer :value value)
-                                                                           (js/console.log (::exanswer :value value))
-                                                                           (js/console.log value)
-                                                                           )}
+                                                             :onClick   #(um/set-string! parent ::ex-answer :value value)}
                                               label)))))))
                                 (dom/div #js {:className "answer-buttons"}
                                   (dom/div #js {:className "check-answer-wrapper"}
@@ -299,19 +432,19 @@
 (defn rand-direction [] (rand-nth [1 -1]))
 
 (s/fdef rand-direction
-        :args (s/cat)
-        :ret #{-1 1})
+  :args (s/cat)
+  :ret #{-1 1})
 
 (defn vary-pitch [{:keys [::pitch ::variation ::direction]}]
   (let [direction (or direction [-1 1])
         a         (descriptor->value pitch)
         b         (+ a (* (descriptor->value variation)
-                          (descriptor->value direction)))]
+                         (descriptor->value direction)))]
     [a b]))
 
 (s/fdef vary-pitch
-        :args (s/cat :data (s/keys :req [::pitch ::variation]))
-        :ret (s/tuple ::audio/semitone ::audio/semitone))
+  :args (s/cat :data (s/keys :req [::pitch ::variation]))
+  :ret (s/tuple ::audio/semitone ::audio/semitone))
 
 (om/defui ^:once PitchDetection
   static uc/InitialAppState
@@ -419,7 +552,8 @@
       (merge
         (uc/initial-state Exercise nil)
         {::name    "reading-music"
-         ::options ::option-type-text} props)))
+         ::options ::option-type-text}
+        props)))
 
   static om/Ident
   (ident [_ props] [:exercise/by-name (::name props)])
@@ -611,7 +745,7 @@
          ::options    (into [] (map (fn [[k v]] [(str k) v])) rhythm-options)
          ::play-notes (let [last-play       (atom [])
                             time-multiplier 0.7]
-                        (fn [notes]
+                        (fn [{::keys [notes]}]
                           (let [time  (audio/current-time)
                                 nodes (map #(update % ::audio/duration (partial * time-multiplier)) (prepare-notes notes))
                                 metro (map #(update % ::audio/duration (partial * time-multiplier)) (prepare-notes rhytm-metronome))]
@@ -690,8 +824,8 @@
     (let [[a b :as notes] (vary-pitch props)
           distance (js/Math.abs (- b a))]
       (js/console.log "start interval" (assoc props
-                        ::notes notes
-                        ::correct-answer (str distance)))
+                                         ::notes notes
+                                         ::correct-answer (str distance)))
       (assoc props
         ::notes notes
         ::correct-answer (str distance))))
@@ -707,18 +841,35 @@
    "Harmonic Minor" [2 1 2 2 1 3 1]
    "Chromatic"      [1 1 1 1 1 1 1 1 1 1 1 1 1]
    "Whole Tone"     [2 2 2 2 2 2]
-   "Melodic Minor"  [[2 1 2 2 1 2 2] [1 2 2 2 2 1 2]]})
+   "Melodic Minor"  [[2 1 2 2 2 2 1] [2 2 1 2 2 1 2]]})
 
 (s/def ::scale-offset (s/with-gen pos-int? #(s/gen #{1 2})))
 (s/def ::scale (s/coll-of ::scale-offset :kind vector? :max-count 12))
 (s/def ::full-scale (s/or :regular ::scale :irregular (s/tuple ::scale ::scale)))
 
+(defn build-up-scale [tonic scale]
+  (let [[type scale] (s/conform ::full-scale scale)
+        scale (if (= :regular type) scale (first scale))]
+    (reduce
+      (fn [notes offset]
+        (conj notes (+ (last notes) offset)))
+      [tonic]
+      scale)))
+
+(defn build-down-scale [tonic scale]
+  (let [[type scale] (s/conform ::full-scale scale)
+        scale (if (= :regular type) scale (second scale))]
+    (cond-> (reduce
+              (fn [notes offset]
+                (conj notes (+ (last notes) offset)))
+              [tonic]
+              scale)
+      :regular (-> rseq vec))))
+
 (defn build-scale [tonic scale]
-  (reduce
-    (fn [notes offset]
-      (conj notes (+ (last notes) offset)))
-    [tonic]
-    scale))
+  (->> (concat (build-up-scale tonic scale)
+               (next (build-down-scale tonic scale)))
+       vec))
 
 (om/defui ^:once Scales
   static uc/InitialAppState
@@ -754,6 +905,42 @@
     (exercise (om/props this)
       (dom/p #js {:key "p"} "What kind of scale do you hear?"))))
 
+(om/defui ^:once SingleSoundListening
+  static uc/InitialAppState
+  (initial-state [this props]
+    (new-round! this
+      (merge
+        (uc/initial-state Exercise nil)
+        {::name              "single-sound"
+         ::options           []
+         ::notes             ['_]
+         ::play-notes        (fn [{::keys [custom-sounds correct-answer custom-sound-idx]}]
+                               (audio/global-stop-all)
+                               (audio/play {::audio/node-gen #(audio/buffer-node (get custom-sounds [correct-answer custom-sound-idx]))
+                                            ::audio/time     (audio/current-time)}))
+         ::custom-sounds-req {}}
+        props)))
+
+  static om/Ident
+  (ident [_ props] [:exercise/by-name (::name props)])
+
+  static om/IQuery
+  (query [_] '[*])
+
+  static IExercise
+  (new-round [_ props]
+    (let [instrument (-> props ::custom-sounds-req keys vec rand-nth)
+          sound-idx  (-> props ::custom-sounds-req (get instrument) count rand-int)]
+      (assoc props
+        ::custom-sound-idx sound-idx
+        ::correct-answer instrument)))
+
+  Object
+  (render [this]
+    (let [{:keys [::question] :as props} (om/props this)]
+      (exercise props
+        (dom/p #js {:key "p"} question)))))
+
 (defmulti slug->exercise identity)
 
 (defmethod slug->exercise :default [_] nil)
@@ -763,9 +950,9 @@
    ::class PitchDetection
    ::props {::variation [12 ".." 24]}
    ::hints (fn [props]
-     ["Pitch is the sensation of a note being higher or lower"
-      "Does the second note sound higher or lower than the first?"
-      (str "The second note is " (answer-label props))])})
+             ["Pitch is the sensation of a note being higher or lower"
+              "Does the second note sound higher or lower than the first?"
+              (str "The second note is " (answer-label props))])})
 
 (defmethod slug->exercise "pitch-2" [name]
   {::name  name
@@ -837,6 +1024,10 @@
 (defmethod slug->exercise "rhythm-maths" [name]
   {::name  name
    ::class RhythmMath
+   ::props {}}
+
+  {::name  name
+   ::class SingleSoundListening
    ::props {}})
 
 (defmethod slug->exercise "rhythm-reading" [name]
@@ -1009,3 +1200,28 @@
   {::name  name
    ::class Quiz
    ::props {::quiz-map uk-symbols}})
+
+(defmethod slug->exercise "test-ex" [name]
+  {::name  name
+   ::class SingleSoundListening
+   ::props {::options           [["violin" "Violin"] ["flute" "Flute"] ["drum" "Drum"]]
+            ::custom-sounds-req {"flute"  ["/audio/flute_As4_15_piano_normal"]
+                                 "violin" ["/audio/violin_Gs3_15_fortissimo_arco-normal"]
+                                 "drum"   ["/audio/0a"
+                                           "/audio/1a"
+                                           "/audio/2a"]}}})
+
+(defmethod slug->exercise "recognising-chords-1" [name]
+  {::name  name
+   ::class SingleSoundListening
+   ::props {::options           [["major" "Major"] ["minor" "Minor"]]
+            ::custom-sounds-req {"major" ["/audio/chord_recog/1"
+                                          "/audio/chord_recog/2"
+                                          "/audio/chord_recog/3"
+                                          "/audio/chord_recog/4"]
+                                 "minor" ["/audio/chord_recog/5"
+                                          "/audio/chord_recog/6"
+                                          "/audio/chord_recog/7"
+                                          "/audio/chord_recog/8"]}
+            ::question          "What kind of chord is this?  Is it major or minor?"}})
+

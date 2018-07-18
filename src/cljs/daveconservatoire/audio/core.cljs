@@ -12,29 +12,29 @@
 (defonce AudioContext (or (gobj/get js/window "AudioContext")
                           (gobj/get js/window "webkitAudioContext")))
 
-(defonce ^:dynamic *audio-context* (AudioContext.))
+(defonce ^:dynamic *audio-context* (atom nil))
 
-(defn output [] (.-destination *audio-context*))
+(defn output [] (.-destination @*audio-context*))
 
 (s/def ::context #(instance? AudioContext %))
 (s/def ::node #(instance? js/AudioNode %))
 (s/def ::node-gen (s/fspec :args (s/cat) :ret ::node))
 (s/def ::buffer #(instance? js/AudioBuffer %))
-(s/def ::time pos-int?)
+(s/def ::time number?)
 (s/def ::sound-point
   (s/and (s/keys :req [::time] :opt [::node ::node-gen])
-         #(some #{::node ::node-gen} (keys %))))
+    #(some #{::node ::node-gen} (keys %))))
 (s/def ::sound-point-chan (ss/chan-of ::sound-point))
 (s/def ::items-list
   (s/+ (s/cat :node-gens (s/+ ::node-gen)
-              :interval ::time)))
+         :interval ::time)))
 (s/def ::interval ::time)
 (s/def ::duration nat-int?)
 
 (defn decode-audio-data [buffer]
   {:pre [(s/valid? ::ss/array-buffer buffer)]}
   (let [c (promise-chan)]
-    (.decodeAudioData *audio-context* buffer #(put! c %))
+    (.decodeAudioData @*audio-context* buffer #(put! c %))
     c))
 
 (s/fdef decode-audio-data
@@ -45,7 +45,7 @@
 
 (defn current-time []
   "Return the current time from the Audio Context."
-  (.-currentTime *audio-context*))
+  (.-currentTime @*audio-context*))
 
 (s/fdef current-time
   :ret ::time)
@@ -64,9 +64,7 @@
   "Creates a buffer node from an AudioBuffer."
   [buffer]
   {:pre [(s/valid? ::buffer buffer)]}
-  (doto (.createBufferSource *audio-context*)
-    #_ (.addEventListener "statechange" #(js/console.log "buffer state changed" %))
-    #_ (.addEventListener "ended" #(js/console.log "buffer node ended" %))
+  (doto (.createBufferSource @*audio-context*)
     (gobj/set "buffer" buffer)))
 
 (s/fdef buffer-node
@@ -75,7 +73,7 @@
 
 (defn gain-node [value]
   "Creates a gain with given value."
-  (let [node (.createGain *audio-context*)]
+  (let [node (.createGain @*audio-context*)]
     (-> (gobj/get node "gain") (gobj/set "value" value))
     node))
 
@@ -96,43 +94,102 @@
   :args (s/+ ::node))
 
 (defn preload-sounds [sounds]
-  (let [out (chan)
-        in (async/to-chan sounds)
+  (let [out     (chan)
+        in      (async/to-chan sounds)
         process (fn [[name str] out']
                   (go
                     (let [data (<! (base64->audio-data str))
-                          gen #(buffer-node data)]
+                          gen  #(buffer-node data)]
                       (>! out' [name gen])
                       (close! out'))))]
     (async/pipeline-async 10 out process in true)
     (async/into {} out)))
 
-(defn load-sound-file [url]
+(def sort-rank
+  {"probably" 1
+   "maybe"    2})
+
+(def extension-map
+  {"audio/mpeg" ".mp3"
+   "audio/ogg"  ".ogg"})
+
+(defonce audio-support
+  (memoize
+    (fn []
+      (let [audio (js/document.createElement "audio")]
+        (->> (keys extension-map)
+             (map #(vector % (.canPlayType audio %)))
+             (remove (comp #{""} second))
+             (sort-by (comp sort-rank second))
+             (mapv (comp extension-map first)))))))
+
+(defn load-sound-file* [url]
   (let [c (promise-chan)]
-    (let [xhr (js/XMLHttpRequest.)]
+    (let [xhr (js/XMLHttpRequest.)
+          url (str url (first (audio-support)))]
       (.open xhr "GET" url true)
       (gobj/set xhr "responseType" "arraybuffer")
       (gobj/set xhr "onload"
-        (fn []
-          (js/console.log "loaded file" (gobj/get xhr "response"))
-          #_ (async/pipe
-            (decode-audio-data (gobj/get xhr "response"))
-            c)))
+        #(let [response (gobj/get xhr "response")]
+           (go (put! c (<! (decode-audio-data response))))))
       (.send xhr))
     c))
 
-(defonce ^:dynamic *sound-library*
-  (let [a (atom {})]
-    (go
-      (reset! a (<! (preload-sounds (merge piano metro)))))
-    a))
+(def load-sound-file (memoize load-sound-file*))
+
+(s/fdef load-sound-file
+  :args (s/cat :url string?)
+  :ret (ss/chan-of ::buffer))
+
+(defn load-sound-library
+  ([library] (load-sound-library library nil))
+  ([library progress-chan]
+   (let [c (promise-chan)]
+     (go
+       (let [out      (chan)
+             in       (async/to-chan library)
+             progress (atom 0)
+             process  (fn [[k url] result]
+                        (go
+                          (let [buffer (<! (load-sound-file url))]
+                            (if progress-chan
+                              (>! progress-chan {:ui/progress-total (count library)
+                                                 :ui/progress-value (swap! progress inc)}))
+                            (>! result [k buffer])
+                            (close! result))))]
+         (if progress-chan
+           (>! progress-chan {:ui/progress-total (count library)
+                              :ui/progress-value 0}))
+         (async/pipeline-async 4 out process in true)
+         (put! c (let [library-out (<! (async/into {} out))]
+                   (if progress-chan (close! progress-chan))
+                   library-out))))
+     c)))
+
+(s/def ::sound-label any?)
+
+(s/def ::library-request (s/map-of ::sound-label string?))
+
+(s/fdef load-sound-library
+  :args (s/cat :library ::library-request)
+  :ret (ss/chan-of (s/map-of ::sound-label ::buffer)))
+
+(defonce ^:dynamic *sound-library* (atom nil))
+
+(defn upsert-sound-context []
+  (if @*audio-context*
+    (go nil)
+    (do
+      (reset! *audio-context* (AudioContext.))
+      (go
+        (reset! *sound-library* (<! (preload-sounds (merge piano metro))))))))
 
 (defonce global-sound-manager
   (atom {::nodes {}}))
 
 (defn play
   ([sound] (play sound global-sound-manager))
-  ([{:keys [::node ::node-gen ::time] :as sound} tracker]
+  ([{::keys [node node-gen time] :as sound} tracker]
    (let [node (or node (node-gen))]
      (swap! tracker update ::nodes assoc node (assoc sound ::node node))
      (doto node
@@ -142,17 +199,15 @@
 
 (s/fdef play
   :args (s/cat :sound ::sound-point
-               :tracker (s/? #(instance? Atom %))))
+          :tracker (s/? #(instance? Atom %))))
 
-(defn play-sequence [nodes {:keys [::time]}]
-  (-> (reduce (fn [[anodes t] {:keys [::duration] :as node}]
+(defn play-sequence [nodes {::keys [time]}]
+  (-> (reduce (fn [[anodes t] {::keys [duration] :as node}]
                 [(conj anodes (play (assoc node ::time t)))
                  (+ t duration)])
-              [[] time]
-              nodes)
+        [[] time]
+        nodes)
       (first)))
-
-
 
 (defn play-regular-sequence [nodes {:keys [::interval] :as options}]
   (play-sequence (map #(assoc % ::duration interval) nodes) options))
@@ -164,11 +219,11 @@
   (go
     (loop [i 0
            t start]
-      (let [i (mod i (count items))
+      (let [i   (mod i (count items))
             val (get items i)]
         (if (number? val)
           (recur (inc i)
-                 (+ t val))
+            (+ t val))
           (do
             (>! chan {::node-gen val ::time t ::node-index i})
             (recur (inc i) t))))))
@@ -176,8 +231,8 @@
 
 (s/fdef loop-chan
   :args (s/cat :items (s/spec ::items-list)
-               :start ::time
-               :chan ::sound-point-chan)
+          :start ::time
+          :chan ::sound-point-chan)
   :ret ::sound-point-chan)
 
 (defn stop [node] (.stop node))
@@ -190,7 +245,7 @@
 
 (defn consume-loop [interval chan]
   (let [control (async/chan)
-        active (atom {::nodes {}})]
+        active  (atom {::nodes {}})]
     (go
       (loop []
         (when-let [{:keys [::time] :as sound} (<! chan)]
@@ -214,7 +269,7 @@
 
 (s/fdef consume-loop
   :args (s/cat :interval ::time
-               :chan ::sound-point-chan)
+          :chan ::sound-point-chan)
   :ret (ss/chan-of #{:stop :stop-hard}))
 
 (defn play-loop [items start]
@@ -228,7 +283,6 @@
 (def MAJOR-TRIAD [0 4 7])
 (def MINOR-TRIAD [0 3 7])
 (def DOMINANT-SEVENTH [0 4 7 10])
-
 
 (def MAJOR-STEPS {0 0, 1 2, 2 4, 3 5, 4 7, 5 9, 6 11})
 (def MAJOR-ARRANGEMENTS {0 MAJOR-TRIAD 1 MINOR-TRIAD 2 MINOR-TRIAD 3 MAJOR-TRIAD 4 MAJOR-TRIAD 5 MINOR-TRIAD 6 [0, 3, 6]})
@@ -264,25 +318,25 @@
 
 (s/fdef note->semitone
   :args (s/cat :note (s/or :note ::note
-                           :semitone ::semitone))
+                       :semitone ::semitone))
   :ret ::semitone
   :fn #(= (semitone->note (:ret %))
-          (semitone->note (-> % :args :note second))))
+         (semitone->note (-> % :args :note second))))
 
 (defn semitone->note [semitone]
   (if-not (s/valid? ::semitone semitone)
     semitone
-    (let [s (- semitone 3)
+    (let [s      (- semitone 3)
           octive (-> (js/Math.floor (/ s 12)) (+ 1))
-          tone (-> (+ s 12) (mod 12))]
+          tone   (-> (+ s 12) (mod 12))]
       (str (SEMITONE->NOTE tone) octive))))
 
 (s/fdef semitone->note
   :args (s/cat :semitone (s/or :note ::note
-                               :semitone ::semitone))
+                           :semitone ::semitone))
   :ret ::note
   :fn #(= (note->semitone (:ret %))
-          (note->semitone (-> % :args :semitone second))))
+         (note->semitone (-> % :args :semitone second))))
 
 (defn chord [base arrange]
   (let [base (note->semitone base)]

@@ -209,31 +209,7 @@
                        :user-activity/user       (ps/has-one :user :user-activity/user-id)
                        :user-activity/lesson     (ps/has-one :lesson :user-activity/lesson-id)
                        :user-activity/hints-used "countHints"
-                       :activity/lesson          (ps/has-one :lesson :user-activity/lesson-id)}}
-
-     {::ps/table      :user-view
-      ::ps/table-name "UserVideoView"
-      ::ps/fields     {:db/id                   "id"
-                       :db/timestamp            "timestamp"
-                       :user-activity/user-id   "userId"
-                       :user-activity/lesson-id "lessonId"
-                       :user-activity/status    "status"
-                       :user-activity/position  "position"}}
-
-     {::ps/table      :ex-answer
-      ::ps/table-name "UserExerciseAnswer"
-      ::ps/fields     {:db/id                   "id"
-                       :db/timestamp            "timestamp"
-                       :user-activity/user-id   "userId"
-                       :user-activity/lesson-id "exerciseId"
-                       :user-activity/hints-used "countHints"}}
-
-     {::ps/table      :ex-mastery
-      ::ps/table-name "UserExSingleMastery"
-      ::ps/fields     {:db/id                   "id"
-                       :db/timestamp            "timestamp"
-                       :user-activity/user-id   "userId"
-                       :user-activity/lesson-id "exerciseId"}}]))
+                       :activity/lesson          (ps/has-one :lesson :user-activity/lesson-id)}}]))
 
 (defn current-timestamp []
   (js/Math.round (/ (.getTime (js/Date.)) 1000)))
@@ -297,9 +273,7 @@
       (when (not= lesson-id (:user-activity/lesson-id last-view))
         (<? (ps/save env (assoc view :db/table :user-activity
                                      :db/timestamp (current-timestamp)
-                                     :user-activity/type "view")))
-        (<? (ps/save env (assoc view :db/table :user-view
-                                     :db/timestamp (current-timestamp))))))))
+                                     :user-activity/type "view")))))))
 
 (defn conj-vec [v x]
   (conj (or v []) x))
@@ -307,52 +281,54 @@
 (defn compute-ex-answer [{:keys [current-user-id http-request] :as env}
                          {:keys [url/slug user-activity/hints-used]}]
   (go-catch
-    (let [lesson (<? (ps/find-by env {:db/table :lesson
-                                      :url/slug slug}))
-          answer {:db/table                 :user-activity
-                  :db/timestamp             (current-timestamp)
-                  :user-activity/type       "answer"
-                  :user-activity/lesson-id  (:db/id lesson)
-                  :user-activity/hints-used hints-used
-                  :guest-tx/increase-score  1}]
-      (if current-user-id
-        (let [user (<? (ps/find-by env {:db/table :user :db/id current-user-id}))]
-          (<? (ps/save env (update user :user/score inc)))
-          (<? (ps/save env (assoc answer :user-activity/user-id current-user-id)))
-          (<? (ps/save env (assoc answer :user-activity/user-id current-user-id
-                                         :db/table :ex-answer))))
+    (try
+      (let [lesson (<? (ps/find-by env {:db/table :lesson
+                                        :url/slug slug}))
+            answer {:db/table                 :user-activity
+                    :db/timestamp             (current-timestamp)
+                    :user-activity/type       "answer"
+                    :user-activity/lesson-id  (:db/id lesson)
+                    :user-activity/hints-used hints-used
+                    :guest-tx/increase-score  1}]
+        (if current-user-id
+          (let [user (<? (ps/find-by env {:db/table :user :db/id current-user-id}))]
+            (<? (ps/save env (update user :user/score inc)))
+            (<? (ps/save env (assoc answer :user-activity/user-id current-user-id))))
 
-        ; save for guest
-        (ex/session-update! http-request :guest-tx
-                            #(conj-vec % answer)))
-      true)))
+          ; save for guest
+          (ex/session-update! http-request :guest-tx
+            #(conj-vec % answer)))
+        true)
+      (catch :default e
+        (js/console.log "ERROR SAVING EX" e)))))
 
 (defn compute-ex-answer-master [{:keys [current-user-id http-request] :as env}
                                 {:keys [url/slug]}]
   (go-catch
-    (let [lesson (<? (ps/find-by env {:db/table :lesson
-                                      :url/slug slug}))
-          answer {:db/table                 :user-activity
-                  :db/timestamp             (current-timestamp)
-                  :user-activity/type       "mastery"
-                  :user-activity/lesson-id  (:db/id lesson)
-                  :guest-tx/increase-score  100}]
-      (if current-user-id
-        (let [user (<? (ps/find-by env {:db/table :user :db/id current-user-id}))]
-          (if (zero? (<? (ps/count env :user-activity [[:where {:user-activity/user-id   current-user-id
-                                                                :user-activity/type      "mastery"
-                                                                :user-activity/lesson-id (:db/id lesson)}]])))
-            (do
-              (<? (ps/save env (update user :user/score (partial + 100))))
-              (<? (ps/save env (assoc answer :user-activity/user-id current-user-id)))
-              (<? (ps/save env (assoc answer :user-activity/user-id current-user-id
-                                             :db/table :ex-mastery))))
-            (<? (ps/save env (update user :user/score inc)))))
+    (try
+      (let [lesson (<? (ps/find-by env {:db/table :lesson
+                                        :url/slug slug}))
+            answer {:db/table                :user-activity
+                    :db/timestamp            (current-timestamp)
+                    :user-activity/type      "mastery"
+                    :user-activity/lesson-id (:db/id lesson)
+                    :guest-tx/increase-score 100}]
+        (if current-user-id
+          (let [user (<? (ps/find-by env {:db/table :user :db/id current-user-id}))]
+            (if (zero? (<? (ps/count env :user-activity [[:where {:user-activity/user-id   current-user-id
+                                                                  :user-activity/type      "mastery"
+                                                                  :user-activity/lesson-id (:db/id lesson)}]])))
+              (do
+                (<? (ps/save env (update user :user/score (partial + 100))))
+                (<? (ps/save env (assoc answer :user-activity/user-id current-user-id))))
+              (<? (ps/save env (update user :user/score inc)))))
 
-        ; save for guest
-        (ex/session-update! http-request :guest-tx
-                            #(conj-vec % answer)))
-      true)))
+          ; save for guest
+          (ex/session-update! http-request :guest-tx
+            #(conj-vec % answer)))
+        true)
+      (catch :default e
+        (js/console.log "ERROR SAVING MASTERY" e)))))
 
 ;; ROOT READS
 

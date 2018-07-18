@@ -388,7 +388,7 @@
     (u/model-ident props))
 
   static om/IQuery
-  (query [_] [:db/id :db/table :user/name :user/score
+  (query [_] [:db/id :db/table :user/name :user/score :user/subscription-amount :user/created-at
               {:lesson/search (om/get-query LessonCell)}
               {:lesson/search-swap [:ui/fetch-state]}
               {'[:ui/search-cursor _] (om/get-query cursor/VerticalCursor)}
@@ -588,8 +588,9 @@
                             :person "Martin Bean, Vice Chancellor, Open University"})
               (testimonial {:quote  "The stuff you're doing is super cool! I hope we get the chance to meet and/or collaborate in the not-too-far-off future."
                             :person "Salman Khan, Founder, Khan Academy"}))))
-        (get-started)
-        ))))
+
+        (get-started)))))
+
 
 (defmethod r/route->component ::r/about [_] AboutPage)
 
@@ -1441,12 +1442,12 @@
                   (dom/i #js {:className "icon-star intro-icon-large dc-text-orange pull-right"}))
                 (dom/h1 #js {:style #js {:margin 0}} "My Subscription")
 
-                (if subscription-amount
+                (if-not (= "0" subscription-amount)
                   (dom/h1 nil (gstr/format "$%.2f per month" subscription-amount)))
 
-                (if subscription-amount
-                  (dom/p nil "Thank you so much for your subscription. Your support is vital in helping us serve music students around the world.")
-                  (dom/p nil "Dave Conservatoire will be free forever, but if you are in a position to, subscribing will help us serve music students around the world."))))))
+                (if (= "0" subscription-amount)
+                  (dom/p nil "Dave Conservatoire will be free forever, but if you are in a position to, subscribing will help us serve music students around the world.")
+                  (dom/p nil "Thank you so much for your subscription. Your support is vital in helping us serve music students around the world."))))))
         (dom/div #js {:className "pad30"})
         (dom/div #js {:className "row"}
           (dom/div #js {:className "span5 whiteback"}
@@ -1740,13 +1741,13 @@
     (dom/div #js {:className "container"}
       (dom/div #js {:className "row"}
         (dom/div #js {:className "span8"}
-          (dom/h3 nil "Welcome to our new site!")
-          (dom/h3 nil "Hopefully it's working great. ")
-          (dom/p nil "If you notice something not working as it should - please tell us and we'll fix it!"))
+          (dom/h3 nil "Finding this site useful?")
+          (dom/h3 nil "Help us spread music around the world!")
+          (dom/p nil "You can join our mission of free music education for all by becoming a subscriber. "))
         (dom/div #js {:className "span4"}
-          (link {::r/handler ::r/contact :className "btn btn-primary" :style #js {:marginTop 43}}
+          (link {::r/handler ::r/subscribe :className "btn btn-primary" :style #js {:marginTop 43}}
             (dom/h2 nil
-                    "Report a bug!")))))))
+                    "Find out more!")))))))
 
 (def banner-routes #{::r/topic ::r/lesson})
 

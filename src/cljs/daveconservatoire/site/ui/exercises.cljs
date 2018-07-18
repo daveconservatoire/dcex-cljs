@@ -30,7 +30,7 @@
 (s/def ::description string?)
 (s/def ::option (s/cat :value string? :label string?))
 (s/def ::options (s/or :text #{::option-type-text}
-                   :select (s/coll-of ::option :kind vector?)))
+                       :select (s/coll-of ::option :kind vector?)))
 
 (s/def ::hints (s/coll-of ::template/fragment))
 (s/def ::hints-used nat-int?)
@@ -42,13 +42,13 @@
 
 (s/def ::value-descriptor
   (s/or :sound ::audio/sound
-    :range (s/and (s/tuple ::audio/sound #{".."} ::audio/sound)
-             (fn [[[_ a] _ [_ b] :as t]]
-               (if (< (audio/note->semitone a)
-                     (audio/note->semitone b))
-                 t
-                 false)))
-    :list (s/coll-of ::audio/sound)))
+        :range (s/and (s/tuple ::audio/sound #{".."} ::audio/sound)
+                 (fn [[[_ a] _ [_ b] :as t]]
+                   (if (< (audio/note->semitone a)
+                         (audio/note->semitone b))
+                     t
+                     false)))
+        :list (s/coll-of ::audio/sound)))
 
 (s/def ::pitch ::value-descriptor)
 (s/def ::variation ::value-descriptor)
@@ -68,14 +68,17 @@
   (render [this]
     (let [{:ui/keys [progress-value progress-total] :as props} (om/props this)
           pct (-> (/ progress-value progress-total) (* 100))]
-      (dom/div (u/props->html {:className "progress progress-striped active success" :style {:margin 20}}
+      (dom/div (u/props->html {:className "progress progress-striped active success" :style {:margin 20 :flex 1}}
                  props)
         (dom/div #js {:className "bar" :style #js {:width (str pct "%")}})))))
 
 (def progress-bar (om/factory ProgressBar))
 
-(defn completed? [{:keys [::ex-total-questions ::streak-count]}]
+(defn completed? [{::keys [ex-total-questions streak-count]}]
   (>= streak-count ex-total-questions))
+
+(defn game-over? [{::keys [lives-left]}]
+  (zero? lives-left))
 
 (defn answer-label [{::keys [correct-answer options]}]
   (-> (into {} options) (get correct-answer)))
@@ -128,38 +131,59 @@
 
   {:action
    (fn []
-     (let [{::keys [ex-answer correct-answer streak-count class last-error ex-total-questions] :as props} (get-in @state ref)]
+     (let [{::keys [ex-answer correct-answer streak-count class last-error ex-total-questions lives-left] :as props} (get-in @state ref)]
        (if (and ex-answer (seq ex-answer))
          (if (= ex-answer correct-answer)
            (let [next-streak (inc streak-count)
-                 new-props (if last-error
-                             (assoc props ::streak-count next-streak
-                                          ::last-error false
-                                          ::confirm-answer true)
-                             (new-round class
-                               (merge props
-                                 {::streak-count   next-streak
-                                  ::hints-used     0
-                                  ::ex-answer      nil
-                                  ::confirm-answer true})))]
+                 new-props   (if last-error
+                               (assoc props ::streak-count next-streak
+                                            ::last-error false
+                                            ::confirm-answer true)
+                               (new-round class
+                                 (merge props
+                                        {::streak-count   next-streak
+                                         ::hints-used     0
+                                         ::ex-answer      nil
+                                         ::confirm-answer true})))]
              (swap! state assoc-in ref new-props)
              (if-not (completed? new-props)
                (play-sound new-props)))
-           (swap! state update-in ref assoc ::streak-count 0 ::last-error false ::ex-answer nil ::confirm-answer false
-             (play-sound props)))
+           (do
+             (swap! state update-in ref assoc ::lives-left (dec lives-left) ::ex-answer nil ::confirm-answer false)
+             (if (> lives-left 1) (play-sound props))))
          (swap! state update-in ref assoc ::confirm-answer false))))
 
    :remote
    (let [{::keys [name streak-count ex-total-questions hints-used confirm-answer]} (get-in @state ref)]
-     (if confirm-answer
+     (when confirm-answer
+       (js/console.log "CONFIRM ANSWER" streak-count ex-total-questions)
        (cond
          (= streak-count ex-total-questions)
          (-> (om/query->ast `[(exercise/score-master {:url/slug ~name :user-activity/hints-used ~hints-used})])
-           :children first)
+             :children first)
 
          (> streak-count 0)
          (-> (om/query->ast `[(exercise/score {:url/slug ~name :user-activity/hints-used ~hints-used})])
-           :children first))))})
+             :children first))))})
+
+(def total-lives 3)
+
+(defmethod um/mutate 'dcex/restart-exercise
+  [{:keys [state ref]} _ _]
+
+  {:action
+   (fn []
+     (let [{::keys [class] :as props} (get-in @state ref)]
+       (let [new-props (new-round class
+                         (merge props
+                                {::streak-count   0
+                                 ::hints-used     0
+                                 ::lives-left     total-lives
+                                 ::last-error     false
+                                 ::ex-answer      nil
+                                 ::confirm-answer true}))]
+         (swap! state assoc-in ref new-props)
+         (play-sound new-props))))})
 
 (defn int-in [min max] (+ min (rand-int (- max min))))
 
@@ -176,8 +200,6 @@
 (s/fdef descriptor->value
   :args (s/cat :desc ::value-descriptor)
   :ret ::audio/semitone)
-
-
 
 (defn handle-progress [comp progress-chan]
   (go
@@ -205,7 +227,8 @@
 (om/defui ^:once Exercise
   static uc/InitialAppState
   (initial-state [_ _] {::ex-answer              nil
-                        ::ex-total-questions     3
+                        ::ex-total-questions     20
+                        ::lives-left             total-lives
                         ::streak-count           0
                         ::hints-used             0
                         ::play-notes             play-notes
@@ -228,7 +251,8 @@
 
   (render [this]
     (let [{::keys [options ex-answer ex-total-questions streak-count notes hints context-missing
-                   hints-used started? custom-sounds-req custom-sounds custom-sounds-progress]
+                   hints-used started? custom-sounds-req custom-sounds custom-sounds-progress
+                   lives-left]
            :as    props} (om/props this)
           state        (-> this om/get-reconciler om/app-state deref)
           me           (get-in state (get state :app/me))
@@ -239,7 +263,6 @@
                           (om/transact! parent `[(dcex/check-answer)
                                                  (fulcro/load {:query [{:app/me ~(om/get-query UserScore)}] :marker false})]))]
       (s/assert ::ex-props props)
-      (js/console.log "ENTER EX RENDER!!" me)
       (dom/div #js {:className "lesson-content"}
         (cond
           (not started?)
@@ -266,11 +289,25 @@
                           :onClick   (fn [e]
                                        (.preventDefault e)
                                        (let [audio-ready (audio/upsert-sound-context)]
-                                     (go
-                                       (<! audio-ready)
-                                       (um/set-value! parent ::started? true)
-                                       (play-sound props))))}
+                                         (go
+                                           (<! audio-ready)
+                                           (um/set-value! parent ::started? true)
+                                           (play-sound props))))}
                 (dom/h1 nil "Start Exercise"))))
+
+          (game-over? props)
+          (dom/div #js {:className "tile introboxes"}
+            (dom/div #js {:className "intro-icon-disc cont-large"}
+              (dom/i #js {:className "icon-star intro-icon-large dc-text-orange"}))
+            (dom/h6 #js {}
+              (dom/small #js {}
+                "Oh no - you have no lives left!"))
+            (dom/p #js {}
+              "Keep trying - practice makes perfect. . . ")
+            (dom/a #js {:onClick (fn [e]
+                                   (.preventDefault e)
+                                   (om/transact! parent `[(dcex/restart-exercise)])), :className "btn btn-primary  btn-custom btn-rounded btn-block dc-btn-orange"}
+              "Start again"))
 
           (completed? props)
           (cond
@@ -282,7 +319,7 @@
                 (dom/small #js {}
                   "CONGRATULATIONS!"))
               (dom/p #js {}
-                "You have mastered this exercise for today.  You can track your progress on the site by creating and account.")
+                "You have mastered this exercise for today.  You can track your progress on the site by creating an account.")
               (dom/a #js {:href "/login", :className "btn btn-primary  btn-custom btn-rounded btn-block dc-btn-orange"}
                 "Sign in to track your progress"))
 
@@ -316,13 +353,17 @@
               (dom/div #js {:className "exercises-stack"})
               (dom/div #js {:className "exercises-card current-card"}
                 (dom/div #js {:className "current-card-container card-type-problem"}
-                  (dom/div #js {:className "current-card-container-inner vertical-shadow" :style #js {"width" "100%"}}
+                  (dom/div #js {:className "current-card-container-inner vertical-shadow" :style #js {:width "100%"}}
                     (dom/div #js {:className "current-card-contents"}
-                      (progress-bar {:ui/progress-value streak-count
-                                     :ui/progress-total ex-total-questions})
+                      (dom/div #js {:id "scoring-container" :style #js {:display "flex" :alignItems "center"}}
+                        (progress-bar {:ui/progress-value streak-count
+                                       :ui/progress-total ex-total-questions})
+                        (dom/div #js {:style #js {:fontSize "25px" :color "red" :width "135px" }}
+                          (for [i (range lives-left)]
+                            (dom/i #js {:className "icon-heart" :key i :style #js {:padding "0 10px"}}))))
                       (dom/div #js {:id "problem-and-answer" :className "framework-khan-exercises"}
-                        (dom/div #js {:id "problemarea" :style #js {"marginTop" "0"}}
-                          (dom/div #js {:id "workarea" :style #js {"backgroundColor" "white" "margin" "5px" "padding" "10px" "border" "1px solid #ddd"}}
+                        (dom/div #js {:id "problemarea" :style #js {:marginTop "0"}}
+                          (dom/div #js {:id "workarea" :style #js {:backgroundColor "white" :margin "5px" :padding "10px" :border "1px solid #ddd"}}
                             (dom/div #js {:id "problem-type-or-description"}
                               (dom/div #js {:className "problem"}
                                 (om/children this)
@@ -332,7 +373,7 @@
                                     "Play Again")))))
                           (dom/div #js {:id "hintsarea" :style #js{"margin" "0"}}
                             (for [[hint i] (map vector (take hints-used hints) (range))]
-                              (dom/p #js {:key i :style #js {"margin" "5px" "padding" "5px" "background" "#eee" "border" "1px #ddd solid"}} hint))))
+                              (dom/p #js {:key i :style #js {:margin "5px" :padding "5px" :background "#eee" :border "1px #ddd solid"}} hint))))
                         (dom/div #js {:id "answer_area_wrap"}
                           (dom/div #js {:id "answer_area"}
                             (dom/form #js {:id "answerform" :name "answerform" :onSubmit #(do
@@ -704,7 +745,7 @@
          ::options    (into [] (map (fn [[k v]] [(str k) v])) rhythm-options)
          ::play-notes (let [last-play       (atom [])
                             time-multiplier 0.7]
-                        (fn [notes]
+                        (fn [{::keys [notes]}]
                           (let [time  (audio/current-time)
                                 nodes (map #(update % ::audio/duration (partial * time-multiplier)) (prepare-notes notes))
                                 metro (map #(update % ::audio/duration (partial * time-multiplier)) (prepare-notes rhytm-metronome))]
@@ -1174,13 +1215,13 @@
   {::name  name
    ::class SingleSoundListening
    ::props {::options           [["major" "Major"] ["minor" "Minor"]]
-            ::custom-sounds-req {"major"  ["/audio/chord_recog/1"
-                                           "/audio/chord_recog/2"
-                                           "/audio/chord_recog/3"
-                                           "/audio/chord_recog/4"]
+            ::custom-sounds-req {"major" ["/audio/chord_recog/1"
+                                          "/audio/chord_recog/2"
+                                          "/audio/chord_recog/3"
+                                          "/audio/chord_recog/4"]
                                  "minor" ["/audio/chord_recog/5"
                                           "/audio/chord_recog/6"
                                           "/audio/chord_recog/7"
                                           "/audio/chord_recog/8"]}
-            ::question "What kind of chord is this?  Is it major or minor?"}})
+            ::question          "What kind of chord is this?  Is it major or minor?"}})
 

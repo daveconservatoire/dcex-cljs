@@ -8,6 +8,7 @@
             [daveconservatoire.site.core :as dc]
             [om.next :as om]
             [om.util :as omu]
+            [daveconservatoire.audio.core :as audio]
             [goog.object :as gobj]))
 
 (js/NProgress.configure #js {:minimum      0.4
@@ -33,6 +34,7 @@
   [{:keys [state reconciler] :as env} _ route]
   {:action
    (fn []
+     (audio/global-stop-all)
      (let [comp       (r/route->component route)
            data-query (if (implements? r/IRouteMiddleware comp)
                         (r/remote-query comp route)

@@ -19,7 +19,7 @@
     "express-session": "^1.14.1",
     "express-useragent": "^1.0.8",
     "knex": "^0.10.0",
-    "moment": "^2.18.1",
+    "moment": "^2.19.3",
     "mysql": "^2.10.2",
     "passport": "^0.3.2",
     "passport-facebook": "^2.1.1",

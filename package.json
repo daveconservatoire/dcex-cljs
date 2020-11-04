@@ -2,9 +2,7 @@
   "name": "dcapi",
   "version": "0.1.0",
   "private": "true",
-  "engines": {
-    "node": "5.10.1"
-  },
+
   "scripts": {
     "build-js": "lein cljsbuild once prod",
     "start": "node server.js",

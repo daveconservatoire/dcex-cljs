@@ -29,6 +29,6 @@
   },
   "devDependencies": {
     "source-map-support": "0.4.0",
-    "ws": "0.8.1"
+    "ws": "3.3.1"
   }
 }
